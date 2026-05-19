@@ -15,9 +15,12 @@ public class EventoPetRepository : IEventoPetRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<EventoPet>> GetAllAsync(int page, int pageSize, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
+    public async Task<IEnumerable<EventoPet>> GetAllAsync(int page, int pageSize, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
     {
         var query = _context.EventosPet.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(cidade))
+            query = query.Where(e => e.Cidade != null && e.Cidade.ToUpper() == cidade.ToUpper());
 
         if (tipo.HasValue)
             query = query.Where(e => e.Tipo == tipo.Value);
