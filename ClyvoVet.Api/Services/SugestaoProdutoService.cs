@@ -11,11 +11,13 @@ public class SugestaoProdutoService : ISugestaoProdutoService
 {
     private readonly ISugestaoProdutoRepository _repository;
     private readonly IAnimalRepository _animalRepository;
+    private readonly IProdutoRepository _produtoRepository;
 
-    public SugestaoProdutoService(ISugestaoProdutoRepository repository, IAnimalRepository animalRepository)
+    public SugestaoProdutoService(ISugestaoProdutoRepository repository, IAnimalRepository animalRepository, IProdutoRepository produtoRepository)
     {
         _repository = repository;
         _animalRepository = animalRepository;
+        _produtoRepository = produtoRepository;
     }
 
     public async Task<IEnumerable<SugestaoProdutoResponse>> GetAllAsync(int page, int pageSize, string? animalId)
@@ -38,6 +40,10 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         if (animal is null)
             throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
 
+        var produto = await _produtoRepository.GetByIdAsync(request.ProdutoId);
+        if (produto is null)
+            throw new NotFoundException($"Produto com id {request.ProdutoId} não encontrado.");
+
         var sugestao = new SugestaoProduto
         {
             AnimalId = request.AnimalId,
@@ -57,6 +63,14 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         var existing = await _repository.GetByIdAsync(id);
         if (existing is null)
             throw new NotFoundException($"Sugestão com id {id} não encontrada.");
+
+        var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
+        if (animal is null)
+            throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
+
+        var produto = await _produtoRepository.GetByIdAsync(request.ProdutoId);
+        if (produto is null)
+            throw new NotFoundException($"Produto com id {request.ProdutoId} não encontrado.");
 
         var sugestao = new SugestaoProduto
         {
