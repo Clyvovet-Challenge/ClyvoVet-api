@@ -21,6 +21,9 @@ public class SugestaoProdutoController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? animalId = null)
     {
+        if (page < 1) return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
+        if (pageSize < 1 || pageSize > 100) return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+
         var result = await _service.GetAllAsync(page, pageSize, animalId);
         return Ok(result);
     }

@@ -24,6 +24,9 @@ public class LembreteController : ControllerBase
         [FromQuery] StatusLembreteEnum? status = null,
         [FromQuery] TipoLembreteEnum? tipo = null)
     {
+        if (page < 1) return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
+        if (pageSize < 1 || pageSize > 100) return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+
         var result = await _service.GetAllAsync(page, pageSize, animalId, status, tipo);
         return Ok(result);
     }
