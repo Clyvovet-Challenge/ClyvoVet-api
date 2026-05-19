@@ -97,14 +97,33 @@ dotnet restore
 **4. Execute a aplicação:**
 
 ```bash
+cd ClyvoVet.Api
 dotnet run
 ```
 
 **5. Acesse o Swagger:**
 
+Após subir, o terminal exibirá as URLs disponíveis. Acesse:
+
 ```
+http://localhost:{porta}/swagger
 https://localhost:{porta}/swagger
 ```
+
+> O Swagger só está disponível no ambiente `Development` (padrão ao rodar via `dotnet run`).
+
+---
+
+### Configurando HTTPS (certificado de desenvolvimento)
+
+Caso o navegador exiba `ERR_CONNECTION_RESET` ao acessar a URL HTTPS, instale e confie no certificado de desenvolvimento do .NET:
+
+```bash
+dotnet dev-certs https --clean
+dotnet dev-certs https --trust
+```
+
+Confirme a instalação quando o Windows solicitar. Após isso, reinicie a aplicação e acesse `https://localhost:{porta}/swagger`.
 
 ---
 
