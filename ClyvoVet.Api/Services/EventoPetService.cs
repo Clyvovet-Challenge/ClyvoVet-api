@@ -19,11 +19,7 @@ public class EventoPetService : IEventoPetService
 
     public async Task<IEnumerable<EventoPetResponse>> GetAllAsync(int page, int pageSize, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
     {
-        var eventos = await _repository.GetAllAsync(page, pageSize, tipo, especieAlvo);
-
-        if (!string.IsNullOrWhiteSpace(cidade))
-            eventos = eventos.Where(e => e.Cidade != null && e.Cidade.Equals(cidade, StringComparison.OrdinalIgnoreCase));
-
+        var eventos = await _repository.GetAllAsync(page, pageSize, cidade, tipo, especieAlvo);
         return eventos.Select(MapToResponse);
     }
 
