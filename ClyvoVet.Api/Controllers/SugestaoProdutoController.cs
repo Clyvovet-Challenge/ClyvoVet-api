@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ClyvoVet.Api.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/sugestoes-produto")]
 public class SugestaoProdutoController : ControllerBase
 {
     private readonly ISugestaoProdutoService _service;

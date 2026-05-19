@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ClyvoVet.Api.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/lembretes")]
 public class LembreteController : ControllerBase
 {
     private readonly ILembreteService _service;

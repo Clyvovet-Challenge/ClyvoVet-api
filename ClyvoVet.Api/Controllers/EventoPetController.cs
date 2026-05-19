@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ClyvoVet.Api.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/eventos-pet")]
 public class EventoPetController : ControllerBase
 {
     private readonly IEventoPetService _service;
