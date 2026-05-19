@@ -64,6 +64,10 @@ public class LembreteService : ILembreteService
         if (existing is null)
             throw new NotFoundException($"Lembrete com id {id} não encontrado.");
 
+        var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
+        if (animal is null)
+            throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
+
         var lembrete = new Lembrete
         {
             AnimalId = request.AnimalId,
