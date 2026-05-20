@@ -50,7 +50,7 @@ public class LembreteService : ILembreteService
             Tipo = request.Tipo,
             AgendadoEm = request.AgendadoEm,
             Recorrente = request.Recorrente,
-            Status = request.Status
+            Status = StatusLembreteEnum.Pendente
         };
 
         var created = await _repository.CreateAsync(lembrete);
