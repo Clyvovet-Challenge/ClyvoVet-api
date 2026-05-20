@@ -68,6 +68,9 @@ public class LembreteService : ILembreteService
         if (animal is null)
             throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
 
+        if (request.AgendadoEm < DateTime.UtcNow)
+            throw new BadRequestException("A data do lembrete não pode ser no passado.");
+
         var lembrete = new Lembrete
         {
             AnimalId = request.AnimalId,
