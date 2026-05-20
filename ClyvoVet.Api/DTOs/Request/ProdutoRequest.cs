@@ -15,6 +15,7 @@ public class ProdutoRequest
     [Required]
     public CategoriaEnum Categoria { get; set; }
 
+    [Range(0, double.MaxValue, ErrorMessage = "O preço não pode ser negativo.")]
     public decimal? Preco { get; set; }
 
     [Required]
