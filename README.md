@@ -127,6 +127,70 @@ Confirme a instalação quando o Windows solicitar. Após isso, reinicie a aplic
 
 ---
 
+## Regras de Negócio
+
+### ProdutoService
+
+- **Listar:** aceita filtros opcionais por `categoria` e `especieIndicada`, com paginação. Ordenado por nome.
+- **Buscar por ID:** retorna 404 se não existir.
+- **Criar:** `Id` e `CriadoEm` são gerados automaticamente. Preço não pode ser negativo.
+- **Atualizar:** verifica se o produto existe (404 caso contrário). Todos os campos são substituídos.
+- **Deletar:** retorna 404 se não existir.
+
+---
+
+### EventoPetService
+
+- **Listar:** filtra por `cidade` (comparação exata, case-insensitive), `tipo` e `especieAlvo`. Ordenado por `DataInicio`.
+- **Criar:**
+  - `DataInicio` não pode ser no passado.
+  - `DataFim` (opcional) não pode ser anterior à `DataInicio`.
+- **Atualizar:**
+  - Verifica existência (404).
+  - Só rejeita `DataInicio` se ela **foi alterada** para uma data no passado — eventos já iniciados podem ser editados normalmente.
+  - `DataFim` ainda não pode ser anterior à `DataInicio`.
+- **Deletar:** retorna 404 se não existir.
+
+---
+
+### LembreteService
+
+- **Listar:** filtra por `animalId`, `status` e `tipo`, com paginação. Ordenado por `AgendadoEm`. Retorna o nome do animal junto.
+- **Criar:**
+  - Verifica se o `AnimalId` existe (404 se não existir).
+  - `AgendadoEm` não pode ser no passado (comparado em UTC).
+  - `Status` é **sempre** `Pendente` na criação, independente do que o cliente enviar.
+- **Atualizar:**
+  - Verifica existência do lembrete (404).
+  - Verifica se o `AnimalId` existe (404).
+  - `AgendadoEm` não pode ser no passado.
+  - `Status` pode ser alterado livremente no update (ex: para `Enviado` ou `Cancelado`).
+- **Deletar:** retorna 404 se não existir.
+
+---
+
+### SugestaoProdutoService
+
+- **Listar:** filtra por `animalId`, com paginação. Ordenado por `DataSugestao` decrescente (mais recentes primeiro). Retorna nome do animal e do produto.
+- **Criar:**
+  - Verifica se o `AnimalId` existe (404).
+  - Verifica se o `ProdutoId` existe (404).
+  - `DataSugestao` é opcional: se não enviada, assume a data de hoje.
+- **Atualizar:**
+  - Verifica existência da sugestão (404).
+  - Verifica se o `AnimalId` existe (404).
+  - Verifica se o `ProdutoId` existe (404).
+  - `DataSugestao` segue a mesma regra do criar.
+- **Deletar:** retorna 404 se não existir.
+
+---
+
+### Observação sobre Animais
+
+Nenhum serviço desta API cria ou gerencia animais diretamente. O `AnimalRepository` é usado **apenas para validar existência** em `LembreteService` e `SugestaoProdutoService`. Os animais são gerenciados pela API Java parceira, que compartilha o mesmo banco Oracle.
+
+---
+
 ## Documentação das Rotas
 
 ### Produtos
