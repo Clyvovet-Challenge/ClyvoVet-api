@@ -832,11 +832,10 @@ DELETE /api/v1/sugestoes-produto/{id}
 
 | Nome | RM |
 |------|----|
-| — | — |
-| — | — |
-| — | — |
-| — | — |
-| — | — |
+| Fabrício Henrique Pereira| RM563237 |
+| Leonardo José Pereira | RM563065 |
+| Miguel Henrique Oliveira Dias | RM565492 |
+| Pedro Henrique de Oliveira | RM562312 |
 
 ---
 
