@@ -8,7 +8,7 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
 {
     public void Configure(EntityTypeBuilder<SugestaoProduto> builder)
     {
-        builder.ToTable("SUGESTOES_PRODUTO");
+        builder.ToTable("T_CLYVO_SUGESTAO_PRODUTO");
 
         builder.HasKey(s => s.Id);
 
@@ -48,11 +48,11 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
         builder.HasOne(s => s.Animal)
             .WithMany()
             .HasForeignKey(s => s.AnimalId)
-            .HasConstraintName("FK_SUGESTOES_ANIMAIS");
+            .HasConstraintName("FK_SUGESTAO_ANIMAL");
 
         builder.HasOne(s => s.Produto)
             .WithMany(p => p.Sugestoes)
             .HasForeignKey(s => s.ProdutoId)
-            .HasConstraintName("FK_SUGESTOES_PRODUTOS");
+            .HasConstraintName("FK_SUGESTAO_PRODUTO");
     }
 }

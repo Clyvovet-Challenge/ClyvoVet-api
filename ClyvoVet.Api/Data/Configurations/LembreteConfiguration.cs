@@ -8,7 +8,7 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
 {
     public void Configure(EntityTypeBuilder<Lembrete> builder)
     {
-        builder.ToTable("LEMBRETES");
+        builder.ToTable("T_CLYVO_LEMBRETE");
 
         builder.HasKey(l => l.Id);
 
@@ -53,6 +53,6 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
         builder.HasOne(l => l.Animal)
             .WithMany()
             .HasForeignKey(l => l.AnimalId)
-            .HasConstraintName("FK_LEMBRETES_ANIMAIS");
+            .HasConstraintName("FK_LEMBRETE_ANIMAL");
     }
 }

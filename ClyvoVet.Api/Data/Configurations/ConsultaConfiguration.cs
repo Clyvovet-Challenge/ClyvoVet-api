@@ -8,7 +8,7 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
 {
     public void Configure(EntityTypeBuilder<Consulta> builder)
     {
-        builder.ToTable("CONSULTAS");
+        builder.ToTable("T_CLYVO_CONSULTA");
 
         builder.HasKey(c => c.Id);
 
@@ -55,11 +55,11 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
         builder.HasOne(c => c.Animal)
             .WithMany(a => a.Consultas)
             .HasForeignKey(c => c.AnimalId)
-            .HasConstraintName("FK_CONSULTAS_ANIMAIS");
+            .HasConstraintName("FK_CONSULTA_ANIMAL");
 
         builder.HasOne(c => c.Veterinario)
             .WithMany(v => v.Consultas)
             .HasForeignKey(c => c.VeterinarioId)
-            .HasConstraintName("FK_CONSULTAS_VETS");
+            .HasConstraintName("FK_CONSULTA_VETERINARIO");
     }
 }

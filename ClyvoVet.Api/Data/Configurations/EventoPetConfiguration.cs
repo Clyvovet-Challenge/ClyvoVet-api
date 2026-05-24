@@ -8,7 +8,7 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 {
     public void Configure(EntityTypeBuilder<EventoPet> builder)
     {
-        builder.ToTable("EVENTOS_PET");
+        builder.ToTable("T_CLYVO_EVENTO_PET");
 
         builder.HasKey(e => e.Id);
 

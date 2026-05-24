@@ -8,7 +8,7 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
 {
     public void Configure(EntityTypeBuilder<Animal> builder)
     {
-        builder.ToTable("ANIMAIS");
+        builder.ToTable("T_CLYVO_ANIMAL");
 
         builder.HasKey(a => a.Id);
 
@@ -60,6 +60,6 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.HasOne(a => a.Tutor)
             .WithMany(t => t.Animais)
             .HasForeignKey(a => a.TutorId)
-            .HasConstraintName("FK_ANIMAIS_TUTORES");
+            .HasConstraintName("FK_ANIMAL_TUTOR");
     }
 }
