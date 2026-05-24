@@ -1,6 +1,7 @@
 using ClyvoVet.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ClyvoVet.Api.Data.Configurations;
 
@@ -31,9 +32,15 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
             .HasColumnName("JUSTIFICATIVA")
             .HasColumnType("VARCHAR2(500)");   // DDL real: VARCHAR2(500)
 
+        // Oracle EF Core não suporta DateOnly nativamente — converter para DateTime
+        var dateOnlyConverter = new ValueConverter<DateOnly, DateTime>(
+            d => d.ToDateTime(TimeOnly.MinValue),
+            dt => DateOnly.FromDateTime(dt));
+
         builder.Property(s => s.DataSugestao)
             .HasColumnName("DATA_SUGESTAO")
             .HasColumnType("DATE")
+            .HasConversion(dateOnlyConverter)
             .IsRequired();
 
         builder.Property(s => s.Ativo)

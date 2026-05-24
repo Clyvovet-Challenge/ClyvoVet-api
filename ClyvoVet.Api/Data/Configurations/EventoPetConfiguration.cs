@@ -1,6 +1,7 @@
 using ClyvoVet.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ClyvoVet.Api.Data.Configurations;
 
@@ -53,14 +54,25 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
             .HasColumnName("CEP")
             .HasColumnType("VARCHAR2(10)");   // DDL real: VARCHAR2(10)
 
+        // Oracle EF Core não suporta DateOnly nativamente — converter para DateTime
+        var dateOnlyConverter = new ValueConverter<DateOnly, DateTime>(
+            d => d.ToDateTime(TimeOnly.MinValue),
+            dt => DateOnly.FromDateTime(dt));
+
+        var dateOnlyNullConverter = new ValueConverter<DateOnly?, DateTime?>(
+            d => d.HasValue ? d.Value.ToDateTime(TimeOnly.MinValue) : null,
+            dt => dt.HasValue ? DateOnly.FromDateTime(dt.Value) : null);
+
         builder.Property(e => e.DataInicio)
             .HasColumnName("DATA_INICIO")
             .HasColumnType("DATE")
+            .HasConversion(dateOnlyConverter)
             .IsRequired();
 
         builder.Property(e => e.DataFim)
             .HasColumnName("DATA_FIM")
-            .HasColumnType("DATE");
+            .HasColumnType("DATE")
+            .HasConversion(dateOnlyNullConverter);
 
         builder.Property(e => e.EspecieAlvo)
             .HasColumnName("ESPECIE_ALVO");
