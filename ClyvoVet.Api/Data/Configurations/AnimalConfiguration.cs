@@ -24,8 +24,7 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
 
         builder.Property(a => a.Especie)
             .HasColumnName("ESPECIE")
-            .HasColumnType("VARCHAR2(50)")
-            .IsRequired();
+            .HasColumnType("VARCHAR2(50)");
 
         builder.Property(a => a.Raca)
             .HasColumnName("RACA")
@@ -34,19 +33,18 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.Property(a => a.DataNascimento)
             .HasColumnName("DATA_NASCIMENTO");
 
+        // DDL real: coluna é GENERO (não SEXO) — CHECK: MACHO, FEMEA, DESCONHECIDO
         builder.Property(a => a.Sexo)
-            .HasColumnName("SEXO")
-            .HasColumnType("VARCHAR2(20)");
+            .HasColumnName("GENERO")
+            .HasColumnType("VARCHAR2(10)");
 
         builder.Property(a => a.Castrado)
             .HasColumnName("CASTRADO")
             .HasColumnType("NUMBER(1)")
             .HasConversion<int>();
 
-        builder.Property(a => a.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+        // DDL real: coluna ATIVO não existe em t_clyvo_animal
+        builder.Ignore(a => a.Ativo);
 
         builder.Property(a => a.CriadoEm)
             .HasColumnName("CRIADO_EM")
@@ -54,8 +52,7 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
 
         builder.Property(a => a.TutorId)
             .HasColumnName("TUTOR_ID")
-            .HasColumnType("VARCHAR2(36)")
-            .IsRequired();
+            .HasColumnType("VARCHAR2(36)");
 
         builder.HasOne(a => a.Tutor)
             .WithMany(t => t.Animais)

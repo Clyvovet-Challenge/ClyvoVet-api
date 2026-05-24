@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(dotnet sln *)",
-      "Bash(dotnet add *)"
+      "Bash(dotnet add *)",
+      "Bash(dotnet build *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Administrador\\\\source\\\\repos\\\\ClyvoVet-api\\\\ClyvoVet.Api\" -Recurse -Filter \"*.cs\")",
+      "Bash(Select-Object -Property FullName, Directory)",
+      "Bash(Sort-Object Directory)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git checkout *)"
     ]
   }
 }

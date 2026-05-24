@@ -19,12 +19,12 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 
         builder.Property(e => e.Titulo)
             .HasColumnName("TITULO")
-            .HasColumnType("VARCHAR2(300)")
+            .HasColumnType("VARCHAR2(200)")   // DDL real: VARCHAR2(200)
             .IsRequired();
 
         builder.Property(e => e.Descricao)
             .HasColumnName("DESCRICAO")
-            .HasColumnType("VARCHAR2(2000)");
+            .HasColumnType("VARCHAR2(1000)");
 
         builder.Property(e => e.Tipo)
             .HasColumnName("TIPO");
@@ -35,23 +35,23 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 
         builder.Property(e => e.Numero)
             .HasColumnName("NUMERO")
-            .HasColumnType("VARCHAR2(20)");
+            .HasColumnType("VARCHAR2(10)");   // DDL real: VARCHAR2(10)
 
         builder.Property(e => e.Bairro)
             .HasColumnName("BAIRRO")
-            .HasColumnType("VARCHAR2(200)");
+            .HasColumnType("VARCHAR2(150)");  // DDL real: VARCHAR2(150)
 
         builder.Property(e => e.Cidade)
             .HasColumnName("CIDADE")
-            .HasColumnType("VARCHAR2(200)");
+            .HasColumnType("VARCHAR2(100)");  // DDL real: VARCHAR2(100)
 
         builder.Property(e => e.Estado)
             .HasColumnName("ESTADO")
-            .HasColumnType("VARCHAR2(2)");
+            .HasColumnType("VARCHAR2(50)");   // DDL real: VARCHAR2(50)
 
         builder.Property(e => e.Cep)
             .HasColumnName("CEP")
-            .HasColumnType("VARCHAR2(9)");
+            .HasColumnType("VARCHAR2(10)");   // DDL real: VARCHAR2(10)
 
         builder.Property(e => e.DataInicio)
             .HasColumnName("DATA_INICIO")
@@ -67,7 +67,7 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 
         builder.Property(e => e.Organizador)
             .HasColumnName("ORGANIZADOR")
-            .HasColumnType("VARCHAR2(300)");
+            .HasColumnType("VARCHAR2(200)");  // DDL real: VARCHAR2(200)
 
         builder.Property(e => e.Gratuito)
             .HasColumnName("GRATUITO")

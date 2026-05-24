@@ -29,7 +29,7 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
 
         builder.Property(s => s.Justificativa)
             .HasColumnName("JUSTIFICATIVA")
-            .HasColumnType("VARCHAR2(1000)");
+            .HasColumnType("VARCHAR2(500)");   // DDL real: VARCHAR2(500)
 
         builder.Property(s => s.DataSugestao)
             .HasColumnName("DATA_SUGESTAO")

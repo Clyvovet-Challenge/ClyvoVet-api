@@ -19,13 +19,12 @@ public class VeterinarioConfiguration : IEntityTypeConfiguration<Veterinario>
 
         builder.Property(v => v.Nome)
             .HasColumnName("NOME")
-            .HasColumnType("VARCHAR2(200)")
+            .HasColumnType("VARCHAR2(150)")   // DDL real: VARCHAR2(150)
             .IsRequired();
 
         builder.Property(v => v.Crmv)
             .HasColumnName("CRMV")
-            .HasColumnType("VARCHAR2(20)")
-            .IsRequired();
+            .HasColumnType("VARCHAR2(30)");
 
         builder.Property(v => v.Email)
             .HasColumnName("EMAIL")
@@ -35,10 +34,8 @@ public class VeterinarioConfiguration : IEntityTypeConfiguration<Veterinario>
             .HasColumnName("ESPECIALIDADE")
             .HasColumnType("VARCHAR2(100)");
 
-        builder.Property(v => v.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+        // DDL real: coluna ATIVO não existe em t_clyvo_veterinario
+        builder.Ignore(v => v.Ativo);
 
         builder.Property(v => v.CriadoEm)
             .HasColumnName("CRIADO_EM")

@@ -19,13 +19,12 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
 
         builder.Property(t => t.Nome)
             .HasColumnName("NOME")
-            .HasColumnType("VARCHAR2(200)")
+            .HasColumnType("VARCHAR2(150)")   // DDL real: VARCHAR2(150)
             .IsRequired();
 
         builder.Property(t => t.Cpf)
             .HasColumnName("CPF")
-            .HasColumnType("VARCHAR2(14)")
-            .IsRequired();
+            .HasColumnType("VARCHAR2(11)");   // DDL real: VARCHAR2(11), sem NOT NULL
 
         builder.Property(t => t.Email)
             .HasColumnName("EMAIL")
@@ -35,14 +34,13 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
             .HasColumnName("TELEFONE")
             .HasColumnType("VARCHAR2(20)");
 
-        builder.Property(t => t.Endereco)
-            .HasColumnName("ENDERECO")
-            .HasColumnType("VARCHAR2(500)");
+        // DDL real: t_clyvo_tutor não tem coluna ENDERECO.
+        // O endereço é armazenado em colunas separadas (rua, numero, bairro,
+        // cidade, estado, cep) que não são mapeadas nesta API.
+        builder.Ignore(t => t.Endereco);
 
-        builder.Property(t => t.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+        // DDL real: coluna ATIVO não existe em t_clyvo_tutor
+        builder.Ignore(t => t.Ativo);
 
         builder.Property(t => t.CriadoEm)
             .HasColumnName("CRIADO_EM")
