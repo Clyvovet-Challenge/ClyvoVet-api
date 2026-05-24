@@ -41,8 +41,7 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
 
     public async Task<SugestaoProduto> CreateAsync(SugestaoProduto sugestao)
     {
-        sugestao.Id = Guid.NewGuid().ToString();
-        sugestao.CriadoEm = DateTime.UtcNow;
+        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
         _context.SugestoesProduto.Add(sugestao);
         await _context.SaveChangesAsync();
         return sugestao;

@@ -46,8 +46,7 @@ public class LembreteRepository : ILembreteRepository
 
     public async Task<Lembrete> CreateAsync(Lembrete lembrete)
     {
-        lembrete.Id = Guid.NewGuid().ToString();
-        lembrete.CriadoEm = DateTime.UtcNow;
+        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
         _context.Lembretes.Add(lembrete);
         await _context.SaveChangesAsync();
         return lembrete;

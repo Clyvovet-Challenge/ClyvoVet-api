@@ -42,8 +42,7 @@ public class EventoPetRepository : IEventoPetRepository
 
     public async Task<EventoPet> CreateAsync(EventoPet evento)
     {
-        evento.Id = Guid.NewGuid().ToString();
-        evento.CriadoEm = DateTime.UtcNow;
+        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
         _context.EventosPet.Add(evento);
         await _context.SaveChangesAsync();
         return evento;
