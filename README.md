@@ -81,98 +81,272 @@ ClyvoVet-api/
 
 ### Pré-requisitos
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- Oracle Database XE acessível (FIAP ou local)
-- Oracle SQL Developer (para rodar os scripts de schema)
+| Ferramenta | Versão mínima | Para que serve |
+|------------|--------------|----------------|
+| [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | 8.0 | Compilar e rodar a API |
+| Oracle Database | XE 21c+ | Banco de dados |
+| Oracle SQL Developer | Qualquer | Executar os scripts SQL |
+| Git | Qualquer | Clonar o repositório |
 
 ---
 
-### 1. Clone o repositório
+### Passo 1 — Clonar o repositório
 
 ```bash
 git clone https://github.com/pedrinzz10/ClyvoVet-api.git
 cd ClyvoVet-api
 ```
 
+**Verifique se o clone funcionou:**
+
+```bash
+ls
+# Deve listar: ClyvoVet.Api/  schema/  README.md  ClyvoVet-api.slnx  ...
+```
+
+> **Erro: `git: command not found`**  
+> Git não está instalado. Baixe em [git-scm.com](https://git-scm.com) ou use o botão "Code → Download ZIP" no GitHub.
+
+> **Erro: `Repository not found`**  
+> Verifique se a URL está correta e se o repositório é público.
+
 ---
 
-### 2. Configure a connection string
+### Passo 2 — Configurar a connection string
 
-Edite `ClyvoVet.Api/appsettings.json` com as credenciais do banco Oracle:
+Abra o arquivo `ClyvoVet.Api/appsettings.json` e substitua as credenciais:
 
 ```json
 {
   "ConnectionStrings": {
-    "OracleConnection": "User Id=SEU_USUARIO;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/XEPDB1;"
+    "OracleConnection": "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
   }
 }
 ```
 
-> **FIAP Oracle XE** — substitua `SEU_USUARIO` e `SUA_SENHA` pelas credenciais fornecidas.  
-> Para Oracle local: `Data Source=localhost:1521/XEPDB1`
+**Formato da connection string Oracle:**
 
----
-
-### 3. Prepare o banco de dados
-
-Abra o **Oracle SQL Developer**, conecte ao banco e execute os scripts abaixo **na ordem**, usando **F5 (Run Script)** em cada um:
-
-| Ordem | Arquivo | O que faz |
+| Parte | Exemplo | Descrição |
 |-------|---------|-----------|
-| 1º | `schema/01_criar_tabelas_dotnet.sql` | Cria todas as tabelas, função `fn_uuid()` e triggers |
-| 2º | `schema/02_seed_dotnet.sql` | Insere dados de exemplo prontos para teste |
+| `User Id` | `rm562312` | Seu RM (usuário Oracle FIAP) |
+| `Password` | `fiap26` | Senha do Oracle FIAP |
+| `Data Source` | `oracle.fiap.com.br:1521/ORCL` | Host:Porta/ServiceName |
 
-> O script `01` dropa e recria tudo com segurança — pode ser executado várias vezes.  
-> O script `02` cria automaticamente um tutor e animal de seed caso as tabelas Java estejam vazias.
+> **⚠️ Service name correto para o Oracle FIAP: `ORCL`**  
+> Usar `XE` ou `XEPDB1` causa `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
+
+**Para Oracle local (instalação própria):**
+
+```json
+"OracleConnection": "User Id=system;Password=SUA_SENHA;Data Source=localhost:1521/XEPDB1;"
+```
+
+> **Erro: `ORA-01017: invalid username/password`**  
+> Usuário ou senha incorretos. Verifique as credenciais no portal FIAP ou redefina a senha no SQL Developer.
+
+> **Erro: `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`**  
+> Service name errado. Tente `ORCL`, `XEPDB1` ou `XE` até conectar. No SQL Developer, você pode ver o service name correto na configuração da sua conexão existente.
+
+> **Erro: `ORA-12541: TNS:no listener`** ou **`Connection refused`**  
+> O servidor Oracle está inacessível. Verifique sua conexão com a internet (o servidor FIAP é externo) ou se o Oracle local está iniciado (`services.msc` → `OracleServiceXE`).
 
 ---
 
-### 4. Restaure os pacotes e execute
+### Passo 3 — Preparar o banco de dados
+
+Abra o **Oracle SQL Developer**, conecte com suas credenciais e execute os scripts na ordem:
+
+#### 3.1 — Criar as tabelas
+
+1. Abra `schema/01_criar_tabelas_dotnet.sql` no SQL Developer
+2. Pressione **F5** (Run Script — não F9)
+3. Aguarde até ver no output:
+
+```
+Table T_CLYVO_PRODUTO created.
+Table T_CLYVO_EVENTO_PET created.
+Table T_CLYVO_LEMBRETE created.
+Table T_CLYVO_SUGESTAO_PRODUTO created.
+Trigger TRG_PRODUTO_ID compiled.
+...
+```
+
+> **Este script é seguro para reexecutar** — ele dropa as tabelas existentes antes de recriar.
+
+> **Erro: `ORA-00942: table or view does not exist`** durante o DROP  
+> Normal na primeira execução. O script usa `EXCEPTION WHEN OTHERS THEN NULL` para ignorar esse erro — continue.
+
+> **Erro: `ORA-01031: insufficient privileges`**  
+> Seu usuário não tem permissão para criar tabelas. Conecte com um usuário que tenha privilégios de DBA ou peça ao administrador do banco.
+
+> **Erro: `ORA-00955: name is already used by an existing object`**  
+> Algum objeto (trigger, função) já existe com o mesmo nome. Execute `schema/03_drop_tabelas_dotnet.sql` primeiro para limpar, depois rode o `01` novamente.
+
+#### 3.2 — Inserir dados de exemplo
+
+1. Abra `schema/02_seed_dotnet.sql`
+2. Pressione **F5**
+3. Aguarde e confira o output:
+
+```
+BLOCO 1 — Produtos e Eventos Pet
+--- Inserindo produtos ---
+[OK] 5 produtos inseridos.
+--- Inserindo eventos pet ---
+[OK] 4 eventos inseridos.
+[COMMIT] Bloco 1 salvo.
+
+BLOCO 2 — Tutor, Animal, Lembretes e Sugestoes
+--- Resolvendo animal_id ---
+[INFO] t_clyvo_animal vazia. Criando tutor e animal de seed...
+[OK] Tutor de seed criado: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+[OK] Animal de seed criado: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+--- Inserindo lembretes ---
+[OK] 3 lembretes inseridos.
+--- Inserindo sugestoes de produto ---
+[OK] 3 sugestoes inseridas.
+[COMMIT] Bloco 2 salvo.
+```
+
+> **`[ERRO] Bloco 1`** — O script `01` não foi executado antes. Execute-o primeiro.
+
+> **`[AVISO] Nao foi possivel acessar t_clyvo_animal`**  
+> A tabela `t_clyvo_animal` não existe. Execute o script `01` (que cria todas as tabelas) antes do `02`.
+
+> **`[ERRO] Bloco 2: ORA-00001: unique constraint violated`**  
+> O seed já foi executado antes. Isso pode acontecer com o tutor de seed (CPF `00000000000`). O script é tolerante a isso — o Bloco 1 já foi commitado e o Bloco 2 tenta encontrar o tutor existente antes de criar um novo.
+
+> **Contagem de registros ao final deve mostrar:**
+
+```
+TABELA                   TOTAL
+------------------------ -----
+T_CLYVO_ANIMAL               1
+T_CLYVO_LEMBRETE             3
+T_CLYVO_PRODUTO              5
+T_CLYVO_EVENTO_PET           4
+T_CLYVO_SUGESTAO_PRODUTO     3
+T_CLYVO_TUTOR                1
+```
+
+---
+
+### Passo 4 — Restaurar pacotes
+
+Na raiz do projeto:
 
 ```bash
 cd ClyvoVet.Api
 dotnet restore
+```
+
+Output esperado:
+
+```
+Restaurando pacotes de C:\...\ClyvoVet.Api.csproj...
+  Determinando projetos a serem restaurados...
+  Todos os projetos estão atualizados.
+```
+
+> **Erro: `dotnet: command not found`**  
+> O .NET SDK não está instalado ou não está no PATH. Baixe em [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) e reinicie o terminal após instalar.
+
+> **Erro: `NETSDK1045: The current .NET SDK does not support targeting .NET 8.0`**  
+> Versão do SDK incompatível. Execute `dotnet --version` para ver a versão instalada. É necessário **8.0.x ou superior**.
+
+> **Erro: `Unable to load the service index for source https://api.nuget.org`**  
+> Sem acesso à internet para baixar os pacotes. Verifique sua conexão ou configure um proxy NuGet se estiver em rede corporativa.
+
+---
+
+### Passo 5 — Executar a API
+
+```bash
 dotnet run
 ```
 
-O terminal exibirá as URLs disponíveis:
+Output esperado:
 
 ```
 info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://localhost:5191
       Now listening on: https://localhost:7225
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
 ```
+
+> **Erro: `Failed to bind to address http://localhost:5191: address already in use`**  
+> A porta 5191 está ocupada por outro processo. Encerre o processo que usa a porta:
+> ```bash
+> # Windows
+> netstat -ano | findstr :5191
+> taskkill /PID <numero_do_pid> /F
+> ```
+> Ou altere a porta em `Properties/launchSettings.json`.
+
+> **Erro: `ORA-12514` ou `ORA-12541` ao fazer a primeira requisição**  
+> A connection string está errada. Veja o Passo 2 para corrigir. A aplicação sobe mesmo com credenciais inválidas — o erro aparece só na primeira chamada ao banco.
+
+> **Erro: `Unable to load DLL 'oci.dll'`**  
+> O cliente Oracle nativo não está instalado. O pacote `Oracle.ManagedDataAccess` é 100% gerenciado e **não precisa** do Oracle Client instalado — verifique se o projeto usa a versão correta do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
+
+> **A API sobe mas retorna `500` em todos os endpoints**  
+> Verifique os logs no terminal — o erro real aparece lá. As causas mais comuns são:
+> - Connection string incorreta (usuário, senha ou service name)
+> - Tabelas não criadas (execute o script `01` primeiro)
+> - Tipo de dado não mapeado no EF Core
 
 ---
 
-### 5. Acesse o Swagger
+### Passo 6 — Acessar o Swagger
 
-| Protocolo | URL |
-|-----------|-----|
-| HTTP | http://localhost:5191/swagger |
+Com a API rodando, abra no navegador:
+
+| Perfil | URL |
+|--------|-----|
+| HTTP (recomendado para testes) | http://localhost:5191/swagger |
 | HTTPS | https://localhost:7225/swagger |
 
-> O Swagger está **sempre ativo** em qualquer ambiente (incluindo Docker/produção).
+A interface do Swagger exibirá todos os endpoints agrupados por controller.
+
+> **Swagger está sempre ativo** — não é restrito ao ambiente `Development`. Funciona em Docker, servidor e produção.
+
+> **Erro: `ERR_CONNECTION_RESET` ou `ERR_SSL_PROTOCOL_ERROR` no HTTPS**  
+> Certificado de desenvolvimento não confiado. Execute:
+> ```bash
+> dotnet dev-certs https --clean
+> dotnet dev-certs https --trust
+> ```
+> Confirme a instalação quando o Windows solicitar e reinicie a aplicação. Se o problema persistir, use a URL HTTP.
+
+> **Swagger abre mas mostra "Failed to fetch" ao executar endpoints**  
+> O Swagger está tentando usar HTTPS mas o certificado não é válido. Clique em "Servers" no topo do Swagger e selecione a URL HTTP (`http://localhost:5191`).
+
+> **Página em branco ou `404` ao acessar `/swagger`**  
+> A aplicação está rodando mas o Swagger não foi servido. Verifique se o `app.UseSwagger()` e `app.UseSwaggerUI()` estão no `Program.cs` **fora** de qualquer bloco `if (app.Environment.IsDevelopment())`.
 
 ---
 
-### Configurando HTTPS (certificado de desenvolvimento)
+### Alternativa — Executar via Visual Studio ou Rider
 
-Se o navegador exibir `ERR_CONNECTION_RESET` ao acessar HTTPS:
+1. Abra `ClyvoVet-api.slnx` na IDE
+2. Selecione o perfil `http` no dropdown de execução
+3. Pressione **F5** (com debug) ou **Ctrl+F5** (sem debug)
+4. O navegador abrirá automaticamente no Swagger
+
+> **Visual Studio:** se o navegador abrir em `weatherforecast` ou página em branco, verifique se `launchUrl` em `Properties/launchSettings.json` está definido como `"swagger"`.
+
+---
+
+### Verificação rápida — API funcionando
+
+Após subir, faça uma requisição de teste:
 
 ```bash
-dotnet dev-certs https --clean
-dotnet dev-certs https --trust
+curl http://localhost:5191/api/v1/produtos
 ```
 
-Confirme quando o Windows solicitar. Reinicie a aplicação e tente novamente.
-
----
-
-### Executando via Visual Studio / Rider
-
-Abra `ClyvoVet-api.slnx` e pressione **F5** (com debug) ou **Ctrl+F5** (sem debug).  
-O navegador abrirá automaticamente na página do Swagger.
+**Resposta esperada:** array JSON com os produtos do seed. Se retornar `[]`, o banco está conectado mas o seed não foi executado. Se retornar `{"error": "Erro interno no servidor."}`, há um problema na connection string — verifique os logs do terminal.
 
 ---
 
