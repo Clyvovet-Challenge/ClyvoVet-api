@@ -128,7 +128,7 @@ Abra o arquivo `ClyvoVet.Api/appsettings.json` e substitua as credenciais:
 
 | Parte | Exemplo | Descrição |
 |-------|---------|-----------|
-| `User Id` | `rm562312` | Seu RM (usuário Oracle FIAP) |
+| `User Id` | `rmxxxxxx` | Seu RM (usuário Oracle FIAP) |
 | `Password` | `fiap26` | Senha do Oracle FIAP |
 | `Data Source` | `oracle.fiap.com.br:1521/ORCL` | Host:Porta/ServiceName |
 
