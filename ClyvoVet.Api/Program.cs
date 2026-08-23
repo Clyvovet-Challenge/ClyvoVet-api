@@ -12,9 +12,31 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;                      // OpenApiInfo, OpenApiContact (Microsoft.OpenApi 2.x)
+using Serilog;
 using Swashbuckle.AspNetCore.SwaggerUI;       // DocExpansion
 
+const string ServiceName = "ClyvoVet.Api";
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Configuração estática (em vez do padrão bootstrap-logger/ReloadableLogger): evita o erro
+// "the logger is already frozen" quando o host é construído mais de uma vez no mesmo
+// processo, como acontece com WebApplicationFactory nos testes de integração.
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithProperty("Application", ServiceName)
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("Logs/clyvovet-api-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        outputTemplate:
+            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -106,6 +128,8 @@ builder.Services.AddHealthChecks()
         tags: ["ready", "database", "external"]);
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Swagger sempre ativo — professor pode testar sem cliente HTTP externo
 app.UseSwagger();
