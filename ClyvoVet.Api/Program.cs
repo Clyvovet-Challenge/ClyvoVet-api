@@ -1,13 +1,16 @@
 using System.Reflection;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.Exceptions;
+using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Repositories;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services;
 using ClyvoVet.Api.Services.Interfaces;
 using ClyvoVet.Api.Swagger;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;                      // OpenApiInfo, OpenApiContact (Microsoft.OpenApi 2.x)
 using Swashbuckle.AspNetCore.SwaggerUI;       // DocExpansion
 
@@ -92,6 +95,16 @@ builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
 builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 
+// Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
+// cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,
+// em oracle.fiap.com.br), validando a conectividade real via Database.CanConnectAsync().
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
+    .AddDbContextCheck<AppDbContext>(
+        name: "oracle-database",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready", "database", "external"]);
+
 var app = builder.Build();
 
 // Swagger sempre ativo — professor pode testar sem cliente HTTP externo
@@ -138,5 +151,23 @@ app.UseExceptionHandler(errorApp =>
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// /health           → todos os checks (visão geral, uso no README/monitoramento manual)
+// /health/live       → apenas "self" — o processo está de pé (liveness probe)
+// /health/ready      → "oracle-database" — o banco Oracle (externo) está acessível (readiness probe)
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckJsonWriter.WriteResponse
+});
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live"),
+    ResponseWriter = HealthCheckJsonWriter.WriteResponse
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = HealthCheckJsonWriter.WriteResponse
+});
 
 app.Run();
