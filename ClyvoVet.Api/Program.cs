@@ -2,6 +2,7 @@ using System.Reflection;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.HealthChecks;
+using ClyvoVet.Api.Middleware;
 using ClyvoVet.Api.Repositories;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services;
@@ -129,6 +130,9 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// CorrelationIdMiddleware precisa envolver o UseSerilogRequestLogging: o log de conclusão da
+// requisição só herda o CorrelationId do LogContext enquanto esse escopo ainda está aberto.
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 
 // Swagger sempre ativo — professor pode testar sem cliente HTTP externo
