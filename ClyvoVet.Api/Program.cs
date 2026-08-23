@@ -172,6 +172,16 @@ app.UseExceptionHandler(errorApp =>
             _                     => "Erro interno no servidor."
         };
 
+        switch (exception)
+        {
+            case NotFoundException or BadRequestException:
+                Log.Warning("Requisição inválida em {Path}: {Message}", context.Request.Path, message);
+                break;
+            default:
+                Log.Error(exception, "Erro não tratado em {Path}", context.Request.Path);
+                break;
+        }
+
         await context.Response.WriteAsJsonAsync(new { error = message });
     });
 });
