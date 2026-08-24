@@ -229,3 +229,6 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
+
+// Necessário para o WebApplicationFactory<Program> localizar o entry point nos testes de integração.
+public partial class Program { }
