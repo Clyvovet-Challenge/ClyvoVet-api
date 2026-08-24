@@ -1,0 +1,108 @@
+using System.Net;
+using System.Net.Http.Json;
+using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Api.DTOs.Response;
+using ClyvoVet.Api.Enums;
+
+namespace ClyvoVet.Api.Tests.Integration;
+
+[Collection(IntegrationTestCollection.Name)]
+public class EventoPetEndpointsTests
+{
+    private readonly HttpClient _client;
+
+    public EventoPetEndpointsTests(IntegrationTestFixture fixture)
+    {
+        _client = fixture.CreateClient();
+    }
+
+    [Fact]
+    public async Task GetAll_SemFiltros_RetornaOk()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/api/v1/eventos-pet");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_DadosValidos_RetornaCreated()
+    {
+        // Arrange
+        var request = new EventoPetRequest
+        {
+            Titulo = "Feira de Adoção",
+            Tipo = TipoEventoPetEnum.Feira,
+            Cidade = "São Paulo",
+            Estado = "SP",
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
+            DataFim = DateOnly.FromDateTime(DateTime.Today.AddDays(11)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Gratuito = true,
+            Ativo = true
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/eventos-pet", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<EventoPetResponse>();
+        Assert.NotNull(created);
+        Assert.Equal(request.Titulo, created!.Titulo);
+    }
+
+    [Fact]
+    public async Task Create_DataInicioNoPassado_RetornaBadRequest()
+    {
+        // Arrange
+        var request = new EventoPetRequest
+        {
+            Titulo = "Evento Passado",
+            Tipo = TipoEventoPetEnum.Vacinacao,
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(-5)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Ativo = true
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/eventos-pet", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("passado", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Create_DataFimAnteriorADataInicio_RetornaBadRequest()
+    {
+        // Arrange
+        var request = new EventoPetRequest
+        {
+            Titulo = "Datas Invertidas",
+            Tipo = TipoEventoPetEnum.Workshop,
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
+            DataFim = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Ativo = true
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/eventos-pet", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetById_IdInexistente_RetornaNotFound()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/api/v1/eventos-pet/id-que-nao-existe");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}
