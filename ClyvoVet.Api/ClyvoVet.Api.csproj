@@ -13,6 +13,10 @@
     <Content Remove="ClyvoVet.Api.Tests.Unit\**" />
     <EmbeddedResource Remove="ClyvoVet.Api.Tests.Unit\**" />
     <None Remove="ClyvoVet.Api.Tests.Unit\**" />
+    <Compile Remove="ClyvoVet.Api.Tests.Integration\**" />
+    <Content Remove="ClyvoVet.Api.Tests.Integration\**" />
+    <EmbeddedResource Remove="ClyvoVet.Api.Tests.Integration\**" />
+    <None Remove="ClyvoVet.Api.Tests.Integration\**" />
   </ItemGroup>
 
   <ItemGroup>
