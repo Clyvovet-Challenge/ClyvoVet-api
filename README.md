@@ -114,7 +114,22 @@ ls
 
 ### Passo 2 — Configurar a connection string
 
-Abra o arquivo `ClyvoVet.Api/appsettings.json` e substitua as credenciais:
+O `ClyvoVet.Api/appsettings.json` (versionado no repositório) só tem um **placeholder** — nunca coloque sua senha real nele, para não correr o risco de commitar sua credencial por engano. Use o **User Secrets** do .NET, que guarda a connection string **fora da pasta do projeto**, num arquivo local que nunca entra no `git`:
+
+```bash
+cd ClyvoVet.Api
+dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
+```
+
+> Na primeira vez, se o projeto ainda não tiver um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
+
+A API lê o User Secrets automaticamente em ambiente de desenvolvimento — não precisa editar mais nada. Para conferir o que foi salvo:
+
+```bash
+dotnet user-secrets list
+```
+
+**Alternativa mais simples (menos segura):** editar a connection string direto no `appsettings.json` local. Funciona igual, mas **nunca faça commit** desse arquivo depois de colocar sua senha real — `git status` antes de commitar para conferir.
 
 ```json
 {
