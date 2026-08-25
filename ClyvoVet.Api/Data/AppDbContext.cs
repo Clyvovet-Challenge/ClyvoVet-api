@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Lembrete> Lembretes => Set<Lembrete>();
     public DbSet<EventoPet> EventosPet => Set<EventoPet>();
     public DbSet<SugestaoProduto> SugestoesProduto => Set<SugestaoProduto>();
+    public DbSet<PredisposicaoSaude> PredisposicoesSaude => Set<PredisposicaoSaude>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,5 +63,12 @@ public class AppDbContext : DbContext
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
+
+        modelBuilder.Entity<PredisposicaoSaude>()
+            .Property(p => p.Especie)
+            .HasColumnType("VARCHAR2(20)")
+            .HasConversion(
+                v => v.ToString().ToUpper(),
+                v => (EspecieAnimalEnum)Enum.Parse(typeof(EspecieAnimalEnum), v, true));
     }
 }
