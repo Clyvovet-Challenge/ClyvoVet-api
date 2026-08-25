@@ -8,5 +8,7 @@ public enum EspecieEnum
     Reptil,
     Roedor,
     Todos,
-    Outro
+    Outro,
+    Bovino,
+    Equino
 }

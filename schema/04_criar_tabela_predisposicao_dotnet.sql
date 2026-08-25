@@ -17,7 +17,7 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE t_clyvo_predisposicao_saude CASCADE CONSTRAI
 -- ============================================================
 CREATE TABLE t_clyvo_predisposicao_saude (
     id                 VARCHAR2(36)   NOT NULL,
-    especie            VARCHAR2(20)   NOT NULL,
+    especie            VARCHAR2(30)   NOT NULL,
     raca               VARCHAR2(100),
     idade_minima_anos  NUMBER(4,1),
     doenca             VARCHAR2(200)  NOT NULL,

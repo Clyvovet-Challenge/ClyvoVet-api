@@ -66,9 +66,9 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<PredisposicaoSaude>()
             .Property(p => p.Especie)
-            .HasColumnType("VARCHAR2(20)")
+            .HasColumnType("VARCHAR2(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
-                v => (EspecieAnimalEnum)Enum.Parse(typeof(EspecieAnimalEnum), v, true));
+                v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
     }
 }
