@@ -91,6 +91,7 @@ builder.Services.AddSwaggerGen(options =>
             "Lembrete"        => ["Lembretes"],
             "EventoPet"       => ["Eventos Pet"],
             "SugestaoProduto" => ["Sugestões de Produto"],
+            "WidgetSaudePreditiva" => ["Widget de Saúde Preditiva"],
             var other         => [other ?? "Outros"]
         });
 

@@ -43,6 +43,14 @@ public sealed class TagDescriptionsDocumentFilter : IDocumentFilter
                               "Resposta inclui `nomeAnimal` e `nomeProduto` enriquecidos. " +
                               "Tabela: **`t_clyvo_sugestao_produto`**."
             },
+            new()
+            {
+                Name        = "Widget de Saúde Preditiva",
+                Description = "Monta um card com predisposições de saúde relevantes para a " +
+                              "espécie, raça e idade atual de um animal, sugerindo agendar " +
+                              "consulta quando alguma condição relevante for encontrada. " +
+                              "Tabela de referência: **`t_clyvo_predisposicao_saude`**."
+            },
         };
     }
 }
