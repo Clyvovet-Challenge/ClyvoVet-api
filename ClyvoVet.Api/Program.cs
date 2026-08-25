@@ -115,11 +115,13 @@ builder.Services.AddScoped<ISugestaoProdutoRepository, SugestaoProdutoRepository
 builder.Services.AddScoped<ILembreteRepository,        LembreteRepository>();
 builder.Services.AddScoped<IEventoPetRepository,       EventoPetRepository>();
 builder.Services.AddScoped<IAnimalRepository,          AnimalRepository>();
+builder.Services.AddScoped<IPredisposicaoSaudeRepository, PredisposicaoSaudeRepository>();
 
 builder.Services.AddScoped<IProdutoService,         ProdutoService>();
 builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
 builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
+builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,
