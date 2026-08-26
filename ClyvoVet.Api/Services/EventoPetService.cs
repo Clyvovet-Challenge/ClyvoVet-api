@@ -33,7 +33,7 @@ public class EventoPetService : IEventoPetService
 
     public async Task<EventoPetResponse> CreateAsync(EventoPetRequest request)
     {
-        if (request.DataInicio < DateOnly.FromDateTime(DateTime.Today))
+        if (DataValidationHelper.EhDataNoPassado(request.DataInicio))
             throw new BadRequestException("A data de início do evento não pode ser no passado.");
 
         if (request.DataFim.HasValue && request.DataFim.Value < request.DataInicio)
@@ -50,7 +50,7 @@ public class EventoPetService : IEventoPetService
         if (existing is null)
             throw new NotFoundException($"Evento com id {id} não encontrado.");
 
-        if (request.DataInicio != existing.DataInicio && request.DataInicio < DateOnly.FromDateTime(DateTime.Today))
+        if (request.DataInicio != existing.DataInicio && DataValidationHelper.EhDataNoPassado(request.DataInicio))
             throw new BadRequestException("A data de início do evento não pode ser alterada para uma data no passado.");
 
         if (request.DataFim.HasValue && request.DataFim.Value < request.DataInicio)
