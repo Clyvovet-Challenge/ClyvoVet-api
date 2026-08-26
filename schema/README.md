@@ -5,13 +5,13 @@
 - **Oracle SQL Developer** conectado ao banco **Oracle XE (FIAP)**
 - **.NET 8 SDK** instalado
 - Scripts da **API Java** já executados — `t_clyvo_tutor` e `t_clyvo_animal`
-  precisam existir **antes** deste schema para os endpoints de Lembrete e
-  Sugestão de Produto funcionarem via API
+  precisam existir **antes** deste schema para que os endpoints de Lembrete e
+  Sugestão de Produto funcionem via API
 
-> **Por quê `t_clyvo_tutor`?**  
+> **Por que `t_clyvo_tutor`?**  
 > O `AnimalRepository` usa `.Include(a => a.Tutor)`, o que gera um JOIN com
-> `t_clyvo_tutor`. Se a tabela não existir, qualquer validação de `animalId`
-> na API lança `ORA-00942` e retorna HTTP 500.
+> `t_clyvo_tutor`. Sem essa tabela, qualquer validação de `animalId`
+> na API lança `ORA-00942` e devolve HTTP 500.
 
 ---
 
@@ -49,7 +49,7 @@ Todas as tabelas usam o prefixo `t_clyvo_`:
 | **Bloco 1** | `t_clyvo_produto`, `t_clyvo_evento_pet` | Sempre — sem FK Java |
 | **Bloco 2** | `t_clyvo_lembrete`, `t_clyvo_sugestao_produto` | Só se existir um `animal_id` real em `t_clyvo_animal` |
 
-Se a tabela Java não existir, o Bloco 2 encerra com aviso e **os dados do Bloco 1 são preservados**.
+Se a tabela Java não existir, o Bloco 2 encerra com aviso e **os dados do Bloco 1 permanecem intactos**.
 
 ---
 
@@ -103,7 +103,7 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 ### 🛒 Produtos — `api/v1/produtos`
 
 | Método | Rota                    | Descrição                                                        |
-|--------|-------------------------|------------------------------------------------------------------|
+|--------|-------------------------|--------------------------------------------------------------------|
 | GET    | `/api/v1/produtos`      | Lista produtos (paginado; query: `page`, `pageSize`, `categoria`, `especieIndicada`) |
 | GET    | `/api/v1/produtos/{id}` | Busca produto por ID                                             |
 | POST   | `/api/v1/produtos`      | Cadastra novo produto                                            |
@@ -113,7 +113,7 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 ### 🐾 Eventos Pet — `api/v1/eventos-pet`
 
 | Método | Rota                          | Descrição                                                        |
-|--------|-------------------------------|------------------------------------------------------------------|
+|--------|-------------------------------|--------------------------------------------------------------------|
 | GET    | `/api/v1/eventos-pet`         | Lista eventos (query: `page`, `pageSize`, `cidade`, `tipo`, `especieAlvo`) |
 | GET    | `/api/v1/eventos-pet/{id}`    | Busca evento por ID                                              |
 | POST   | `/api/v1/eventos-pet`         | Cadastra novo evento *(data de início não pode ser no passado)*  |
@@ -122,10 +122,10 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ### 🔔 Lembretes — `api/v1/lembretes`
 
-> ⚠️ Requer `animalId` válido em `t_clyvo_animal` **e** `t_clyvo_tutor` existindo.
+> ⚠️ Exige `animalId` válido em `t_clyvo_animal` **e** a existência de `t_clyvo_tutor`.
 
 | Método | Rota                       | Descrição                                                        |
-|--------|----------------------------|------------------------------------------------------------------|
+|--------|----------------------------|--------------------------------------------------------------------|
 | GET    | `/api/v1/lembretes`        | Lista lembretes (query: `page`, `pageSize`, `animalId`, `status`, `tipo`) |
 | GET    | `/api/v1/lembretes/{id}`   | Busca lembrete por ID                                            |
 | POST   | `/api/v1/lembretes`        | Cria lembrete *(status forçado a `Pendente`; data deve ser futura)* |
@@ -134,10 +134,10 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ### 💡 Sugestões de Produto — `api/v1/sugestoes-produto`
 
-> ⚠️ Requer `animalId` válido em `t_clyvo_animal` **e** `t_clyvo_tutor` existindo.
+> ⚠️ Exige `animalId` válido em `t_clyvo_animal` **e** a existência de `t_clyvo_tutor`.
 
 | Método | Rota                              | Descrição                                                        |
-|--------|-----------------------------------|------------------------------------------------------------------|
+|--------|-----------------------------------|--------------------------------------------------------------------|
 | GET    | `/api/v1/sugestoes-produto`       | Lista sugestões (query: `page`, `pageSize`, `animalId`)          |
 | GET    | `/api/v1/sugestoes-produto/{id}`  | Busca sugestão por ID                                            |
 | POST   | `/api/v1/sugestoes-produto`       | Cria sugestão *(valida `animalId` e `produtoId`)*                |
@@ -148,13 +148,13 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ## Fluxo de teste sugerido
 
-> Execute em ordem para validar dependências passo a passo.
+> Siga a ordem abaixo para validar as dependências passo a passo.
 
 **1. Listar produtos (sem dependência Java)**
 ```
 GET /api/v1/produtos
 ```
-→ Retorna os 5 produtos do seed. Confirma conexão com Oracle.
+→ Retorna os 5 produtos do seed. Confirma a conexão com o Oracle.
 
 **2. Criar novo produto**
 ```json
@@ -189,7 +189,7 @@ POST /api/v1/eventos-pet
 }
 ```
 
-**5. Criar lembrete** *(requer `animalId` real de `t_clyvo_animal`)*
+**5. Criar lembrete** *(exige `animalId` real de `t_clyvo_animal`)*
 ```json
 POST /api/v1/lembretes
 {
@@ -200,9 +200,9 @@ POST /api/v1/lembretes
   "recorrente": true
 }
 ```
-→ `status` será sempre `Pendente` independente do valor enviado.
+→ O `status` sempre vem `Pendente`, não importa o valor enviado.
 
-**6. Criar sugestão** *(requer `animalId` real e `produtoId` existente)*
+**6. Criar sugestão** *(exige `animalId` real e `produtoId` existente)*
 ```json
 POST /api/v1/sugestoes-produto
 {

@@ -13,7 +13,7 @@
 
 ## Sobre o Projeto
 
-A **ClyvoVet API** é uma API RESTful desenvolvida em **ASP.NET Core 8** como parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Ela compõe o **domínio de engajamento** da plataforma veterinária, responsável por:
+Desenvolvida em **ASP.NET Core 8**, a **ClyvoVet API** é uma API RESTful que faz parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Dentro da plataforma veterinária, ela cobre o **domínio de engajamento**, cuidando de:
 
 - Catálogo de produtos e serviços veterinários
 - Sugestões personalizadas de produtos por animal
@@ -21,18 +21,18 @@ A **ClyvoVet API** é uma API RESTful desenvolvida em **ASP.NET Core 8** como pa
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
 - **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
 
-**Sprint 3** — a API evoluiu com uma camada completa de observabilidade e testes automatizados:
+Na **Sprint 3**, a API ganhou uma camada completa de observabilidade e testes automatizados:
 
-- **Health Checks** (`/health`, `/health/live`, `/health/ready`) verificando a conectividade real com o Oracle.
-- **Logging estruturado** com Serilog (console + arquivo), correlação de requisições por `X-Correlation-Id`.
-- **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console + endpoint `/metrics` no formato Prometheus).
-- **68 testes automatizados** (43 unitários + 25 de integração) cobrindo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória).
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
+- **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
+- **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
+- **68 testes automatizados** (43 unitários + 25 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
 ## Arquitetura
 
-A plataforma usa **duas APIs independentes** compartilhando o mesmo banco Oracle XE (FIAP), cada uma em seu próprio container Docker:
+Duas APIs independentes dividem o mesmo banco Oracle XE (FIAP), cada uma rodando no seu próprio container Docker:
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
@@ -122,7 +122,7 @@ git clone https://github.com/pedrinzz10/ClyvoVet-api.git
 cd ClyvoVet-api
 ```
 
-**Verifique se o clone funcionou:**
+**Confira se o clone deu certo:**
 
 ```bash
 ls
@@ -130,31 +130,31 @@ ls
 ```
 
 > **Erro: `git: command not found`**  
-> Git não está instalado. Baixe em [git-scm.com](https://git-scm.com) ou use o botão "Code → Download ZIP" no GitHub.
+> O Git não está instalado nessa máquina. Baixe em [git-scm.com](https://git-scm.com) ou use "Code → Download ZIP" direto no GitHub.
 
 > **Erro: `Repository not found`**  
-> Verifique se a URL está correta e se o repositório é público.
+> Confirme se a URL está certa e se o repositório está público.
 
 ---
 
 ### Passo 2 — Configurar a connection string
 
-O `ClyvoVet.Api/appsettings.json` (versionado no repositório) só tem um **placeholder** — nunca coloque sua senha real nele, para não correr o risco de commitar sua credencial por engano. Use o **User Secrets** do .NET, que guarda a connection string **fora da pasta do projeto**, num arquivo local que nunca entra no `git`:
+O `ClyvoVet.Api/appsettings.json` (versionado no repositório) traz apenas um **placeholder** — evite colocar sua senha real ali, pra não correr o risco de subir sua credencial sem querer. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
 
 ```bash
 cd ClyvoVet.Api
 dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
 ```
 
-> Na primeira vez, se o projeto ainda não tiver um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
+> Se for a primeira vez e o projeto ainda não tiver um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
 
-A API lê o User Secrets automaticamente em ambiente de desenvolvimento — não precisa editar mais nada. Para conferir o que foi salvo:
+Em ambiente de desenvolvimento a API já lê o User Secrets sozinha — não é preciso editar mais nada. Pra conferir o que foi salvo:
 
 ```bash
 dotnet user-secrets list
 ```
 
-**Alternativa mais simples (menos segura):** editar a connection string direto no `appsettings.json` local. Funciona igual, mas **nunca faça commit** desse arquivo depois de colocar sua senha real — `git status` antes de commitar para conferir.
+**Caminho alternativo (menos seguro):** colocar a connection string direto no `appsettings.json` local. Também funciona, mas depois de gravar sua senha real **não faça commit** desse arquivo — rode `git status` antes de commitar pra checar.
 
 ```json
 {
@@ -172,29 +172,29 @@ dotnet user-secrets list
 | `Password` | `fiap26` | Senha do Oracle FIAP |
 | `Data Source` | `oracle.fiap.com.br:1521/ORCL` | Host:Porta/ServiceName |
 
-> **⚠️ Service name correto para o Oracle FIAP: `ORCL`**  
-> Usar `XE` ou `XEPDB1` causa `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
+> **⚠️ O service name certo pro Oracle FIAP é `ORCL`**  
+> Usar `XE` ou `XEPDB1` gera `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
 
-**Para Oracle local (instalação própria):**
+**Pra Oracle local (instalação própria):**
 
 ```json
 "OracleConnection": "User Id=system;Password=SUA_SENHA;Data Source=localhost:1521/XEPDB1;"
 ```
 
 > **Erro: `ORA-01017: invalid username/password`**  
-> Usuário ou senha incorretos. Verifique as credenciais no portal FIAP ou redefina a senha no SQL Developer.
+> Usuário ou senha errados. Confira as credenciais no portal FIAP ou redefina a senha pelo SQL Developer.
 
 > **Erro: `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`**  
-> Service name errado. Tente `ORCL`, `XEPDB1` ou `XE` até conectar. No SQL Developer, você pode ver o service name correto na configuração da sua conexão existente.
+> Service name errado. Vá testando `ORCL`, `XEPDB1` ou `XE` até conectar. No SQL Developer dá pra ver o service name correto na configuração de uma conexão existente.
 
 > **Erro: `ORA-12541: TNS:no listener`** ou **`Connection refused`**  
-> O servidor Oracle está inacessível. Verifique sua conexão com a internet (o servidor FIAP é externo) ou se o Oracle local está iniciado (`services.msc` → `OracleServiceXE`).
+> O servidor Oracle está inacessível. Cheque sua conexão com a internet (o servidor FIAP fica fora da rede local) ou veja se o Oracle local está de pé (`services.msc` → `OracleServiceXE`).
 
 ---
 
 ### Passo 3 — Preparar o banco de dados
 
-Abra o **Oracle SQL Developer**, conecte com suas credenciais e execute os scripts na ordem:
+Abra o **Oracle SQL Developer**, conecte com suas credenciais e rode os scripts nesta ordem:
 
 #### 3.1 — Criar as tabelas
 
@@ -211,22 +211,22 @@ Trigger TRG_PRODUTO_ID compiled.
 ...
 ```
 
-> **Este script é seguro para reexecutar** — ele dropa as tabelas existentes antes de recriar.
+> **Pode reexecutar esse script sem medo** — ele dropa as tabelas existentes antes de recriar.
 
 > **Erro: `ORA-00942: table or view does not exist`** durante o DROP  
-> Normal na primeira execução. O script usa `EXCEPTION WHEN OTHERS THEN NULL` para ignorar esse erro — continue.
+> Esperado na primeira execução. O script usa `EXCEPTION WHEN OTHERS THEN NULL` justamente pra ignorar esse erro — pode seguir em frente.
 
 > **Erro: `ORA-01031: insufficient privileges`**  
-> Seu usuário não tem permissão para criar tabelas. Conecte com um usuário que tenha privilégios de DBA ou peça ao administrador do banco.
+> Seu usuário não tem permissão pra criar tabelas. Conecte com um usuário com privilégios de DBA ou peça ajuda ao administrador do banco.
 
 > **Erro: `ORA-00955: name is already used by an existing object`**  
-> Algum objeto (trigger, função) já existe com o mesmo nome. Execute `schema/03_drop_tabelas_dotnet.sql` primeiro para limpar, depois rode o `01` novamente.
+> Já existe algum objeto (trigger, função) com esse nome. Rode `schema/03_drop_tabelas_dotnet.sql` primeiro pra limpar, depois execute o `01` de novo.
 
 #### 3.2 — Inserir dados de exemplo
 
 1. Abra `schema/02_seed_dotnet.sql`
 2. Pressione **F5**
-3. Aguarde e confira o output:
+3. Confira o output:
 
 ```
 BLOCO 1 — Produtos e Eventos Pet
@@ -248,15 +248,15 @@ BLOCO 2 — Tutor, Animal, Lembretes e Sugestoes
 [COMMIT] Bloco 2 salvo.
 ```
 
-> **`[ERRO] Bloco 1`** — O script `01` não foi executado antes. Execute-o primeiro.
+> **`[ERRO] Bloco 1`** — Sinal de que o script `01` ainda não rodou. Execute-o primeiro.
 
 > **`[AVISO] Nao foi possivel acessar t_clyvo_animal`**  
-> A tabela `t_clyvo_animal` não existe. Execute o script `01` (que cria todas as tabelas) antes do `02`.
+> A tabela `t_clyvo_animal` não existe ainda. Rode o script `01` (que cria todas as tabelas) antes do `02`.
 
 > **`[ERRO] Bloco 2: ORA-00001: unique constraint violated`**  
-> O seed já foi executado antes. Isso pode acontecer com o tutor de seed (CPF `00000000000`). O script é tolerante a isso — o Bloco 1 já foi commitado e o Bloco 2 tenta encontrar o tutor existente antes de criar um novo.
+> Sinal de que o seed já rodou antes. É comum acontecer com o tutor de seed (CPF `00000000000`) — o script tolera isso, já que o Bloco 1 foi commitado e o Bloco 2 tenta localizar o tutor existente antes de criar um novo.
 
-> **Contagem de registros ao final deve mostrar:**
+> **A contagem final de registros deve mostrar:**
 
 ```
 TABELA                   TOTAL
@@ -289,13 +289,13 @@ Restaurando pacotes de C:\...\ClyvoVet.Api.csproj...
 ```
 
 > **Erro: `dotnet: command not found`**  
-> O .NET SDK não está instalado ou não está no PATH. Baixe em [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) e reinicie o terminal após instalar.
+> O .NET SDK não está instalado, ou não está no PATH. Baixe em [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) e reinicie o terminal depois de instalar.
 
 > **Erro: `NETSDK1045: The current .NET SDK does not support targeting .NET 8.0`**  
-> Versão do SDK incompatível. Execute `dotnet --version` para ver a versão instalada. É necessário **8.0.x ou superior**.
+> A versão do SDK instalada é incompatível. Rode `dotnet --version` pra ver qual está ativa — precisa ser **8.0.x ou superior**.
 
 > **Erro: `Unable to load the service index for source https://api.nuget.org`**  
-> Sem acesso à internet para baixar os pacotes. Verifique sua conexão ou configure um proxy NuGet se estiver em rede corporativa.
+> Falta acesso à internet pra baixar os pacotes. Verifique a conexão ou configure um proxy NuGet, caso esteja numa rede corporativa.
 
 ---
 
@@ -316,24 +316,24 @@ info: Microsoft.Hosting.Lifetime[0]
 ```
 
 > **Erro: `Failed to bind to address http://localhost:5191: address already in use`**  
-> A porta 5191 está ocupada por outro processo. Encerre o processo que usa a porta:
+> Outro processo já está usando a porta 5191. Encerre esse processo:
 > ```bash
 > # Windows
 > netstat -ano | findstr :5191
 > taskkill /PID <numero_do_pid> /F
 > ```
-> Ou altere a porta em `Properties/launchSettings.json`.
+> Ou troque a porta em `Properties/launchSettings.json`.
 
 > **Erro: `ORA-12514` ou `ORA-12541` ao fazer a primeira requisição**  
-> A connection string está errada. Veja o Passo 2 para corrigir. A aplicação sobe mesmo com credenciais inválidas — o erro aparece só na primeira chamada ao banco.
+> A connection string está incorreta — volte ao Passo 2. A aplicação sobe normalmente mesmo com credenciais inválidas; o erro só aparece na primeira chamada ao banco.
 
 > **Erro: `Unable to load DLL 'oci.dll'`**  
-> O cliente Oracle nativo não está instalado. O pacote `Oracle.ManagedDataAccess` é 100% gerenciado e **não precisa** do Oracle Client instalado — verifique se o projeto usa a versão correta do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
+> Falta o cliente Oracle nativo. Como o pacote `Oracle.ManagedDataAccess` é 100% gerenciado, ele **dispensa** o Oracle Client instalado — confira se o projeto está usando a versão certa do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
 
 > **A API sobe mas retorna `500` em todos os endpoints**  
-> Verifique os logs no terminal — o erro real aparece lá. As causas mais comuns são:
+> Olhe os logs no terminal — é lá que aparece o erro real. As causas mais comuns:
 > - Connection string incorreta (usuário, senha ou service name)
-> - Tabelas não criadas (execute o script `01` primeiro)
+> - Tabelas ainda não criadas (rode o script `01` primeiro)
 > - Tipo de dado não mapeado no EF Core
 
 ---
@@ -347,23 +347,23 @@ Com a API rodando, abra no navegador:
 | HTTP (recomendado para testes) | http://localhost:5191/swagger |
 | HTTPS | https://localhost:7225/swagger |
 
-A interface do Swagger exibirá todos os endpoints agrupados por controller.
+O Swagger vai listar todos os endpoints agrupados por controller.
 
-> **Swagger está sempre ativo** — não é restrito ao ambiente `Development`. Funciona em Docker, servidor e produção.
+> **Swagger está sempre ativo** — não fica restrito ao ambiente `Development`. Funciona em Docker, servidor e produção.
 
 > **Erro: `ERR_CONNECTION_RESET` ou `ERR_SSL_PROTOCOL_ERROR` no HTTPS**  
-> Certificado de desenvolvimento não confiado. Execute:
+> O certificado de desenvolvimento não é confiável ainda. Rode:
 > ```bash
 > dotnet dev-certs https --clean
 > dotnet dev-certs https --trust
 > ```
-> Confirme a instalação quando o Windows solicitar e reinicie a aplicação. Se o problema persistir, use a URL HTTP.
+> Confirme quando o Windows pedir e reinicie a aplicação. Se ainda der problema, use a URL HTTP.
 
 > **Swagger abre mas mostra "Failed to fetch" ao executar endpoints**  
-> O Swagger está tentando usar HTTPS mas o certificado não é válido. Clique em "Servers" no topo do Swagger e selecione a URL HTTP (`http://localhost:5191`).
+> O Swagger está tentando HTTPS com um certificado inválido. Clique em "Servers" no topo e selecione a URL HTTP (`http://localhost:5191`).
 
 > **Página em branco ou `404` ao acessar `/swagger`**  
-> A aplicação está rodando mas o Swagger não foi servido. Verifique se o `app.UseSwagger()` e `app.UseSwaggerUI()` estão no `Program.cs` **fora** de qualquer bloco `if (app.Environment.IsDevelopment())`.
+> A aplicação está de pé, mas o Swagger não foi servido. Confira se `app.UseSwagger()` e `app.UseSwaggerUI()`, no `Program.cs`, estão **fora** de qualquer bloco `if (app.Environment.IsDevelopment())`.
 
 ---
 
@@ -372,21 +372,21 @@ A interface do Swagger exibirá todos os endpoints agrupados por controller.
 1. Abra `ClyvoVet-api.slnx` na IDE
 2. Selecione o perfil `http` no dropdown de execução
 3. Pressione **F5** (com debug) ou **Ctrl+F5** (sem debug)
-4. O navegador abrirá automaticamente no Swagger
+4. O navegador abre sozinho no Swagger
 
-> **Visual Studio:** se o navegador abrir em `weatherforecast` ou página em branco, verifique se `launchUrl` em `Properties/launchSettings.json` está definido como `"swagger"`.
+> **Visual Studio:** se o navegador abrir em `weatherforecast` ou numa página em branco, confira se `launchUrl` em `Properties/launchSettings.json` está definido como `"swagger"`.
 
 ---
 
 ### Verificação rápida — API funcionando
 
-Após subir, faça uma requisição de teste:
+Depois de subir a API, faça uma requisição de teste:
 
 ```bash
 curl http://localhost:5191/api/v1/produtos
 ```
 
-**Resposta esperada:** array JSON com os produtos do seed. Se retornar `[]`, o banco está conectado mas o seed não foi executado. Se retornar `{"error": "Erro interno no servidor."}`, há um problema na connection string — verifique os logs do terminal.
+**Resposta esperada:** um array JSON com os produtos do seed. Se vier `[]`, o banco está conectado mas o seed não rodou. Se vier `{"error": "Erro interno no servidor."}`, tem algo errado na connection string — confira os logs do terminal.
 
 ---
 
@@ -400,9 +400,9 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 |----------|----------------|-----|
 | `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
-| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe — o Oracle FIAP é um serviço **externo** ao processo, então este check também cobre "disponibilidade de serviços externos" |
+| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe — como o Oracle FIAP é um serviço **externo** ao processo, esse check também cobre "disponibilidade de serviços externos" |
 
-Cada resposta é um JSON com o status geral, a duração total e o detalhe de cada verificação:
+Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
 ```bash
 curl http://localhost:5191/health
@@ -419,19 +419,19 @@ curl http://localhost:5191/health
 }
 ```
 
-Se o Oracle estiver inacessível (connection string errada, sem internet, etc.), `status` muda para `"Unhealthy"` e o campo `error` de cada check traz a exceção.
+Quando o Oracle fica inacessível (connection string errada, sem internet, etc.), o `status` muda para `"Unhealthy"` e o campo `error` de cada check traz a exceção correspondente.
 
 ### Logging Estruturado (Serilog)
 
-- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs) com saída simultânea para **console** e **arquivo** (`Logs/clyvovet-api-*.log`, rotacionado diariamente, retendo os últimos 7 dias).
-- Cada linha de log inclui um **Correlation ID** por requisição — gerado (ou reaproveitado do header `X-Correlation-Id`, se o cliente enviar um e ele passar por validação de tamanho/formato) pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) e devolvido também na resposta.
-- Níveis usados: `Information` (requisições HTTP concluídas), `Warning` (erros de negócio esperados: 404/400) e `Error` (exceções não tratadas, 500).
-- Os níveis mínimos por categoria são configuráveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), seção `"Serilog"`.
+- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs), com saída simultânea pro **console** e pra um **arquivo** (`Logs/clyvovet-api-*.log`, rotacionado diariamente, mantendo os últimos 7 dias).
+- Toda linha de log carrega um **Correlation ID** por requisição — gerado (ou reaproveitado do header `X-Correlation-Id`, quando o cliente manda um que passa pela validação de tamanho/formato) pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) e devolvido também na resposta.
+- Os níveis usados são: `Information` (requisições HTTP concluídas), `Warning` (erros de negócio esperados: 404/400) e `Error` (exceções não tratadas, 500).
+- Dá pra configurar os níveis mínimos por categoria em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
 
 ### Tracing e Métricas (OpenTelemetry)
 
-- **Tracing:** instrumentação automática de ASP.NET Core, `HttpClient` e Entity Framework Core — cada requisição gera uma árvore de spans exportada para o **console**.
-- **Métricas:** expostas no formato Prometheus em `GET /metrics` — tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+- **Tracing:** instrumentação automática de ASP.NET Core, `HttpClient` e Entity Framework Core — cada requisição gera uma árvore de spans exportada pro **console**.
+- **Métricas:** disponíveis no formato Prometheus em `GET /metrics` — tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
 
 ```bash
 curl http://localhost:5191/metrics
@@ -441,7 +441,7 @@ curl http://localhost:5191/metrics
 
 ## Testes Automatizados
 
-Os testes ficam em dois projetos separados dentro de `ClyvoVet.Api/`, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
+Os testes estão organizados em dois projetos separados dentro de `ClyvoVet.Api/`, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
 
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
@@ -456,7 +456,7 @@ dotnet test ClyvoVet.Api.Tests.Unit
 dotnet test ClyvoVet.Api.Tests.Integration
 ```
 
-Ou os dois de uma vez, a partir da raiz do repositório:
+Ou os dois juntos, direto da raiz do repositório:
 
 ```bash
 dotnet test ClyvoVet-api.slnx
@@ -466,8 +466,8 @@ dotnet test ClyvoVet-api.slnx
 
 ### Detalhes dos testes de integração
 
-- Sobem a API inteira em memória via `WebApplicationFactory<Program>`, **substituindo o Oracle real por um banco EF Core InMemory** — não é necessário ter o Oracle FIAP acessível para rodar `dotnet test`.
-- A maioria usa **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) para subir a API **uma única vez** para toda a suíte, semeando um Tutor + Animal + Produto de teste. Os testes do Widget de Saúde Preditiva sobem sua própria instância à parte, porque precisam de um Animal com raça e idade específicas.
+- A API inteira sobe em memória via `WebApplicationFactory<Program>`, **trocando o Oracle real por um banco EF Core InMemory** — então não é necessário ter o Oracle FIAP acessível pra rodar `dotnet test`.
+- A maior parte usa **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) pra subir a API **uma única vez** pra toda a suíte, semeando um Tutor + Animal + Produto de teste. Os testes do Widget de Saúde Preditiva sobem sua própria instância à parte, já que precisam de um Animal com raça e idade específicas.
 
 ---
 
@@ -489,13 +489,13 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 
-> `T_CLYVO_TUTOR` é necessária mesmo sendo da API Java, pois o `AnimalRepository` faz `.Include(a => a.Tutor)` — sem ela a API lança `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
+> A `T_CLYVO_TUTOR` é necessária mesmo sendo da API Java, porque o `AnimalRepository` faz `.Include(a => a.Tutor)` — sem ela a API lança `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
 
 ---
 
 ### Geração de IDs (UUID)
 
-Todos os IDs são gerados pelo Oracle via função `fn_uuid()` chamada no trigger `BEFORE INSERT` de cada tabela. A API **nunca** gera UUIDs no código C# — o EF Core usa `RETURNING` para ler o valor gerado:
+Todos os IDs saem do Oracle via a função `fn_uuid()`, chamada no trigger `BEFORE INSERT` de cada tabela. O código C# **nunca** gera UUIDs — o EF Core usa `RETURNING` pra ler o valor já gerado:
 
 ```sql
 -- Função fn_uuid() — definida em 01_criar_tabelas_dotnet.sql
@@ -530,7 +530,7 @@ END;
 
 ### 🛒 Produtos — `/api/v1/produtos`
 
-Gerencia o catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
+Cuida do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -581,7 +581,7 @@ Gerencia o catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 
 ### 🐾 Eventos Pet — `/api/v1/eventos-pet`
 
-Gerencia eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Não tem dependência de FK com as tabelas Java.
+Cuida dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Sem dependência de FK com as tabelas Java.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -653,8 +653,8 @@ Gerencia eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Não tem dependênc
 
 ### 🔔 Lembretes — `/api/v1/lembretes`
 
-Gerencia lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).  
-⚠️ Requer `animalId` válido em `T_CLYVO_ANIMAL` (e `T_CLYVO_TUTOR` existindo).
+Cuida dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).  
+⚠️ Exige um `animalId` válido em `T_CLYVO_ANIMAL` (e a existência de `T_CLYVO_TUTOR`).
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -688,8 +688,8 @@ Gerencia lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 }
 ```
 
-> **Atenção:** `status` é **sempre forçado a `Pendente` (0)** na criação, independente do valor enviado.  
-> `agendadoEm` deve ser uma data/hora **futura**.
+> **Atenção:** o `status` é **sempre forçado a `Pendente` (0)** na criação, não importa o valor enviado.  
+> `agendadoEm` precisa ser uma data/hora **futura**.
 
 **Response — GET / POST / PUT**
 
@@ -712,8 +712,8 @@ Gerencia lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 
 ### 💡 Sugestões de Produto — `/api/v1/sugestoes-produto`
 
-Gerencia sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO`).  
-⚠️ Requer `animalId` válido em `T_CLYVO_ANIMAL` e `produtoId` válido em `T_CLYVO_PRODUTO`.
+Cuida das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO`).  
+⚠️ Exige `animalId` válido em `T_CLYVO_ANIMAL` e `produtoId` válido em `T_CLYVO_PRODUTO`.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -743,7 +743,7 @@ Gerencia sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO
 }
 ```
 
-> `dataSugestao` é opcional — se omitido, assume a data de hoje.
+> Se `dataSugestao` for omitido, assume a data de hoje.
 
 **Response — GET / POST / PUT**
 
@@ -765,9 +765,9 @@ Gerencia sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO
 
 ### 🩺 Widget de Saúde Preditiva — `/api/v1/widget-saude-preditiva`
 
-> ⚠️ Feature extra, não faz parte do escopo avaliado da Sprint 3.
+> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Card que cruza os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e sugere agendar uma consulta quando alguma condição relevante é encontrada.
+Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e, ao encontrar alguma condição relevante, sugere agendar uma consulta.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -796,11 +796,11 @@ Card que cruza os dados do animal (espécie, raça e idade) com um catálogo de 
 
 **Regras de negócio**
 
-- A comparação de raça é tolerante (não faz distinção entre maiúsculas/minúsculas e casa substrings em ambos os sentidos), então variações de digitação da raça cadastrada ainda casam com o catálogo.
-- `idadeMinimaAnos` nula ou `0` significa que a condição vale para qualquer idade; caso contrário, a idade do animal precisa ser maior ou igual ao mínimo — e um animal sem data de nascimento cadastrada nunca casa com um mínimo maior que zero.
-- Se a espécie do animal não for reconhecida, o widget retorna a lista de predisposições vazia, sem erro.
-- `sugerirAgendamentoConsulta` vem `true` sempre que pelo menos uma predisposição é encontrada — o widget apenas sugere, não cria a consulta automaticamente.
-- `animalId` inexistente retorna 404.
+- A comparação de raça é tolerante — ignora maiúsculas/minúsculas e casa substrings nos dois sentidos —, então pequenas variações de digitação na raça cadastrada ainda encontram correspondência no catálogo.
+- `idadeMinimaAnos` nula ou `0` vale para qualquer idade; nos demais casos, a idade do animal precisa ser maior ou igual ao mínimo, e um animal sem data de nascimento cadastrada nunca casa com um mínimo maior que zero.
+- Quando a espécie do animal não é reconhecida, o widget devolve a lista de predisposições vazia, sem gerar erro.
+- `sugerirAgendamentoConsulta` vem `true` sempre que ao menos uma predisposição é encontrada — o widget só sugere, quem cria a consulta é outra etapa.
+- Um `animalId` inexistente retorna 404.
 
 ---
 
@@ -814,7 +814,7 @@ Card que cruza os dados do animal (espécie, raça e idade) com um catálogo de 
 
 ### Antes de começar — obtenha os IDs necessários
 
-Execute no **Oracle SQL Developer** após rodar o seed:
+Execute no **Oracle SQL Developer** depois de rodar o seed:
 
 ```sql
 -- animal_id (necessário nos testes de Lembrete e Sugestão)
@@ -824,8 +824,8 @@ SELECT id, nome FROM t_clyvo_animal WHERE ROWNUM = 1;
 SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
 ```
 
-> Guarde esses dois UUIDs — você vai substituir `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes abaixo.  
-> Alternativamente, você pode obter o `animalId` no response do **T23** (GET /lembretes).
+> Guarde os dois UUIDs — eles substituem `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes abaixo.  
+> Também dá pra pegar o `animalId` direto no response do **T23** (GET /lembretes).
 
 ---
 
@@ -834,7 +834,7 @@ SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
 ---
 
 ### T01 — Listar todos os produtos
-**Confirma conexão com Oracle. Deve retornar os produtos do seed.**
+**Confirma a conexão com o Oracle. Deve devolver os produtos do seed.**
 
 ```
 GET /api/v1/produtos
@@ -849,7 +849,7 @@ GET /api/v1/produtos
 GET /api/v1/produtos?categoria=Racao
 ```
 
-✅ **Esperado:** `200 OK` — apenas produtos com `categoria = 0` (Racao).
+✅ **Esperado:** `200 OK` — só os produtos com `categoria = 0` (Racao).
 
 ---
 
@@ -858,7 +858,7 @@ GET /api/v1/produtos?categoria=Racao
 GET /api/v1/produtos?especieIndicada=Gato
 ```
 
-✅ **Esperado:** `200 OK` — apenas produtos para gatos.
+✅ **Esperado:** `200 OK` — só produtos indicados para gatos.
 
 ---
 
@@ -903,7 +903,7 @@ POST /api/v1/produtos
 
 ✅ **Esperado:** `201 Created` — produto criado com `id` gerado pelo Oracle.
 
-> 📋 **Copie o `id` retornado** — usado nos testes T07, T08 e T50.
+> 📋 **Guarde o `id` retornado** — será usado nos testes T07, T08 e T50.
 
 ---
 
@@ -931,7 +931,7 @@ PUT /api/v1/produtos/{id do T06}
 }
 ```
 
-✅ **Esperado:** `200 OK` — produto com nome e preço atualizados.
+✅ **Esperado:** `200 OK` — produto com nome e preço já atualizados.
 
 ---
 
@@ -991,7 +991,7 @@ POST /api/v1/produtos
 GET /api/v1/eventos-pet
 ```
 
-✅ **Esperado:** `200 OK` — array com eventos do seed (Feira de Adoção, Vacinação etc.).
+✅ **Esperado:** `200 OK` — array com os eventos do seed (Feira de Adoção, Vacinação etc.).
 
 ---
 
@@ -1000,7 +1000,7 @@ GET /api/v1/eventos-pet
 GET /api/v1/eventos-pet?cidade=Sao Paulo
 ```
 
-✅ **Esperado:** `200 OK` — apenas eventos de São Paulo.
+✅ **Esperado:** `200 OK` — só os eventos de São Paulo.
 
 ---
 
@@ -1009,7 +1009,7 @@ GET /api/v1/eventos-pet?cidade=Sao Paulo
 GET /api/v1/eventos-pet?tipo=Vacinacao
 ```
 
-✅ **Esperado:** `200 OK` — apenas eventos do tipo `Vacinacao (0)`.
+✅ **Esperado:** `200 OK` — só os eventos do tipo `Vacinacao (0)`.
 
 ---
 
@@ -1018,7 +1018,7 @@ GET /api/v1/eventos-pet?tipo=Vacinacao
 GET /api/v1/eventos-pet?especieAlvo=Todos
 ```
 
-✅ **Esperado:** `200 OK` — apenas eventos para todos os animais.
+✅ **Esperado:** `200 OK` — só os eventos abertos a todos os animais.
 
 ---
 
@@ -1061,7 +1061,7 @@ POST /api/v1/eventos-pet
 
 ✅ **Esperado:** `201 Created` — evento criado com `id` gerado pelo Oracle.
 
-> 📋 **Copie o `id` retornado** — usado nos testes T18, T19 e T49.
+> 📋 **Guarde o `id` retornado** — será usado nos testes T18, T19 e T49.
 
 ---
 
@@ -1092,7 +1092,7 @@ PUT /api/v1/eventos-pet/{id do T17}
 }
 ```
 
-✅ **Esperado:** `200 OK` — evento com título e `gratuito` atualizados.
+✅ **Esperado:** `200 OK` — evento com título e `gratuito` já atualizados.
 
 ---
 
@@ -1150,8 +1150,8 @@ GET /api/v1/eventos-pet/id-que-nao-existe
 
 ## 🔔 BLOCO 3 — Lembretes
 
-> ⚠️ Os testes T28 em diante exigem um `animalId` válido.  
-> Obtenha-o no T23 (campo `animalId` de qualquer lembrete do seed) ou pelo SQL do pré-requisito.
+> ⚠️ A partir do T28, os testes exigem um `animalId` válido.  
+> Pegue esse valor no T23 (campo `animalId` de qualquer lembrete do seed) ou pelo SQL do pré-requisito.
 
 ---
 
@@ -1162,7 +1162,7 @@ GET /api/v1/lembretes
 
 ✅ **Esperado:** `200 OK` — array com os lembretes do seed (Vacina V10, Vermifugação, Retorno).
 
-> 📋 **Copie o valor de `animalId`** de qualquer item retornado — usado nos testes T26 e T28 em diante.
+> 📋 **Guarde o valor de `animalId`** de qualquer item retornado — será usado nos testes T26 e T28 em diante.
 
 ---
 
@@ -1171,7 +1171,7 @@ GET /api/v1/lembretes
 GET /api/v1/lembretes?status=Pendente
 ```
 
-✅ **Esperado:** `200 OK` — apenas lembretes com `status = 0` (Pendente).
+✅ **Esperado:** `200 OK` — só os lembretes com `status = 0` (Pendente).
 
 ---
 
@@ -1180,7 +1180,7 @@ GET /api/v1/lembretes?status=Pendente
 GET /api/v1/lembretes?tipo=Vacina
 ```
 
-✅ **Esperado:** `200 OK` — apenas lembretes do tipo `Vacina (0)`.
+✅ **Esperado:** `200 OK` — só os lembretes do tipo `Vacina (0)`.
 
 ---
 
@@ -1189,7 +1189,7 @@ GET /api/v1/lembretes?tipo=Vacina
 GET /api/v1/lembretes?animalId={ANIMAL_ID}
 ```
 
-✅ **Esperado:** `200 OK` — apenas lembretes do animal especificado.
+✅ **Esperado:** `200 OK` — só os lembretes do animal informado.
 
 ---
 
@@ -1221,9 +1221,9 @@ POST /api/v1/lembretes
 }
 ```
 
-✅ **Esperado:** `201 Created` — lembrete criado. O campo `status` **sempre** será `0` (Pendente), mesmo que outro valor seja enviado.
+✅ **Esperado:** `201 Created` — lembrete criado. O campo `status` **sempre** vem `0` (Pendente), mesmo que outro valor tenha sido enviado.
 
-> 📋 **Copie o `id` retornado** — usado nos testes T29 a T32 e T48.
+> 📋 **Guarde o `id` retornado** — será usado nos testes T29 a T32 e T48.
 
 ---
 
@@ -1232,12 +1232,12 @@ POST /api/v1/lembretes
 GET /api/v1/lembretes/{id do T28}
 ```
 
-✅ **Esperado:** `200 OK` — dados completos incluindo `nomeAnimal` preenchido pelo JOIN.
+✅ **Esperado:** `200 OK` — dados completos, incluindo `nomeAnimal` preenchido pelo JOIN.
 
 ---
 
 ### T30 — Verificar que status foi forçado para Pendente
-No response do T29, confira que `"status": 0` independente do valor enviado em T28.
+No response do T29, confirme que `"status": 0`, independente do valor enviado em T28.
 
 ✅ **Esperado:** `"status": 0` no response.
 
@@ -1338,8 +1338,8 @@ GET /api/v1/lembretes/id-que-nao-existe
 
 ## 💡 BLOCO 4 — Sugestões de Produto
 
-> ⚠️ Os testes T39 em diante exigem `{ANIMAL_ID}` e `{PRODUTO_ID}` válidos.  
-> Obtenha-os pelo SQL do pré-requisito ou pelos GETs anteriores.
+> ⚠️ A partir do T39, os testes exigem `{ANIMAL_ID}` e `{PRODUTO_ID}` válidos.  
+> Pegue esses valores pelo SQL do pré-requisito ou pelos GETs anteriores.
 
 ---
 
@@ -1357,7 +1357,7 @@ GET /api/v1/sugestoes-produto
 GET /api/v1/sugestoes-produto?animalId={ANIMAL_ID}
 ```
 
-✅ **Esperado:** `200 OK` — apenas sugestões do animal especificado, ordenadas da mais recente para a mais antiga.
+✅ **Esperado:** `200 OK` — só as sugestões do animal informado, da mais recente para a mais antiga.
 
 ---
 
@@ -1389,7 +1389,7 @@ POST /api/v1/sugestoes-produto
 
 ✅ **Esperado:** `201 Created` — sugestão criada com `id` gerado pelo Oracle.
 
-> 📋 **Copie o `id` retornado** — usado nos testes T40, T42 e T47.
+> 📋 **Guarde o `id` retornado** — será usado nos testes T40, T42 e T47.
 
 ---
 
@@ -1398,12 +1398,12 @@ POST /api/v1/sugestoes-produto
 GET /api/v1/sugestoes-produto/{id do T39}
 ```
 
-✅ **Esperado:** `200 OK` — dados completos incluindo `nomeAnimal` e `nomeProduto` preenchidos automaticamente pelo JOIN.
+✅ **Esperado:** `200 OK` — dados completos, incluindo `nomeAnimal` e `nomeProduto` preenchidos automaticamente pelo JOIN.
 
 ---
 
 ### T41 — Verificar enriquecimento do response
-No response do T40, confirme que os campos de JOIN estão presentes:
+No response do T40, confirme a presença dos campos vindos do JOIN:
 
 ```json
 {
@@ -1430,7 +1430,7 @@ PUT /api/v1/sugestoes-produto/{id do T39}
 }
 ```
 
-✅ **Esperado:** `200 OK` — sugestão com `ativo: false` e justificativa atualizada.
+✅ **Esperado:** `200 OK` — sugestão com `ativo: false` e justificativa já atualizada.
 
 ---
 
@@ -1577,8 +1577,8 @@ GET /api/v1/sugestoes-produto/{id do T39}
 
 ---
 
-> **Resultado esperado ao final:** todos os 54 testes passam com os status codes indicados.  
-> Esta suite foi executada com Oracle real e obteve **54/54 PASS**.
+> **Resultado esperado ao final:** os 54 testes passam com os status codes indicados.  
+> Essa suíte foi executada com Oracle real e obteve **54/54 PASS**.
 
 ---
 
