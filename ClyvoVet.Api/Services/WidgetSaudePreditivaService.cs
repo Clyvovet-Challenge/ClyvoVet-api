@@ -3,6 +3,7 @@ using ClyvoVet.Api.Enums;
 using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace ClyvoVet.Api.Services;
 
@@ -15,11 +16,16 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
 {
     private readonly IAnimalRepository _animalRepository;
     private readonly IPredisposicaoSaudeRepository _predisposicaoRepository;
+    private readonly ILogger<WidgetSaudePreditivaService> _logger;
 
-    public WidgetSaudePreditivaService(IAnimalRepository animalRepository, IPredisposicaoSaudeRepository predisposicaoRepository)
+    public WidgetSaudePreditivaService(
+        IAnimalRepository animalRepository,
+        IPredisposicaoSaudeRepository predisposicaoRepository,
+        ILogger<WidgetSaudePreditivaService> logger)
     {
         _animalRepository = animalRepository;
         _predisposicaoRepository = predisposicaoRepository;
+        _logger = logger;
     }
 
     public async Task<WidgetSaudePreditivaResponse> GetPredisposicoesAsync(string animalId)
@@ -34,6 +40,9 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
         // simplesmente não têm predisposição cadastrada — não é um erro.
         if (!Enum.TryParse<EspecieEnum>(animal.Especie, ignoreCase: true, out var especie))
         {
+            _logger.LogWarning(
+                "Widget de saude preditiva: especie '{Especie}' do animal {AnimalId} nao consta no catalogo de predisposicoes.",
+                animal.Especie, animal.Id);
             return MontarResposta(animal.Id, animal.Nome, animal.Especie, animal.Raca, idadeAnos, []);
         }
 

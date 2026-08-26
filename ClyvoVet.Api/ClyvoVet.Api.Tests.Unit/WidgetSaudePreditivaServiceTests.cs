@@ -3,6 +3,7 @@ using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Models;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace ClyvoVet.Api.Tests.Unit;
@@ -11,11 +12,12 @@ public class WidgetSaudePreditivaServiceTests
 {
     private readonly Mock<IAnimalRepository> _animalRepositoryMock = new();
     private readonly Mock<IPredisposicaoSaudeRepository> _predisposicaoRepositoryMock = new();
+    private readonly Mock<ILogger<WidgetSaudePreditivaService>> _loggerMock = new();
     private readonly WidgetSaudePreditivaService _service;
 
     public WidgetSaudePreditivaServiceTests()
     {
-        _service = new WidgetSaudePreditivaService(_animalRepositoryMock.Object, _predisposicaoRepositoryMock.Object);
+        _service = new WidgetSaudePreditivaService(_animalRepositoryMock.Object, _predisposicaoRepositoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -120,5 +122,47 @@ public class WidgetSaudePreditivaServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _service.GetPredisposicoesAsync("id-invalido"));
+    }
+
+    [Fact]
+    public async Task GetPredisposicoesAsync_AnimalSemRacaCadastrada_NaoCasaComPredisposicaoDeRacaEspecifica()
+    {
+        // Arrange
+        var animal = new Animal { Id = "animal-5", Nome = "SemRaca", Especie = "CACHORRO", Raca = null, DataNascimento = DateTime.UtcNow.AddYears(-8) };
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-5")).ReturnsAsync(animal);
+
+        var predisposicoes = new List<PredisposicaoSaude>
+        {
+            new() { Especie = EspecieEnum.Cachorro, Raca = "Labrador", IdadeMinimaAnos = 6, Doenca = "Displasia de quadril", Recomendacao = "X" },
+        };
+        _predisposicaoRepositoryMock.Setup(r => r.GetByEspecieAsync(EspecieEnum.Cachorro)).ReturnsAsync(predisposicoes);
+
+        // Act
+        var result = await _service.GetPredisposicoesAsync("animal-5");
+
+        // Assert
+        Assert.False(result.SugerirAgendamentoConsulta);
+        Assert.Empty(result.Predisposicoes);
+    }
+
+    [Fact]
+    public async Task GetPredisposicoesAsync_IdadeExatamenteIgualAoMinimo_ConsideraCompativel()
+    {
+        // Arrange
+        var animal = new Animal { Id = "animal-6", Nome = "Fronteira", Especie = "CACHORRO", Raca = "Labrador", DataNascimento = DateTime.UtcNow.AddYears(-6) };
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-6")).ReturnsAsync(animal);
+
+        var predisposicoes = new List<PredisposicaoSaude>
+        {
+            new() { Especie = EspecieEnum.Cachorro, Raca = "Labrador", IdadeMinimaAnos = 6, Doenca = "Displasia de quadril", Recomendacao = "X" },
+        };
+        _predisposicaoRepositoryMock.Setup(r => r.GetByEspecieAsync(EspecieEnum.Cachorro)).ReturnsAsync(predisposicoes);
+
+        // Act
+        var result = await _service.GetPredisposicoesAsync("animal-6");
+
+        // Assert
+        Assert.True(result.SugerirAgendamentoConsulta);
+        Assert.Single(result.Predisposicoes);
     }
 }
