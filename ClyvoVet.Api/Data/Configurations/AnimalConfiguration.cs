@@ -43,9 +43,6 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
             .HasColumnType("NUMBER(1)")
             .HasConversion<int>();
 
-        // DDL real: coluna ATIVO não existe em t_clyvo_animal
-        builder.Ignore(a => a.Ativo);
-
         builder.Property(a => a.CriadoEm)
             .HasColumnName("CRIADO_EM")
             .ValueGeneratedOnAdd();

@@ -34,9 +34,6 @@ public class VeterinarioConfiguration : IEntityTypeConfiguration<Veterinario>
             .HasColumnName("ESPECIALIDADE")
             .HasColumnType("VARCHAR2(100)");
 
-        // DDL real: coluna ATIVO não existe em t_clyvo_veterinario
-        builder.Ignore(v => v.Ativo);
-
         builder.Property(v => v.CriadoEm)
             .HasColumnName("CRIADO_EM")
             .ValueGeneratedOnAdd();

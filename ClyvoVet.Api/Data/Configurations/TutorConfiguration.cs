@@ -34,14 +34,6 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
             .HasColumnName("TELEFONE")
             .HasColumnType("VARCHAR2(20)");
 
-        // DDL real: t_clyvo_tutor não tem coluna ENDERECO.
-        // O endereço é armazenado em colunas separadas (rua, numero, bairro,
-        // cidade, estado, cep) que não são mapeadas nesta API.
-        builder.Ignore(t => t.Endereco);
-
-        // DDL real: coluna ATIVO não existe em t_clyvo_tutor
-        builder.Ignore(t => t.Ativo);
-
         builder.Property(t => t.CriadoEm)
             .HasColumnName("CRIADO_EM")
             .ValueGeneratedOnAdd();
