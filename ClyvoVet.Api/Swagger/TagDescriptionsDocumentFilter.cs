@@ -51,6 +51,11 @@ public sealed class TagDescriptionsDocumentFilter : IDocumentFilter
                               "consulta quando alguma condição relevante for encontrada. " +
                               "Tabela de referência: **`t_clyvo_predisposicao_saude`**."
             },
+            new()
+            {
+                Name        = "WhatsApp",
+                Description = "Ponto único de disparo de mensagens no WhatsApp, via Twilio Sandbox."
+            },
         };
     }
 }
