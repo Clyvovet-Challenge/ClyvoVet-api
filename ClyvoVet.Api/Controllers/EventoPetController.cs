@@ -23,7 +23,7 @@ public class EventoPetController : ControllerBase
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="cidade">Filtro por cidade (case-insensitive).</param>
     /// <param name="tipo">Filtro: <c>Vacinacao | Feira | Castracao | Workshop | Outro</c></param>
-    /// <param name="especieAlvo">Filtro: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro</c></param>
+    /// <param name="especieAlvo">Filtro: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino</c></param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

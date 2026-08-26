@@ -22,7 +22,7 @@ public class ProdutoController : ControllerBase
     /// <param name="page">Número da página (padrão: 1).</param>
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="categoria">Filtro por categoria: <c>Racao | Medicamento | Acessorio | Servico | Outro</c></param>
-    /// <param name="especieIndicada">Filtro por espécie: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro</c></param>
+    /// <param name="especieIndicada">Filtro por espécie: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino</c></param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
