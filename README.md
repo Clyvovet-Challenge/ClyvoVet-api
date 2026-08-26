@@ -5,6 +5,9 @@
 ![Entity Framework Core](https://img.shields.io/badge/Entity_Framework_Core-8.0-68217A?style=flat&logo=nuget&logoColor=white)
 ![Oracle](https://img.shields.io/badge/Oracle_Database-XE-F80000?style=flat&logo=oracle&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?style=flat&logo=swagger&logoColor=black)
+![Serilog](https://img.shields.io/badge/Serilog-Structured_Logging-1B1F26?style=flat)
+![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing_%26_Metrics-425CC7?style=flat&logo=opentelemetry&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-Testes_Automatizados-512BD4?style=flat)
 
 ---
 
@@ -16,6 +19,14 @@ A **ClyvoVet API** é uma API RESTful desenvolvida em **ASP.NET Core 8** como pa
 - Sugestões personalizadas de produtos por animal
 - Lembretes de saúde e cuidados para tutores
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
+- **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
+
+**Sprint 3** — a API evoluiu com uma camada completa de observabilidade e testes automatizados:
+
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`) verificando a conectividade real com o Oracle.
+- **Logging estruturado** com Serilog (console + arquivo), correlação de requisições por `X-Correlation-Id`.
+- **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console + endpoint `/metrics` no formato Prometheus).
+- **68 testes automatizados** (43 unitários + 25 de integração) cobrindo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória).
 
 ---
 
@@ -25,7 +36,7 @@ A plataforma usa **duas APIs independentes** compartilhando o mesmo banco Oracle
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
-| **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet` |
+| **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude` |
 | **Java (parceira)** | Clínica e cadastro | `t_clyvo_tutor`, `t_clyvo_animal`, `t_clyvo_clinica`, `t_clyvo_veterinario`, `t_clyvo_evento_clinico`, `t_clyvo_pagamento` |
 
 > A API .NET **lê** as tabelas da API Java (animal e tutor) para validar FKs e enriquecer respostas, mas **nunca escreve** nelas.
@@ -42,6 +53,13 @@ A plataforma usa **duas APIs independentes** compartilhando o mesmo banco Oracle
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
 | Microsoft.OpenApi | 2.4.1 | Modelos OpenAPI (namespace atualizado na v2) |
 | Oracle Database XE | — | Banco de dados |
+| Microsoft.Extensions.Diagnostics.HealthChecks | 8.0.11 | Health Checks (`/health`, `/health/live`, `/health/ready`) |
+| Serilog.AspNetCore | 10.0.0 | Logging estruturado (console + arquivo) |
+| OpenTelemetry (.NET SDK) | 1.18.0 | Distributed tracing + métricas de desempenho |
+| OpenTelemetry.Exporter.Prometheus.AspNetCore | 1.18.0-beta.1 | Endpoint `/metrics` no formato Prometheus |
+| xUnit + Moq | 2.9.3 / 4.20.72 | Testes unitários (padrão AAA) |
+| Microsoft.AspNetCore.Mvc.Testing | 8.0.11 | Testes de integração via `WebApplicationFactory` |
+| Microsoft.EntityFrameworkCore.InMemory | 8.0.11 | Banco em memória usado nos testes de integração |
 
 ---
 
@@ -50,29 +68,36 @@ A plataforma usa **duas APIs independentes** compartilhando o mesmo banco Oracle
 ```
 ClyvoVet-api/
 ├── ClyvoVet.Api/
-│   ├── Controllers/          → Recebem requisições HTTP e delegam ao Service
-│   ├── Services/             → Regras de negócio
+│   ├── Controllers/           → Recebem requisições HTTP e delegam ao Service
+│   ├── Services/               → Regras de negócio
 │   │   └── Interfaces/
-│   ├── Repositories/         → Acesso ao banco via EF Core
+│   ├── Repositories/          → Acesso ao banco via EF Core
 │   │   └── Interfaces/
-│   ├── Models/               → Entidades mapeadas nas tabelas Oracle
+│   ├── Models/                 → Entidades mapeadas nas tabelas Oracle
 │   ├── DTOs/
-│   │   ├── Request/          → Dados recebidos nas requisições (POST/PUT)
-│   │   └── Response/         → Dados retornados nas respostas
-│   ├── Enums/                → Enumerações dos valores aceitos pelo banco
+│   │   ├── Request/           → Dados recebidos nas requisições (POST/PUT)
+│   │   └── Response/          → Dados retornados nas respostas
+│   ├── Enums/                 → Enumerações dos valores aceitos pelo banco
 │   ├── Data/
-│   │   ├── AppDbContext.cs   → DbContext principal
-│   │   └── Configurations/   → Fluent API (mapeamento tabela ↔ modelo)
-│   ├── Exceptions/           → NotFoundException, BadRequestException
+│   │   ├── AppDbContext.cs    → DbContext principal
+│   │   └── Configurations/    → Fluent API (mapeamento tabela ↔ modelo)
+│   ├── Exceptions/            → NotFoundException, BadRequestException
+│   ├── HealthChecks/          → Formatação JSON do resultado do Health Check
+│   ├── Middleware/            → CorrelationIdMiddleware (rastreio de requisições nos logs)
 │   ├── Properties/
 │   │   └── launchSettings.json
-│   ├── appsettings.json      → Connection string Oracle
-│   └── Program.cs            → DI, Swagger, middleware de erros
+│   ├── appsettings.json       → Connection string Oracle (placeholder) + níveis de log
+│   ├── Program.cs             → DI, Swagger, Health Checks, Serilog, OpenTelemetry, middleware de erros
+│   ├── Logs/                   → Arquivos de log gerados pelo Serilog (não versionado)
+│   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Services, mocks via Moq)
+│   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
 └── schema/
-    ├── 01_criar_tabelas_dotnet.sql  → DDL completo + triggers + fn_uuid()
-    ├── 02_seed_dotnet.sql           → Dados de exemplo para todos os endpoints
-    ├── 03_drop_tabelas_dotnet.sql   → Remove apenas as 4 tabelas .NET
-    └── README.md                    → Guia do schema
+    ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
+    ├── 02_seed_dotnet.sql                       → Dados de exemplo para os endpoints originais
+    ├── 03_drop_tabelas_dotnet.sql               → Remove as 5 tabelas .NET
+    ├── 04_criar_tabela_predisposicao_dotnet.sql → DDL da tabela do Widget de Saúde Preditiva
+    ├── 05_seed_predisposicao_dotnet.sql         → 42 predisposições reais por espécie/raça/idade
+    └── README.md                                → Guia do schema
 ```
 
 ---
@@ -365,6 +390,87 @@ curl http://localhost:5191/api/v1/produtos
 
 ---
 
+## Monitoramento e Observabilidade
+
+### Health Checks
+
+A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagnostics.HealthChecks`:
+
+| Endpoint | O que verifica | Uso |
+|----------|----------------|-----|
+| `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
+| `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
+| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe — o Oracle FIAP é um serviço **externo** ao processo, então este check também cobre "disponibilidade de serviços externos" |
+
+Cada resposta é um JSON com o status geral, a duração total e o detalhe de cada verificação:
+
+```bash
+curl http://localhost:5191/health
+```
+
+```json
+{
+  "status": "Healthy",
+  "totalDurationMs": 5.34,
+  "checks": [
+    { "name": "self", "status": "Healthy", "durationMs": 0.02, "tags": ["live"] },
+    { "name": "oracle-database", "status": "Healthy", "durationMs": 4.92, "tags": ["ready", "database", "external"] }
+  ]
+}
+```
+
+Se o Oracle estiver inacessível (connection string errada, sem internet, etc.), `status` muda para `"Unhealthy"` e o campo `error` de cada check traz a exceção.
+
+### Logging Estruturado (Serilog)
+
+- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs) com saída simultânea para **console** e **arquivo** (`Logs/clyvovet-api-*.log`, rotacionado diariamente, retendo os últimos 7 dias).
+- Cada linha de log inclui um **Correlation ID** por requisição — gerado (ou reaproveitado do header `X-Correlation-Id`, se o cliente enviar um e ele passar por validação de tamanho/formato) pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) e devolvido também na resposta.
+- Níveis usados: `Information` (requisições HTTP concluídas), `Warning` (erros de negócio esperados: 404/400) e `Error` (exceções não tratadas, 500).
+- Os níveis mínimos por categoria são configuráveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), seção `"Serilog"`.
+
+### Tracing e Métricas (OpenTelemetry)
+
+- **Tracing:** instrumentação automática de ASP.NET Core, `HttpClient` e Entity Framework Core — cada requisição gera uma árvore de spans exportada para o **console**.
+- **Métricas:** expostas no formato Prometheus em `GET /metrics` — tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+
+```bash
+curl http://localhost:5191/metrics
+```
+
+---
+
+## Testes Automatizados
+
+Os testes ficam em dois projetos separados dentro de `ClyvoVet.Api/`, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
+
+| Projeto | O que testa | Ferramentas |
+|---------|-------------|-------------|
+| `ClyvoVet.Api.Tests.Unit` | Camada de Aplicação (`Services/`) — regras de negócio isoladas, com os repositórios mockados | xUnit + Moq |
+| `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory |
+
+### Rodando os testes
+
+```bash
+cd ClyvoVet.Api
+dotnet test ClyvoVet.Api.Tests.Unit
+dotnet test ClyvoVet.Api.Tests.Integration
+```
+
+Ou os dois de uma vez, a partir da raiz do repositório:
+
+```bash
+dotnet test ClyvoVet-api.slnx
+```
+
+**Resultado esperado:** `68` testes passando (`43` unitários + `25` de integração).
+
+### Detalhes dos testes de integração
+
+- Sobem a API inteira em memória via `WebApplicationFactory<Program>`, **substituindo o Oracle real por um banco EF Core InMemory** — não é necessário ter o Oracle FIAP acessível para rodar `dotnet test`.
+- A maioria usa **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) para subir a API **uma única vez** para toda a suíte, semeando um Tutor + Animal + Produto de teste. Os testes do Widget de Saúde Preditiva sobem sua própria instância à parte, porque precisam de um Animal com raça e idade específicas.
+
+---
+
 ## Schema do Banco de Dados
 
 ### Todas as tabelas (banco compartilhado)
@@ -381,6 +487,7 @@ curl http://localhost:5191/api/v1/produtos
 | **`T_CLYVO_EVENTO_PET`** | **API .NET** | — |
 | **`T_CLYVO_LEMBRETE`** | **API .NET** | `T_CLYVO_ANIMAL` |
 | **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
+| **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 
 > `T_CLYVO_TUTOR` é necessária mesmo sendo da API Java, pois o `AnimalRepository` faz `.Include(a => a.Tutor)` — sem ela a API lança `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
 
@@ -409,6 +516,8 @@ END;
 | `schema/01_criar_tabelas_dotnet.sql` | Primeira vez ou para recriar tudo do zero |
 | `schema/02_seed_dotnet.sql` | Após o `01` — insere produtos, eventos, lembretes e sugestões de exemplo |
 | `schema/03_drop_tabelas_dotnet.sql` | Para limpar apenas as tabelas .NET (preserva as Java) |
+| `schema/04_criar_tabela_predisposicao_dotnet.sql` | Cria a tabela `T_CLYVO_PREDISPOSICAO_SAUDE` (widget de saúde preditiva) |
+| `schema/05_seed_predisposicao_dotnet.sql` | Após o `04` — insere as 42 predisposições de saúde por espécie/raça/idade |
 
 ---
 
@@ -438,7 +547,7 @@ Gerencia o catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 | `page` | int | 1 | Número da página |
 | `pageSize` | int | 10 | Itens por página (máx. 100) |
 | `categoria` | enum | — | `Racao` \| `Medicamento` \| `Acessorio` \| `Servico` \| `Outro` |
-| `especieIndicada` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` |
+| `especieIndicada` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` \| `Bovino` \| `Equino` |
 
 **Request — POST / PUT**
 
@@ -490,7 +599,7 @@ Gerencia eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Não tem dependênc
 | `pageSize` | int | 10 | Itens por página (máx. 100) |
 | `cidade` | string | — | Filtra por cidade (case-insensitive) |
 | `tipo` | enum | — | `Vacinacao` \| `Feira` \| `Castracao` \| `Workshop` \| `Outro` |
-| `especieAlvo` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` |
+| `especieAlvo` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` \| `Bovino` \| `Equino` |
 
 **Request — POST / PUT**
 
@@ -651,6 +760,47 @@ Gerencia sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO
   "criadoEm": "2026-05-24T10:30:00"
 }
 ```
+
+---
+
+### 🩺 Widget de Saúde Preditiva — `/api/v1/widget-saude-preditiva`
+
+> ⚠️ Feature extra, não faz parte do escopo avaliado da Sprint 3.
+
+Card que cruza os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e sugere agendar uma consulta quando alguma condição relevante é encontrada.
+
+| Método | Rota | Descrição | Status |
+|--------|------|-----------|--------|
+| GET | `/api/v1/widget-saude-preditiva/{animalId}` | Retorna as predisposições de saúde do animal | 200, 404 |
+
+**Response — GET**
+
+```json
+{
+  "animalId": "d4e5f6a7-b8c9-0123-defa-234567890123",
+  "nomeAnimal": "Rex",
+  "especie": "Cachorro",
+  "raca": "Labrador",
+  "idadeAnos": 7.2,
+  "sugerirAgendamentoConsulta": true,
+  "predisposicoes": [
+    {
+      "doenca": "Displasia de quadril",
+      "recomendacao": "Manter peso ideal e avaliação ortopédica periódica a partir da meia-idade.",
+      "idadeMinimaAnos": 5,
+      "fonteReferencia": "VetCompass (RVC) - Labrador Retrievers under primary veterinary care in the UK"
+    }
+  ]
+}
+```
+
+**Regras de negócio**
+
+- A comparação de raça é tolerante (não faz distinção entre maiúsculas/minúsculas e casa substrings em ambos os sentidos), então variações de digitação da raça cadastrada ainda casam com o catálogo.
+- `idadeMinimaAnos` nula ou `0` significa que a condição vale para qualquer idade; caso contrário, a idade do animal precisa ser maior ou igual ao mínimo — e um animal sem data de nascimento cadastrada nunca casa com um mínimo maior que zero.
+- Se a espécie do animal não for reconhecida, o widget retorna a lista de predisposições vazia, sem erro.
+- `sugerirAgendamentoConsulta` vem `true` sempre que pelo menos uma predisposição é encontrada — o widget apenas sugere, não cria a consulta automaticamente.
+- `animalId` inexistente retorna 404.
 
 ---
 
@@ -1505,6 +1655,8 @@ GET /api/v1/sugestoes-produto/{id do T39}
 | `4` | Roedor | `ROEDOR` |
 | `5` | Todos | `TODOS` |
 | `6` | Outro | `OUTRO` |
+| `7` | Bovino | `BOVINO` |
+| `8` | Equino | `EQUINO` |
 
 ### Tipo do Lembrete
 
