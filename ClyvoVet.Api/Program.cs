@@ -123,6 +123,7 @@ builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
 builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
+builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,
