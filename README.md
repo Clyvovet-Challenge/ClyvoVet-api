@@ -13,7 +13,7 @@
 
 ## Sobre o Projeto
 
-Desenvolvida em **ASP.NET Core 8**, a **ClyvoVet API** é uma API RESTful que faz parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Dentro da plataforma veterinária, ela cobre o **domínio de engajamento**, cuidando de:
+A **ClyvoVet API** é uma API RESTful construída em **ASP.NET Core 8**, desenvolvida como parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Ela é responsável pelo **domínio de engajamento** dentro da plataforma veterinária, respondendo por:
 
 - Catálogo de produtos e serviços veterinários
 - Sugestões personalizadas de produtos por animal
@@ -22,25 +22,25 @@ Desenvolvida em **ASP.NET Core 8**, a **ClyvoVet API** é uma API RESTful que fa
 - **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
 - **Envio de mensagens no WhatsApp** — via Twilio, para notificar tutores
 
-Na **Sprint 3**, a API ganhou uma camada completa de observabilidade e testes automatizados:
+Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes automatizados à API:
 
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **68 testes automatizados** (43 unitários + 25 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **69 testes automatizados** (43 unitários + 26 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
 ## Arquitetura
 
-Duas APIs independentes dividem o mesmo banco Oracle XE (FIAP), cada uma rodando no seu próprio container Docker:
+O mesmo banco Oracle XE (FIAP) é compartilhado por duas APIs independentes, cada qual em seu próprio container Docker:
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
 | **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude` |
 | **Java (parceira)** | Clínica e cadastro | `t_clyvo_tutor`, `t_clyvo_animal`, `t_clyvo_clinica`, `t_clyvo_veterinario`, `t_clyvo_evento_clinico`, `t_clyvo_pagamento` |
 
-> A API .NET **lê** as tabelas da API Java (animal e tutor) para validar FKs e enriquecer respostas, mas **nunca escreve** nelas.
+> Para validar FKs e enriquecer as respostas, a API .NET **lê** as tabelas de animal e tutor mantidas pela API Java — mas em nenhum momento **escreve** nelas.
 
 ---
 
@@ -141,7 +141,7 @@ ls
 
 ### Passo 2 — Configurar a connection string
 
-O `ClyvoVet.Api/appsettings.json` (versionado no repositório) traz apenas um **placeholder** — evite colocar sua senha real ali, pra não correr o risco de subir sua credencial sem querer. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
+O arquivo `ClyvoVet.Api/appsettings.json`, que fica versionado no repositório, traz só um **placeholder** — não coloque sua senha real ali, senão você corre o risco de subir a credencial sem perceber. O jeito recomendado é usar o **User Secrets** do .NET, que guarda a connection string **fora da pasta do projeto**, num arquivo local que o `git` jamais enxerga:
 
 ```bash
 cd ClyvoVet.Api
@@ -150,13 +150,13 @@ dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Pas
 
 > Se for a primeira vez e o projeto ainda não tiver um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
 
-Em ambiente de desenvolvimento a API já lê o User Secrets sozinha — não é preciso editar mais nada. Pra conferir o que foi salvo:
+A API já lê o User Secrets automaticamente em ambiente de desenvolvimento, então não há nada mais para editar. Para conferir o que ficou salvo:
 
 ```bash
 dotnet user-secrets list
 ```
 
-**Caminho alternativo (menos seguro):** colocar a connection string direto no `appsettings.json` local. Também funciona, mas depois de gravar sua senha real **não faça commit** desse arquivo — rode `git status` antes de commitar pra checar.
+**Alternativa (menos segura):** gravar a connection string diretamente no `appsettings.json` local. Funciona igual, mas uma vez que sua senha real estiver ali, **evite fazer commit** do arquivo — confira com `git status` antes de commitar.
 
 ```json
 {
@@ -425,15 +425,15 @@ Quando o Oracle fica inacessível (connection string errada, sem internet, etc.)
 
 ### Logging Estruturado (Serilog)
 
-- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs), com saída simultânea pro **console** e pra um **arquivo** (`Logs/clyvovet-api-*.log`, rotacionado diariamente, mantendo os últimos 7 dias).
-- Toda linha de log carrega um **Correlation ID** por requisição — gerado (ou reaproveitado do header `X-Correlation-Id`, quando o cliente manda um que passa pela validação de tamanho/formato) pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) e devolvido também na resposta.
-- Os níveis usados são: `Information` (requisições HTTP concluídas), `Warning` (erros de negócio esperados: 404/400) e `Error` (exceções não tratadas, 500).
-- Dá pra configurar os níveis mínimos por categoria em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
+- Fica configurado em [`Program.cs`](ClyvoVet.Api/Program.cs) e escreve ao mesmo tempo no **console** e num **arquivo** (`Logs/clyvovet-api-*.log`, com rotação diária e retenção dos últimos 7 dias).
+- Cada linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou reaproveitado do header `X-Correlation-Id` quando o cliente envia um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
+- Três níveis são usados: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
+- Os níveis mínimos por categoria podem ser ajustados em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
 
 ### Tracing e Métricas (OpenTelemetry)
 
-- **Tracing:** instrumentação automática de ASP.NET Core, `HttpClient` e Entity Framework Core — cada requisição gera uma árvore de spans exportada pro **console**.
-- **Métricas:** disponíveis no formato Prometheus em `GET /metrics` — tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+- **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core são instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
+- **Métricas:** expostas em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
 
 ```bash
 curl http://localhost:5191/metrics
@@ -443,7 +443,7 @@ curl http://localhost:5191/metrics
 
 ## Testes Automatizados
 
-Os testes estão organizados em dois projetos separados dentro de `ClyvoVet.Api/`, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
+Dentro de `ClyvoVet.Api/` os testes ficam divididos em dois projetos separados, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`:
 
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
@@ -464,12 +464,12 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `68` testes passando (`43` unitários + `25` de integração).
+**Resultado esperado:** `69` testes passando (`43` unitários + `26` de integração).
 
 ### Detalhes dos testes de integração
 
-- A API inteira sobe em memória via `WebApplicationFactory<Program>`, **trocando o Oracle real por um banco EF Core InMemory** — então não é necessário ter o Oracle FIAP acessível pra rodar `dotnet test`.
-- A maior parte usa **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) pra subir a API **uma única vez** pra toda a suíte, semeando um Tutor + Animal + Produto de teste. Os testes do Widget de Saúde Preditiva sobem sua própria instância à parte, já que precisam de um Animal com raça e idade específicas.
+- Toda a API sobe em memória por meio de `WebApplicationFactory<Program>`, o que **substitui o Oracle real por um banco EF Core InMemory** — logo, rodar `dotnet test` não exige acesso ao Oracle FIAP.
+- A maioria dos testes recorre a uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para toda a suíte, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, à parte, porque dependem de um Animal com raça e idade específicas.
 
 ---
 
@@ -491,7 +491,7 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 
-> A `T_CLYVO_TUTOR` é necessária mesmo sendo da API Java, porque o `AnimalRepository` faz `.Include(a => a.Tutor)` — sem ela a API lança `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
+> Mesmo pertencendo à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
 
 ---
 
@@ -798,11 +798,11 @@ Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de
 
 **Regras de negócio**
 
-- A comparação de raça é tolerante — ignora maiúsculas/minúsculas e casa substrings nos dois sentidos —, então pequenas variações de digitação na raça cadastrada ainda encontram correspondência no catálogo.
-- `idadeMinimaAnos` nula ou `0` vale para qualquer idade; nos demais casos, a idade do animal precisa ser maior ou igual ao mínimo, e um animal sem data de nascimento cadastrada nunca casa com um mínimo maior que zero.
-- Quando a espécie do animal não é reconhecida, o widget devolve a lista de predisposições vazia, sem gerar erro.
-- `sugerirAgendamentoConsulta` vem `true` sempre que ao menos uma predisposição é encontrada — o widget só sugere, quem cria a consulta é outra etapa.
-- Um `animalId` inexistente retorna 404.
+- A comparação de raça é flexível: maiúsculas e minúsculas são ignoradas e substrings casam nos dois sentidos, de modo que pequenas variações de digitação na raça cadastrada ainda batem com o catálogo.
+- Um `idadeMinimaAnos` nulo ou `0` serve para qualquer idade; fora isso, a idade do animal tem que ser maior ou igual ao mínimo — e um animal sem data de nascimento cadastrada jamais bate com um mínimo acima de zero.
+- Se a espécie do animal não for reconhecida, o widget simplesmente devolve a lista de predisposições vazia, sem lançar erro.
+- `sugerirAgendamentoConsulta` retorna `true` assim que pelo menos uma predisposição é encontrada — o widget se limita a sugerir; criar a consulta fica por conta de outra etapa.
+- Um `animalId` que não existe resulta em 404.
 
 ---
 
@@ -810,7 +810,7 @@ Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de
 
 > ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Ponto único de disparo de mensagens no WhatsApp, via [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Serve de base para outras partes do sistema notificarem o tutor (ex.: lembretes, sugestões) sem duplicar a lógica de envio.
+Funciona como o único ponto de disparo de mensagens no WhatsApp, usando o [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Outras partes do sistema — lembretes, sugestões, etc. — se apoiam nele para notificar o tutor sem duplicar a lógica de envio.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -835,17 +835,19 @@ dotnet user-secrets set "Twilio:AuthToken" "SEU_AUTH_TOKEN"
 dotnet user-secrets set "Twilio:NumeroSandbox" "whatsapp:+1XXXXXXXXXX"
 ```
 
-O Account SID, o Auth Token e o número do sandbox ficam disponíveis no [Console do Twilio](https://console.twilio.com), em **Messaging → Try out WhatsApp**. O destinatário precisa ter feito o "join" no sandbox pelo próprio WhatsApp antes de poder receber mensagens.
+O [Console do Twilio](https://console.twilio.com) disponibiliza o Account SID, o Auth Token e o número do sandbox em **Messaging → Try out WhatsApp**. Antes de poder receber qualquer mensagem, o destinatário precisa dar o "join" no sandbox pelo próprio WhatsApp.
 
-> ⚠️ **Limitação conhecida:** em conta **trial** do Twilio, toda mensagem enviada via API precisa de um `ContentSid` (template pré-aprovado) — texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Criar/consultar templates via Content API também retorna `403` em conta trial (`This feature is not available on a Trial account`). Isso significa que **o endpoint funciona corretamente numa conta Twilio paga/produção**, mas não foi possível testá-lo de ponta a ponta com uma conta trial gratuita. O código já está pronto — a validação real só depende de uma conta Twilio com upgrade feito.
+> ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, qualquer mensagem enviada via API exige um `ContentSid` (template pré-aprovado); mandar texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Tentar criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Na prática, isso quer dizer que **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas testá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código está pronto; falta só uma conta Twilio com upgrade feito para validar de verdade.
+>
+> É por isso que o teste de integração do endpoint (`WhatsAppEndpointsTests`) troca o `IWhatsAppService` real por um fake: ele confirma que o controller recebe a requisição, aciona o serviço com os dados corretos e devolve `204`, sem depender do Twilio de fato.
 
 ---
 
 ## Guia de Testes Manuais
 
-> **54 testes** verificados com Oracle real — todos passam.  
-> Acesse **`http://localhost:5191/swagger`**, siga a ordem e use os JSONs prontos.  
-> Ícones de resultado esperado: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)
+> **54 testes** conferidos com Oracle real, todos passando.  
+> Acesse **`http://localhost:5191/swagger`**, siga a sequência indicada e reaproveite os JSONs já prontos.  
+> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)
 
 ---
 
@@ -1614,8 +1616,8 @@ GET /api/v1/sugestoes-produto/{id do T39}
 
 ---
 
-> **Resultado esperado ao final:** os 54 testes passam com os status codes indicados.  
-> Essa suíte foi executada com Oracle real e obteve **54/54 PASS**.
+> **Resultado esperado ao final:** todos os 54 testes passam, cada um com o status code indicado.  
+> Essa suíte rodou contra Oracle real e fechou em **54/54 PASS**.
 
 ---
 
