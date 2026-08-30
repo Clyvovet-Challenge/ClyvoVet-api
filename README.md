@@ -20,6 +20,7 @@ Desenvolvida em **ASP.NET Core 8**, a **ClyvoVet API** é uma API RESTful que fa
 - Lembretes de saúde e cuidados para tutores
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
 - **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
+- **Envio de mensagens no WhatsApp** — via Twilio, para notificar tutores
 
 Na **Sprint 3**, a API ganhou uma camada completa de observabilidade e testes automatizados:
 
@@ -60,6 +61,7 @@ Duas APIs independentes dividem o mesmo banco Oracle XE (FIAP), cada uma rodando
 | xUnit + Moq | 2.9.3 / 4.20.72 | Testes unitários (padrão AAA) |
 | Microsoft.AspNetCore.Mvc.Testing | 8.0.11 | Testes de integração via `WebApplicationFactory` |
 | Microsoft.EntityFrameworkCore.InMemory | 8.0.11 | Banco em memória usado nos testes de integração |
+| Twilio | 8.0.0 | Envio de mensagens no WhatsApp (Sandbox) |
 
 ---
 
@@ -801,6 +803,41 @@ Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de
 - Quando a espécie do animal não é reconhecida, o widget devolve a lista de predisposições vazia, sem gerar erro.
 - `sugerirAgendamentoConsulta` vem `true` sempre que ao menos uma predisposição é encontrada — o widget só sugere, quem cria a consulta é outra etapa.
 - Um `animalId` inexistente retorna 404.
+
+---
+
+### 📱 WhatsApp — `/api/v1/whatsapp`
+
+> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
+
+Ponto único de disparo de mensagens no WhatsApp, via [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Serve de base para outras partes do sistema notificarem o tutor (ex.: lembretes, sugestões) sem duplicar a lógica de envio.
+
+| Método | Rota | Descrição | Status |
+|--------|------|-----------|--------|
+| POST | `/api/v1/whatsapp/enviar` | Envia uma mensagem de WhatsApp para o número informado | 204 |
+
+**Request — POST**
+
+```json
+{
+  "telefone": "+5511999999999",
+  "mensagem": "Seu pet tem um lembrete de vacina agendado para amanhã."
+}
+```
+
+**Configuração**
+
+Requer três chaves em `Twilio` (via `dotnet user-secrets`, nunca no `appsettings.json` versionado):
+
+```bash
+dotnet user-secrets set "Twilio:AccountSid" "SEU_ACCOUNT_SID"
+dotnet user-secrets set "Twilio:AuthToken" "SEU_AUTH_TOKEN"
+dotnet user-secrets set "Twilio:NumeroSandbox" "whatsapp:+1XXXXXXXXXX"
+```
+
+O Account SID, o Auth Token e o número do sandbox ficam disponíveis no [Console do Twilio](https://console.twilio.com), em **Messaging → Try out WhatsApp**. O destinatário precisa ter feito o "join" no sandbox pelo próprio WhatsApp antes de poder receber mensagens.
+
+> ⚠️ **Limitação conhecida:** em conta **trial** do Twilio, toda mensagem enviada via API precisa de um `ContentSid` (template pré-aprovado) — texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Criar/consultar templates via Content API também retorna `403` em conta trial (`This feature is not available on a Trial account`). Isso significa que **o endpoint funciona corretamente numa conta Twilio paga/produção**, mas não foi possível testá-lo de ponta a ponta com uma conta trial gratuita. O código já está pronto — a validação real só depende de uma conta Twilio com upgrade feito.
 
 ---
 
