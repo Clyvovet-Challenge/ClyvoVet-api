@@ -8,10 +8,10 @@
   precisam existir **antes** deste schema para que os endpoints de Lembrete e
   Sugestão de Produto funcionem via API
 
-> **Por que `t_clyvo_tutor`?**  
-> O `AnimalRepository` usa `.Include(a => a.Tutor)`, o que gera um JOIN com
-> `t_clyvo_tutor`. Sem essa tabela, qualquer validação de `animalId`
-> na API lança `ORA-00942` e devolve HTTP 500.
+> **Por que `t_clyvo_tutor` é necessária?**  
+> O `AnimalRepository` usa `.Include(a => a.Tutor)`, e isso gera um JOIN com
+> `t_clyvo_tutor`. Faltando essa tabela, qualquer validação de `animalId`
+> na API acaba lançando `ORA-00942` e retornando HTTP 500.
 
 ---
 
@@ -49,13 +49,13 @@ Todas as tabelas usam o prefixo `t_clyvo_`:
 | **Bloco 1** | `t_clyvo_produto`, `t_clyvo_evento_pet` | Sempre — sem FK Java |
 | **Bloco 2** | `t_clyvo_lembrete`, `t_clyvo_sugestao_produto` | Só se existir um `animal_id` real em `t_clyvo_animal` |
 
-Se a tabela Java não existir, o Bloco 2 encerra com aviso e **os dados do Bloco 1 permanecem intactos**.
+Caso a tabela Java não exista, o Bloco 2 é encerrado com um aviso, e **os dados do Bloco 1 ficam intactos**.
 
 ---
 
 ## Ordem de execução
 
-> Abra cada arquivo no Oracle SQL Developer e pressione **F5 (Run Script)**
+> Abra cada arquivo no Oracle SQL Developer e pressione **F5 (Run Script)** para executar
 
 ### Deploy completo (primeira vez)
 
@@ -148,7 +148,7 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ## Fluxo de teste sugerido
 
-> Siga a ordem abaixo para validar as dependências passo a passo.
+> Siga a sequência a seguir para validar as dependências passo a passo.
 
 **1. Listar produtos (sem dependência Java)**
 ```
