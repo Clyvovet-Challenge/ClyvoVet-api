@@ -11,7 +11,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/whatsapp")]
 [Produces("application/json")]
-[ServiceFilter(typeof(ApiKeyFilterAttribute))]
+[TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "WhatsApp:ApiKey" })]
 public class WhatsAppController : ControllerBase
 {
     private readonly IWhatsAppService _service;
