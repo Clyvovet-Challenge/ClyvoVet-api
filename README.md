@@ -21,13 +21,14 @@ A **ClyvoVet API** é uma API RESTful construída em **ASP.NET Core 8**, desenvo
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
 - **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
 - **Envio de mensagens no WhatsApp** — via Twilio, para notificar tutores
+- **Envio de mensagens no Telegram** — alternativa via bot próprio, para notificar tutores
 
 Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes automatizados à API:
 
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **81 testes automatizados** (46 unitários + 35 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **86 testes automatizados** (46 unitários + 40 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -62,6 +63,7 @@ O mesmo banco Oracle XE (FIAP) é compartilhado por duas APIs independentes, cad
 | Microsoft.AspNetCore.Mvc.Testing | 8.0.11 | Testes de integração via `WebApplicationFactory` |
 | Microsoft.EntityFrameworkCore.InMemory | 8.0.11 | Banco em memória usado nos testes de integração |
 | Twilio | 8.0.0 | Envio de mensagens no WhatsApp (Sandbox) |
+| Telegram.Bot | 22.10.3 | Envio de mensagens no Telegram (bot próprio) |
 
 ---
 
@@ -464,7 +466,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `81` testes passando (`46` unitários + `35` de integração).
+**Resultado esperado:** `86` testes passando (`46` unitários + `40` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -853,6 +855,49 @@ curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
 > ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, qualquer mensagem enviada via API exige um `ContentSid` (template pré-aprovado); mandar texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Tentar criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Na prática, isso quer dizer que **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas testá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código está pronto; falta só uma conta Twilio com upgrade feito para validar de verdade.
 >
 > É por isso que o teste de integração do endpoint (`WhatsAppEndpointsTests`) troca o `IWhatsAppService` real por um fake: ele confirma que o controller recebe a requisição, aciona o serviço com os dados corretos e devolve `204`, sem depender do Twilio de fato.
+
+---
+
+### ✈️ Telegram — `/api/v1/telegram`
+
+> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
+
+Alternativa ao WhatsApp usando um bot próprio no [Telegram](https://core.telegram.org/bots/api) — mesmo propósito (ponto único de disparo de mensagens), mas sem as limitações de conta trial do Twilio: não exige template pré-aprovado, e dá pra testar de ponta a ponta gratuitamente.
+
+| Método | Rota | Descrição | Status |
+|--------|------|-----------|--------|
+| POST | `/api/v1/telegram/enviar` | Envia uma mensagem de Telegram para o `chatId` informado | 204 |
+
+**Request — POST**
+
+```json
+{
+  "chatId": 123456789,
+  "mensagem": "Seu pet tem um lembrete de vacina agendado para amanhã."
+}
+```
+
+**Configuração**
+
+1. Crie um bot conversando com **[@BotFather](https://t.me/BotFather)** no Telegram, mandando `/newbot` e seguindo as instruções — ele devolve um **token** no formato `123456:ABC-DEF...`.
+2. Para receber mensagens, o destinatário precisa mandar `/start` pro bot pelo menos uma vez (mesma lógica do "join" do WhatsApp Sandbox).
+3. O `chatId` de cada destinatário é obtido consultando `https://api.telegram.org/bot<TOKEN>/getUpdates` depois do `/start`.
+
+```bash
+dotnet user-secrets set "Telegram:BotToken" "SEU_BOT_TOKEN"
+dotnet user-secrets set "Telegram:ApiKey" "SUA_CHAVE_AQUI"
+```
+
+O endpoint também exige o header `X-Api-Key` (mesmo mecanismo do WhatsApp, com uma chave própria):
+
+```bash
+curl -X POST http://localhost:5191/api/v1/telegram/enviar \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: SUA_CHAVE_AQUI" \
+  -d '{"chatId": 123456789, "mensagem": "Teste"}'
+```
+
+> ✅ Diferente do WhatsApp, esse endpoint foi validado de ponta a ponta com um bot real — sem bloqueio de trial/template. O teste de integração (`TelegramEndpointsTests`) ainda assim usa um fake do `ITelegramService`, para manter os testes automatizados determinísticos e sem depender de rede externa.
 
 ---
 
