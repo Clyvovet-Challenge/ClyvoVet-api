@@ -92,6 +92,7 @@ public class WhatsAppEndpointsTests
         // Arrange
         using var factory = new WhatsAppTestFixture();
         var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_WHATSAPP_API_KEY");
         var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste ClyvoVet" };
 
         // Act
@@ -109,6 +110,7 @@ public class WhatsAppEndpointsTests
         // Arrange
         using var factory = new WhatsAppTestFixture();
         var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_WHATSAPP_API_KEY");
         var request = new WhatsAppRequest { Telefone = "", Mensagem = "Teste" };
 
         // Act
@@ -124,6 +126,7 @@ public class WhatsAppEndpointsTests
         // Arrange
         using var factory = new WhatsAppFalhaTestFixture();
         var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_WHATSAPP_API_KEY");
         var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste" };
 
         // Act
@@ -131,5 +134,20 @@ public class WhatsAppEndpointsTests
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Enviar_SemApiKey_RetornaUnauthorized()
+    {
+        // Arrange
+        using var factory = new WhatsAppTestFixture();
+        var client = factory.CreateClient();
+        var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste" };
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/v1/whatsapp/enviar", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

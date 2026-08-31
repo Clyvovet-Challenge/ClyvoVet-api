@@ -1,6 +1,7 @@
 using System.Reflection;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.Exceptions;
+using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;
 using ClyvoVet.Api.Repositories;
@@ -125,6 +126,7 @@ builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
+builder.Services.AddScoped<ApiKeyFilterAttribute>();
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,

@@ -27,7 +27,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **71 testes automatizados** (43 unitários + 28 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **72 testes automatizados** (43 unitários + 29 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -464,7 +464,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `71` testes passando (`43` unitários + `28` de integração).
+**Resultado esperado:** `72` testes passando (`43` unitários + `29` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -836,6 +836,19 @@ dotnet user-secrets set "Twilio:NumeroSandbox" "whatsapp:+1XXXXXXXXXX"
 ```
 
 O [Console do Twilio](https://console.twilio.com) disponibiliza o Account SID, o Auth Token e o número do sandbox em **Messaging → Try out WhatsApp**. Antes de poder receber qualquer mensagem, o destinatário precisa dar o "join" no sandbox pelo próprio WhatsApp.
+
+O endpoint também exige uma **API key própria** no header `X-Api-Key` — sem ela, retorna `401`:
+
+```bash
+dotnet user-secrets set "WhatsApp:ApiKey" "SUA_CHAVE_AQUI"
+```
+
+```bash
+curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: SUA_CHAVE_AQUI" \
+  -d '{"telefone":"+5511999999999","mensagem":"Teste"}'
+```
 
 > ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, qualquer mensagem enviada via API exige um `ContentSid` (template pré-aprovado); mandar texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Tentar criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Na prática, isso quer dizer que **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas testá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código está pronto; falta só uma conta Twilio com upgrade feito para validar de verdade.
 >
