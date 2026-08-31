@@ -202,4 +202,16 @@ public class EventoPetServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteAsync("id-invalido"));
     }
+
+    [Fact]
+    public async Task DeleteAsync_IdExistente_NaoLancaExcecao()
+    {
+        // Arrange
+        _repositoryMock.Setup(r => r.DeleteAsync("1")).ReturnsAsync(true);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(() => _service.DeleteAsync("1"));
+        Assert.Null(exception);
+        _repositoryMock.Verify(r => r.DeleteAsync("1"), Times.Once);
+    }
 }

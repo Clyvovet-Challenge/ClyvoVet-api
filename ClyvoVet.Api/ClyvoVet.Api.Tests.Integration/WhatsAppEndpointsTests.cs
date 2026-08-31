@@ -7,6 +7,7 @@ using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClyvoVet.Api.Tests.Integration;
@@ -84,6 +85,39 @@ public class WhatsAppFalhaTestFixture : WebApplicationFactory<Program>
     }
 }
 
+// Simula a API sem a chave "WhatsApp:ApiKey" configurada, pra confirmar que o
+// filtro nega o acesso por padrão em vez de deixar passar por engano.
+public class WhatsAppSemApiKeyConfiguradaTestFixture : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["WhatsApp:ApiKey"] = null
+            });
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            var dbDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+            if (dbDescriptor is not null)
+                services.Remove(dbDescriptor);
+
+            services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase($"ClyvoVetTestDb-{Guid.NewGuid()}"));
+
+            var whatsAppDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IWhatsAppService));
+            if (whatsAppDescriptor is not null)
+                services.Remove(whatsAppDescriptor);
+
+            services.AddSingleton<IWhatsAppService, FakeWhatsAppService>();
+        });
+    }
+}
+
 public class WhatsAppEndpointsTests
 {
     [Fact]
@@ -142,6 +176,38 @@ public class WhatsAppEndpointsTests
         // Arrange
         using var factory = new WhatsAppTestFixture();
         var client = factory.CreateClient();
+        var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste" };
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/v1/whatsapp/enviar", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Enviar_ApiKeyErrada_RetornaUnauthorized()
+    {
+        // Arrange
+        using var factory = new WhatsAppTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "chave-errada");
+        var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste" };
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/v1/whatsapp/enviar", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Enviar_ApiKeyNaoConfiguradaNoServidor_RetornaUnauthorized()
+    {
+        // Arrange
+        using var factory = new WhatsAppSemApiKeyConfiguradaTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "qualquer-valor");
         var request = new WhatsAppRequest { Telefone = "+5511999999999", Mensagem = "Teste" };
 
         // Act
