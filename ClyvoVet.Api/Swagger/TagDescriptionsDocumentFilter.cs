@@ -56,6 +56,11 @@ public sealed class TagDescriptionsDocumentFilter : IDocumentFilter
                 Name        = "WhatsApp",
                 Description = "Ponto único de disparo de mensagens no WhatsApp, via Twilio Sandbox."
             },
+            new()
+            {
+                Name        = "Telegram",
+                Description = "Ponto único de disparo de mensagens no Telegram, via bot próprio."
+            },
         };
     }
 }

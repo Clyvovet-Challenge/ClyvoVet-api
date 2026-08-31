@@ -94,6 +94,7 @@ builder.Services.AddSwaggerGen(options =>
             "SugestaoProduto" => ["Sugestões de Produto"],
             "WidgetSaudePreditiva" => ["Widget de Saúde Preditiva"],
             "WhatsApp"        => ["WhatsApp"],
+            "Telegram"        => ["Telegram"],
             var other         => [other ?? "Outros"]
         });
 
@@ -126,7 +127,7 @@ builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
-builder.Services.AddScoped<ApiKeyFilterAttribute>();
+builder.Services.AddSingleton<ITelegramService, TelegramService>();
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,
