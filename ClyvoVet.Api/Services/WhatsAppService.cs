@@ -1,6 +1,8 @@
+using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Twilio;
+using Twilio.Exceptions;
 using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
 
@@ -21,9 +23,16 @@ public class WhatsAppService : IWhatsAppService
 
     public async Task EnviarMensagemAsync(string telefone, string mensagem)
     {
-        await MessageResource.CreateAsync(
-            body: mensagem,
-            from: new PhoneNumber(_numeroSandbox),
-            to: new PhoneNumber($"whatsapp:{telefone}"));
+        try
+        {
+            await MessageResource.CreateAsync(
+                body: mensagem,
+                from: new PhoneNumber(_numeroSandbox),
+                to: new PhoneNumber($"whatsapp:{telefone}"));
+        }
+        catch (ApiException ex)
+        {
+            throw new BadRequestException($"Falha ao enviar mensagem no WhatsApp: {ex.Message}");
+        }
     }
 }
