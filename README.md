@@ -27,7 +27,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **77 testes automatizados** (45 unitários + 32 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **78 testes automatizados** (45 unitários + 33 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -464,7 +464,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `77` testes passando (`45` unitários + `32` de integração).
+**Resultado esperado:** `78` testes passando (`45` unitários + `33` de integração).
 
 ### Detalhes dos testes de integração
 

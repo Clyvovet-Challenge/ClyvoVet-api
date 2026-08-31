@@ -46,6 +46,33 @@ public class ProdutoEndpointsTests
     }
 
     [Fact]
+    public async Task GetAll_PageSizeLimitado_RespeitaOTamanhoDaPagina()
+    {
+        // Arrange
+        for (var i = 0; i < 3; i++)
+        {
+            var request = new ProdutoRequest
+            {
+                Nome = $"Produto Paginacao {Guid.NewGuid()}",
+                Categoria = CategoriaEnum.Acessorio,
+                Preco = 10m,
+                EspecieIndicada = EspecieEnum.Todos,
+                Ativo = true
+            };
+            await _client.PostAsJsonAsync("/api/v1/produtos", request);
+        }
+
+        // Act
+        var response = await _client.GetAsync("/api/v1/produtos?page=1&pageSize=2");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<ProdutoResponse>>();
+        Assert.NotNull(result);
+        Assert.True(result!.Count <= 2);
+    }
+
+    [Fact]
     public async Task Create_DadosValidos_RetornaCreatedComProduto()
     {
         // Arrange
