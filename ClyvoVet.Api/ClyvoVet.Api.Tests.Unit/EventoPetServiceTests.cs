@@ -19,6 +19,54 @@ public class EventoPetServiceTests
     }
 
     [Fact]
+    public async Task GetAllAsync_RepositorioRetornaEventos_RetornaListaMapeada()
+    {
+        // Arrange
+        var eventos = new List<EventoPet>
+        {
+            new()
+            {
+                Id = "1",
+                Titulo = "Feira de Adoção",
+                Tipo = TipoEventoPetEnum.Feira,
+                DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+                EspecieAlvo = EspecieEnum.Todos
+            }
+        };
+        _repositoryMock
+            .Setup(r => r.GetAllAsync(1, 10, null, null, null))
+            .ReturnsAsync(eventos);
+
+        // Act
+        var result = await _service.GetAllAsync(1, 10, null, null, null);
+
+        // Assert
+        var resultList = Assert.Single(result);
+        Assert.Equal("Feira de Adoção", resultList.Titulo);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_IdExistente_RetornaEventoMapeado()
+    {
+        // Arrange
+        var evento = new EventoPet
+        {
+            Id = "1",
+            Titulo = "Feira de Adoção",
+            Tipo = TipoEventoPetEnum.Feira,
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            EspecieAlvo = EspecieEnum.Todos
+        };
+        _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(evento);
+
+        // Act
+        var result = await _service.GetByIdAsync("1");
+
+        // Assert
+        Assert.Equal("Feira de Adoção", result.Titulo);
+    }
+
+    [Fact]
     public async Task CreateAsync_DataInicioNoPassado_LancaBadRequestException()
     {
         // Arrange
