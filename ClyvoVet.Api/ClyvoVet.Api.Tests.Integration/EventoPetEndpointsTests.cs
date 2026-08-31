@@ -105,4 +105,87 @@ public class EventoPetEndpointsTests
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetAll_FiltroPorCidade_RetornaApenasEventosDaCidade()
+    {
+        // Arrange
+        var eventoCuritiba = new EventoPetRequest
+        {
+            Titulo = "Vacinação Curitiba",
+            Tipo = TipoEventoPetEnum.Vacinacao,
+            Cidade = "Curitiba",
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Ativo = true
+        };
+        var eventoRecife = new EventoPetRequest
+        {
+            Titulo = "Feira Recife",
+            Tipo = TipoEventoPetEnum.Feira,
+            Cidade = "Recife",
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Ativo = true
+        };
+        await _client.PostAsJsonAsync("/api/v1/eventos-pet", eventoCuritiba);
+        await _client.PostAsJsonAsync("/api/v1/eventos-pet", eventoRecife);
+
+        // Act
+        var response = await _client.GetAsync("/api/v1/eventos-pet?cidade=Curitiba");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<EventoPetResponse>>();
+        Assert.NotNull(result);
+        Assert.All(result!, item => Assert.Equal("Curitiba", item.Cidade));
+    }
+
+    [Fact]
+    public async Task GetAll_FiltroPorTipo_RetornaApenasEventosDoTipo()
+    {
+        // Arrange
+        var evento = new EventoPetRequest
+        {
+            Titulo = "Castração Comunitária",
+            Tipo = TipoEventoPetEnum.Castracao,
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+            EspecieAlvo = EspecieEnum.Todos,
+            Ativo = true
+        };
+        await _client.PostAsJsonAsync("/api/v1/eventos-pet", evento);
+
+        // Act
+        var response = await _client.GetAsync("/api/v1/eventos-pet?tipo=Castracao");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<EventoPetResponse>>();
+        Assert.NotNull(result);
+        Assert.All(result!, item => Assert.Equal(TipoEventoPetEnum.Castracao, item.Tipo));
+    }
+
+    [Fact]
+    public async Task GetAll_FiltroPorEspecieAlvo_RetornaApenasEventosDaEspecie()
+    {
+        // Arrange
+        var evento = new EventoPetRequest
+        {
+            Titulo = "Feira Equina",
+            Tipo = TipoEventoPetEnum.Feira,
+            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(15)),
+            EspecieAlvo = EspecieEnum.Equino,
+            Ativo = true
+        };
+        await _client.PostAsJsonAsync("/api/v1/eventos-pet", evento);
+
+        // Act
+        var response = await _client.GetAsync("/api/v1/eventos-pet?especieAlvo=Equino");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<EventoPetResponse>>();
+        Assert.NotNull(result);
+        Assert.All(result!, item => Assert.Equal(EspecieEnum.Equino, item.EspecieAlvo));
+    }
 }
