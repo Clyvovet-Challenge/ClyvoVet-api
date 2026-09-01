@@ -30,33 +30,33 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE t_clyvo_tutor             CASCADE CONSTRAINT
 /
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE t_clyvo_log_erros         CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
-BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE seq_log_erros'; EXCEPTION WHEN OTHERS THEN NULL; END;
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE seq_clyvo_log_erros'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 
 -- ------------------------------------------------------------
--- FUNÇÃO: fn_uuid
+-- FUNÇÃO: fn_clyvo_uuid
 -- Gera UUID no formato 8-4-4-4-12 (compatível com Java/C#)
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_uuid RETURN VARCHAR2 IS
+CREATE OR REPLACE FUNCTION fn_clyvo_uuid RETURN VARCHAR2 IS
 BEGIN
     RETURN LOWER(REGEXP_REPLACE(
         RAWTOHEX(SYS_GUID()),
         '([A-F0-9]{8})([A-F0-9]{4})([A-F0-9]{4})([A-F0-9]{4})([A-F0-9]{12})',
         '\1-\2-\3-\4-\5'
     ));
-END fn_uuid;
+END fn_clyvo_uuid;
 /
 
 -- ------------------------------------------------------------
 -- SEQUENCE: somente para t_clyvo_log_erros (ID numérico de sistema)
 -- ------------------------------------------------------------
-CREATE SEQUENCE seq_log_erros START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+CREATE SEQUENCE seq_clyvo_log_erros START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 
 -- ============================================================
 -- LOG DE ERROS  (tabela de sistema)
 -- ============================================================
 CREATE TABLE t_clyvo_log_erros (
-    id              NUMBER        DEFAULT seq_log_erros.NEXTVAL PRIMARY KEY,
+    id              NUMBER        DEFAULT seq_clyvo_log_erros.NEXTVAL PRIMARY KEY,
     nome_procedure  VARCHAR2(100) NOT NULL,
     usuario         VARCHAR2(100) DEFAULT USER,
     data_erro       TIMESTAMP     DEFAULT SYSTIMESTAMP,
@@ -89,12 +89,12 @@ CREATE TABLE t_clyvo_tutor (
 );
 
 
-CREATE OR REPLACE TRIGGER trg_tutor_id
+CREATE OR REPLACE TRIGGER trg_clyvo_tutor_id
 BEFORE INSERT ON t_clyvo_tutor
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -128,12 +128,12 @@ CREATE TABLE t_clyvo_animal (
     CONSTRAINT chk_clyvo_animal_genero     CHECK (genero  IN ('MACHO','FEMEA','DESCONHECIDO'))
 );
 
-CREATE OR REPLACE TRIGGER trg_animal_id
+CREATE OR REPLACE TRIGGER trg_clyvo_animal_id
 BEFORE INSERT ON t_clyvo_animal
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -158,12 +158,12 @@ CREATE TABLE t_clyvo_clinica (
     CONSTRAINT uk_clyvo_clinica_cnpj UNIQUE (cnpj)
 );
 
-CREATE OR REPLACE TRIGGER trg_clinica_id
+CREATE OR REPLACE TRIGGER trg_clyvo_clinica_id
 BEFORE INSERT ON t_clyvo_clinica
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -196,12 +196,12 @@ CREATE TABLE t_clyvo_veterinario (
     CONSTRAINT chk_clyvo_vet_genero         CHECK (genero IN ('MASCULINO','FEMININO','OUTRO'))
 );
 
-CREATE OR REPLACE TRIGGER trg_veterinario_id
+CREATE OR REPLACE TRIGGER trg_clyvo_veterinario_id
 BEFORE INSERT ON t_clyvo_veterinario
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -226,12 +226,12 @@ CREATE TABLE t_clyvo_evento_clinico (
     CONSTRAINT chk_clyvo_evento_tipo       CHECK (tipo_evento IN ('CONSULTA','RETORNO','VACINA','EXAME','CIRURGIA','OUTRO'))
 );
 
-CREATE OR REPLACE TRIGGER trg_evento_clinico_id
+CREATE OR REPLACE TRIGGER trg_clyvo_evento_clinico_id
 BEFORE INSERT ON t_clyvo_evento_clinico
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -257,12 +257,12 @@ CREATE TABLE t_clyvo_pagamento (
     CONSTRAINT chk_clyvo_pagamento_valor   CHECK (valor > 0)
 );
 
-CREATE OR REPLACE TRIGGER trg_pagamento_id
+CREATE OR REPLACE TRIGGER trg_clyvo_pagamento_id
 BEFORE INSERT ON t_clyvo_pagamento
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -285,12 +285,12 @@ CREATE TABLE t_clyvo_produto (
     CONSTRAINT chk_clyvo_produto_ativo      CHECK (ativo             IN (0,1))
 );
 
-CREATE OR REPLACE TRIGGER trg_produto_id
+CREATE OR REPLACE TRIGGER trg_clyvo_produto_id
 BEFORE INSERT ON t_clyvo_produto
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -313,12 +313,12 @@ CREATE TABLE t_clyvo_sugestao_produto (
     CONSTRAINT chk_clyvo_sugestao_ativo   CHECK (ativo IN (0,1))
 );
 
-CREATE OR REPLACE TRIGGER trg_sugestao_produto_id
+CREATE OR REPLACE TRIGGER trg_clyvo_sugestao_produto_id
 BEFORE INSERT ON t_clyvo_sugestao_produto
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -343,12 +343,12 @@ CREATE TABLE t_clyvo_lembrete (
     CONSTRAINT chk_clyvo_lembrete_status     CHECK (status     IN ('PENDENTE','ENVIADO','CANCELADO'))
 );
 
-CREATE OR REPLACE TRIGGER trg_lembrete_id
+CREATE OR REPLACE TRIGGER trg_clyvo_lembrete_id
 BEFORE INSERT ON t_clyvo_lembrete
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
@@ -382,12 +382,12 @@ CREATE TABLE t_clyvo_evento_pet (
     CONSTRAINT chk_clyvo_evento_pet_ativo        CHECK (ativo        IN (0,1))
 );
 
-CREATE OR REPLACE TRIGGER trg_evento_pet_id
+CREATE OR REPLACE TRIGGER trg_clyvo_evento_pet_id
 BEFORE INSERT ON t_clyvo_evento_pet
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
