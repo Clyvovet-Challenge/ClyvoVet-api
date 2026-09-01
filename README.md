@@ -1807,6 +1807,7 @@ GET /api/v1/sugestoes-produto/{id do T39}
 | Nome | RM |
 |------|----|
 | Fabrício Henrique Pereira| RM563237 |
+| Henrique Sinkevicius Maran | RM562977 |
 | Leonardo José Pereira | RM563065 |
 | Miguel Henrique Oliveira Dias | RM565492 |
 | Pedro Henrique de Oliveira | RM562312 |
