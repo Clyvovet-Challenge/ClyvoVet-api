@@ -1,6 +1,5 @@
 using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 
@@ -10,10 +9,9 @@ public class TelegramService : ITelegramService
 {
     private readonly ITelegramBotClient _botClient;
 
-    public TelegramService(IConfiguration configuration)
+    public TelegramService(ITelegramBotClient botClient)
     {
-        var botToken = configuration["Telegram:BotToken"];
-        _botClient = new TelegramBotClient(botToken!);
+        _botClient = botClient;
     }
 
     public async Task EnviarMensagemAsync(long chatId, string mensagem)

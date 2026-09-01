@@ -19,6 +19,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerUI;       // DocExpansion
+using Telegram.Bot;
 
 const string ServiceName = "ClyvoVet.Api";
 
@@ -120,6 +121,7 @@ builder.Services.AddScoped<ILembreteRepository,        LembreteRepository>();
 builder.Services.AddScoped<IEventoPetRepository,       EventoPetRepository>();
 builder.Services.AddScoped<IAnimalRepository,          AnimalRepository>();
 builder.Services.AddScoped<IPredisposicaoSaudeRepository, PredisposicaoSaudeRepository>();
+builder.Services.AddScoped<ITutorTelegramRepository, TutorTelegramRepository>();
 
 builder.Services.AddScoped<IProdutoService,         ProdutoService>();
 builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
@@ -127,7 +129,11 @@ builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
+builder.Services.AddSingleton<ITelegramBotClient>(sp =>
+    new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+    builder.Services.AddHostedService<TelegramLinkListenerService>();
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,

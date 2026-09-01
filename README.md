@@ -28,7 +28,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **88 testes automatizados** (46 unitários + 42 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **90 testes automatizados** (46 unitários + 44 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -467,7 +467,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `88` testes passando (`46` unitários + `42` de integração).
+**Resultado esperado:** `90` testes passando (`46` unitários + `44` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -910,7 +910,7 @@ curl -X POST http://localhost:5191/api/v1/telegram/enviar \
   -d '{"chatId": 123456789, "mensagem": "Teste"}'
 ```
 
-> ✅ Diferente do WhatsApp, esse endpoint foi validado de ponta a ponta com um bot real — sem bloqueio de trial/template. O teste de integração (`TelegramEndpointsTests`) ainda assim usa um fake do `ITelegramService`, para manter os testes automatizados determinísticos e sem depender de rede externa.
+> ✅ Diferente do WhatsApp, esse endpoint (e o fluxo completo de vínculo, incluindo o `TelegramLinkListenerService`) foi validado de ponta a ponta com um bot real — sem bloqueio de trial/template. Os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) ainda assim usam fakes/banco em memória, para manter os testes determinísticos e sem depender de rede externa — o `TelegramLinkListenerService` fica desativado em ambiente de `Testing` pelo mesmo motivo.
 
 ---
 
