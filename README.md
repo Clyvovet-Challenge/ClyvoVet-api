@@ -123,7 +123,7 @@ ClyvoVet-api/
 ### Passo 1 — Clonar o repositório
 
 ```bash
-git clone https://github.com/pedrinzz10/ClyvoVet-api.git
+git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
 cd ClyvoVet-api
 ```
 
@@ -212,7 +212,7 @@ Table T_CLYVO_PRODUTO created.
 Table T_CLYVO_EVENTO_PET created.
 Table T_CLYVO_LEMBRETE created.
 Table T_CLYVO_SUGESTAO_PRODUTO created.
-Trigger TRG_PRODUTO_ID compiled.
+Trigger TRG_CLYVO_PRODUTO_ID compiled.
 ...
 ```
 
@@ -273,6 +273,19 @@ T_CLYVO_EVENTO_PET           4
 T_CLYVO_SUGESTAO_PRODUTO     3
 T_CLYVO_TUTOR                1
 ```
+
+#### 3.3 — Criar a tabela de predisposições de saúde (usada pelo Widget)
+
+1. Abra `schema/04_criar_tabela_predisposicao_dotnet.sql` e pressione **F5**
+2. Abra `schema/05_seed_predisposicao_dotnet.sql` e pressione **F5** — insere as 42 predisposições de saúde por espécie/raça/idade
+
+> Sem esse passo, `GET /api/v1/widget-saude-preditiva/{animalId}` responde sempre com uma lista vazia de predisposições.
+
+#### 3.4 — Criar a tabela de vínculo com o Telegram
+
+1. Abra `schema/06_criar_tabela_tutor_telegram_dotnet.sql` e pressione **F5**
+
+> Sem esse passo, o recurso de notificação por Telegram não tem onde salvar o vínculo tutor ↔ chat, e a API loga erro no background service correspondente (mas continua rodando normalmente).
 
 ---
 
