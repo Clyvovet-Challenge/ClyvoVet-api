@@ -92,9 +92,16 @@ public class LembreteNotificationService : BackgroundService
 
             if (notificado)
             {
-                lembrete.Status = StatusLembreteEnum.Enviado;
-                await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);
-                _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
+                try
+                {
+                    lembrete.Status = StatusLembreteEnum.Enviado;
+                    await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);
+                    _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lembrete {LembreteId} foi notificado, mas falhou ao marcar como Enviado — será notificado de novo no próximo ciclo.", lembrete.Id);
+                }
             }
         }
     }

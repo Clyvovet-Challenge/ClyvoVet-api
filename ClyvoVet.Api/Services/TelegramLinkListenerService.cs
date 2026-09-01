@@ -37,7 +37,15 @@ public class TelegramLinkListenerService : BackgroundService
                 foreach (var update in updates)
                 {
                     _offset = update.Id + 1;
-                    await ProcessarAsync(update, stoppingToken);
+
+                    try
+                    {
+                        await ProcessarAsync(update, stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Falha ao processar update {UpdateId} do Telegram — esse update não será reprocessado.", update.Id);
+                    }
                 }
             }
             catch (OperationCanceledException)
