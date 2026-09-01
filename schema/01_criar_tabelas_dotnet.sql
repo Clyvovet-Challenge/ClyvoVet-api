@@ -82,10 +82,10 @@ CREATE TABLE t_clyvo_tutor (
     estado          VARCHAR2(50),
     cep             VARCHAR2(10),
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_tutor         PRIMARY KEY (id),
-    CONSTRAINT uk_tutor_cpf     UNIQUE (cpf),
-    CONSTRAINT uk_tutor_email   UNIQUE (email),
-    CONSTRAINT chk_tutor_genero CHECK (genero IN ('MASCULINO','FEMININO','OUTRO'))
+    CONSTRAINT pk_clyvo_tutor       PRIMARY KEY (id),
+    CONSTRAINT uk_clyvo_tutor_cpf   UNIQUE (cpf),
+    CONSTRAINT uk_clyvo_tutor_email UNIQUE (email),
+    CONSTRAINT chk_clyvo_tutor_genero CHECK (genero IN ('MASCULINO','FEMININO','OUTRO'))
 );
 
 
@@ -119,13 +119,13 @@ CREATE TABLE t_clyvo_animal (
     qr_code         VARCHAR2(100),
     tutor_id        VARCHAR2(36),
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_animal             PRIMARY KEY (id),
-    CONSTRAINT fk_animal_tutor       FOREIGN KEY (tutor_id) REFERENCES t_clyvo_tutor(id),
-    CONSTRAINT chk_animal_castrado   CHECK (castrado IN (0,1)),
-    CONSTRAINT uk_animal_microchip   UNIQUE (microchip),
-    CONSTRAINT uk_animal_qr_code     UNIQUE (qr_code),
-    CONSTRAINT chk_animal_porte      CHECK (porte   IN ('PEQUENO','MEDIO','GRANDE')),
-    CONSTRAINT chk_animal_genero     CHECK (genero  IN ('MACHO','FEMEA','DESCONHECIDO'))
+    CONSTRAINT pk_clyvo_animal             PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_animal_tutor       FOREIGN KEY (tutor_id) REFERENCES t_clyvo_tutor(id),
+    CONSTRAINT chk_clyvo_animal_castrado   CHECK (castrado IN (0,1)),
+    CONSTRAINT uk_clyvo_animal_microchip   UNIQUE (microchip),
+    CONSTRAINT uk_clyvo_animal_qr_code     UNIQUE (qr_code),
+    CONSTRAINT chk_clyvo_animal_porte      CHECK (porte   IN ('PEQUENO','MEDIO','GRANDE')),
+    CONSTRAINT chk_clyvo_animal_genero     CHECK (genero  IN ('MACHO','FEMEA','DESCONHECIDO'))
 );
 
 CREATE OR REPLACE TRIGGER trg_animal_id
@@ -154,8 +154,8 @@ CREATE TABLE t_clyvo_clinica (
     estado    VARCHAR2(50),
     cep       VARCHAR2(10),
     criado_em TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_clinica      PRIMARY KEY (id),
-    CONSTRAINT uk_clinica_cnpj UNIQUE (cnpj)
+    CONSTRAINT pk_clyvo_clinica      PRIMARY KEY (id),
+    CONSTRAINT uk_clyvo_clinica_cnpj UNIQUE (cnpj)
 );
 
 CREATE OR REPLACE TRIGGER trg_clinica_id
@@ -189,11 +189,11 @@ CREATE TABLE t_clyvo_veterinario (
     cep             VARCHAR2(10),
     clinica_id      VARCHAR2(36),
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_veterinario         PRIMARY KEY (id),
-    CONSTRAINT fk_veterinario_clinica FOREIGN KEY (clinica_id) REFERENCES t_clyvo_clinica(id),
-    CONSTRAINT uk_vet_cpf             UNIQUE (cpf),
-    CONSTRAINT uk_vet_crmv            UNIQUE (crmv),
-    CONSTRAINT chk_vet_genero         CHECK (genero IN ('MASCULINO','FEMININO','OUTRO'))
+    CONSTRAINT pk_clyvo_veterinario         PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_veterinario_clinica FOREIGN KEY (clinica_id) REFERENCES t_clyvo_clinica(id),
+    CONSTRAINT uk_clyvo_vet_cpf             UNIQUE (cpf),
+    CONSTRAINT uk_clyvo_vet_crmv            UNIQUE (crmv),
+    CONSTRAINT chk_clyvo_vet_genero         CHECK (genero IN ('MASCULINO','FEMININO','OUTRO'))
 );
 
 CREATE OR REPLACE TRIGGER trg_veterinario_id
@@ -219,11 +219,11 @@ CREATE TABLE t_clyvo_evento_clinico (
     animal_id       VARCHAR2(36),
     clinica_id      VARCHAR2(36),
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_evento_clinico     PRIMARY KEY (id),
-    CONSTRAINT fk_evento_veterinario FOREIGN KEY (veterinario_id) REFERENCES t_clyvo_veterinario(id),
-    CONSTRAINT fk_evento_animal      FOREIGN KEY (animal_id)      REFERENCES t_clyvo_animal(id),
-    CONSTRAINT fk_evento_clinica     FOREIGN KEY (clinica_id)     REFERENCES t_clyvo_clinica(id),
-    CONSTRAINT chk_evento_tipo       CHECK (tipo_evento IN ('CONSULTA','RETORNO','VACINA','EXAME','CIRURGIA','OUTRO'))
+    CONSTRAINT pk_clyvo_evento_clinico     PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_evento_veterinario FOREIGN KEY (veterinario_id) REFERENCES t_clyvo_veterinario(id),
+    CONSTRAINT fk_clyvo_evento_animal      FOREIGN KEY (animal_id)      REFERENCES t_clyvo_animal(id),
+    CONSTRAINT fk_clyvo_evento_clinica     FOREIGN KEY (clinica_id)     REFERENCES t_clyvo_clinica(id),
+    CONSTRAINT chk_clyvo_evento_tipo       CHECK (tipo_evento IN ('CONSULTA','RETORNO','VACINA','EXAME','CIRURGIA','OUTRO'))
 );
 
 CREATE OR REPLACE TRIGGER trg_evento_clinico_id
@@ -250,11 +250,11 @@ CREATE TABLE t_clyvo_pagamento (
     status_pagamento  VARCHAR2(15),
     evento_id         VARCHAR2(36),
     criado_em         TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_pagamento          PRIMARY KEY (id),
-    CONSTRAINT fk_pagamento_evento   FOREIGN KEY (evento_id) REFERENCES t_clyvo_evento_clinico(id),
-    CONSTRAINT chk_pagamento_metodo  CHECK (metodo_pagamento IN ('PIX','CARTAO','DINHEIRO','BOLETO')),
-    CONSTRAINT chk_pagamento_status  CHECK (status_pagamento IN ('PENDENTE','PAGO','CANCELADO','REEMBOLSADO')),
-    CONSTRAINT chk_pagamento_valor   CHECK (valor > 0)
+    CONSTRAINT pk_clyvo_pagamento          PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_pagamento_evento   FOREIGN KEY (evento_id) REFERENCES t_clyvo_evento_clinico(id),
+    CONSTRAINT chk_clyvo_pagamento_metodo  CHECK (metodo_pagamento IN ('PIX','CARTAO','DINHEIRO','BOLETO')),
+    CONSTRAINT chk_clyvo_pagamento_status  CHECK (status_pagamento IN ('PENDENTE','PAGO','CANCELADO','REEMBOLSADO')),
+    CONSTRAINT chk_clyvo_pagamento_valor   CHECK (valor > 0)
 );
 
 CREATE OR REPLACE TRIGGER trg_pagamento_id
@@ -279,10 +279,10 @@ CREATE TABLE t_clyvo_produto (
     especie_indicada VARCHAR2(20),
     ativo            NUMBER(1)     DEFAULT 1,
     criado_em        TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_produto             PRIMARY KEY (id),
-    CONSTRAINT chk_produto_categoria  CHECK (categoria         IN ('RACAO','MEDICAMENTO','ACESSORIO','SERVICO','OUTRO')),
-    CONSTRAINT chk_produto_especie    CHECK (especie_indicada  IN ('CACHORRO','GATO','PASSARO','REPTIL','ROEDOR','TODOS','OUTRO')),
-    CONSTRAINT chk_produto_ativo      CHECK (ativo             IN (0,1))
+    CONSTRAINT pk_clyvo_produto             PRIMARY KEY (id),
+    CONSTRAINT chk_clyvo_produto_categoria  CHECK (categoria         IN ('RACAO','MEDICAMENTO','ACESSORIO','SERVICO','OUTRO')),
+    CONSTRAINT chk_clyvo_produto_especie    CHECK (especie_indicada  IN ('CACHORRO','GATO','PASSARO','REPTIL','ROEDOR','TODOS','OUTRO')),
+    CONSTRAINT chk_clyvo_produto_ativo      CHECK (ativo             IN (0,1))
 );
 
 CREATE OR REPLACE TRIGGER trg_produto_id
@@ -307,10 +307,10 @@ CREATE TABLE t_clyvo_sugestao_produto (
     data_sugestao   DATE          DEFAULT SYSDATE,
     ativo           NUMBER(1)     DEFAULT 1,
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_sugestao_produto  PRIMARY KEY (id),
-    CONSTRAINT fk_sugestao_animal   FOREIGN KEY (animal_id)  REFERENCES t_clyvo_animal(id),
-    CONSTRAINT fk_sugestao_produto  FOREIGN KEY (produto_id) REFERENCES t_clyvo_produto(id),
-    CONSTRAINT chk_sugestao_ativo   CHECK (ativo IN (0,1))
+    CONSTRAINT pk_clyvo_sugestao_produto  PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_sugestao_animal   FOREIGN KEY (animal_id)  REFERENCES t_clyvo_animal(id),
+    CONSTRAINT fk_clyvo_sugestao_produto  FOREIGN KEY (produto_id) REFERENCES t_clyvo_produto(id),
+    CONSTRAINT chk_clyvo_sugestao_ativo   CHECK (ativo IN (0,1))
 );
 
 CREATE OR REPLACE TRIGGER trg_sugestao_produto_id
@@ -336,11 +336,11 @@ CREATE TABLE t_clyvo_lembrete (
     recorrente  NUMBER(1)     DEFAULT 0,
     status      VARCHAR2(20)  DEFAULT 'PENDENTE',
     criado_em   TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_lembrete             PRIMARY KEY (id),
-    CONSTRAINT fk_lembrete_animal      FOREIGN KEY (animal_id) REFERENCES t_clyvo_animal(id),
-    CONSTRAINT chk_lembrete_tipo       CHECK (tipo       IN ('VACINA','MEDICAMENTO','CONSULTA','HIGIENE','OUTRO')),
-    CONSTRAINT chk_lembrete_recorrente CHECK (recorrente IN (0,1)),
-    CONSTRAINT chk_lembrete_status     CHECK (status     IN ('PENDENTE','ENVIADO','CANCELADO'))
+    CONSTRAINT pk_clyvo_lembrete             PRIMARY KEY (id),
+    CONSTRAINT fk_clyvo_lembrete_animal      FOREIGN KEY (animal_id) REFERENCES t_clyvo_animal(id),
+    CONSTRAINT chk_clyvo_lembrete_tipo       CHECK (tipo       IN ('VACINA','MEDICAMENTO','CONSULTA','HIGIENE','OUTRO')),
+    CONSTRAINT chk_clyvo_lembrete_recorrente CHECK (recorrente IN (0,1)),
+    CONSTRAINT chk_clyvo_lembrete_status     CHECK (status     IN ('PENDENTE','ENVIADO','CANCELADO'))
 );
 
 CREATE OR REPLACE TRIGGER trg_lembrete_id
@@ -375,11 +375,11 @@ CREATE TABLE t_clyvo_evento_pet (
     link_inscricao  VARCHAR2(500),
     ativo           NUMBER(1)     DEFAULT 1,
     criado_em       TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_evento_pet               PRIMARY KEY (id),
-    CONSTRAINT chk_evento_pet_tipo         CHECK (tipo         IN ('VACINACAO','FEIRA','CASTRACAO','WORKSHOP','OUTRO')),
-    CONSTRAINT chk_evento_pet_especie_alvo CHECK (especie_alvo IN ('CACHORRO','GATO','PASSARO','REPTIL','ROEDOR','TODOS','OUTRO')),
-    CONSTRAINT chk_evento_pet_gratuito     CHECK (gratuito     IN (0,1)),
-    CONSTRAINT chk_evento_pet_ativo        CHECK (ativo        IN (0,1))
+    CONSTRAINT pk_clyvo_evento_pet               PRIMARY KEY (id),
+    CONSTRAINT chk_clyvo_evento_pet_tipo         CHECK (tipo         IN ('VACINACAO','FEIRA','CASTRACAO','WORKSHOP','OUTRO')),
+    CONSTRAINT chk_clyvo_evento_pet_especie_alvo CHECK (especie_alvo IN ('CACHORRO','GATO','PASSARO','REPTIL','ROEDOR','TODOS','OUTRO')),
+    CONSTRAINT chk_clyvo_evento_pet_gratuito     CHECK (gratuito     IN (0,1)),
+    CONSTRAINT chk_clyvo_evento_pet_ativo        CHECK (ativo        IN (0,1))
 );
 
 CREATE OR REPLACE TRIGGER trg_evento_pet_id
