@@ -1,5 +1,6 @@
 using ClyvoVet.Api.DTOs.Request;
 using ClyvoVet.Api.Enums;
+using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/lembretes")]
 [Produces("application/json")]
+[TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
 public class LembreteController : ControllerBase
 {
     private readonly ILembreteService _service;

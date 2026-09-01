@@ -41,6 +41,14 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
         });
     }
 
+    // Os controllers principais (Produto, Lembrete, EventoPet, SugestaoProduto) agora
+    // exigem X-Api-Key — injeta o header aqui pra não precisar editar cada teste.
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+    }
+
     private void Seed(AppDbContext db)
     {
         var tutor = new Tutor

@@ -110,6 +110,20 @@ builder.Services.AddSwaggerGen(options =>
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
         options.IncludeXmlComments(xmlPath);
+
+    // Botão "Authorize" no Swagger — os endpoints principais (Produto, Lembrete,
+    // EventoPet, SugestaoProduto) exigem o header X-Api-Key.
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Name        = "X-Api-Key",
+        Type        = SecuritySchemeType.ApiKey,
+        In          = ParameterLocation.Header,
+        Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
+    });
+    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("ApiKey"), new List<string>() }
+    });
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>

@@ -10,10 +10,26 @@ namespace ClyvoVet.Api.Tests.Integration;
 public class ProdutoEndpointsTests
 {
     private readonly HttpClient _client;
+    private readonly IntegrationTestFixture _fixture;
 
     public ProdutoEndpointsTests(IntegrationTestFixture fixture)
     {
+        _fixture = fixture;
         _client = fixture.CreateClient();
+    }
+
+    [Fact]
+    public async Task GetAll_SemApiKey_RetornaUnauthorized()
+    {
+        // Arrange — client "cru" do TestServer, sem passar pelo ConfigureClient
+        // da fixture (que injeta o X-Api-Key automaticamente pros outros testes).
+        var clientSemApiKey = _fixture.Server.CreateClient();
+
+        // Act
+        var response = await clientSemApiKey.GetAsync("/api/v1/produtos");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

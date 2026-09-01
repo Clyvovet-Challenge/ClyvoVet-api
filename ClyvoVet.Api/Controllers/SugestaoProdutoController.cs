@@ -1,4 +1,5 @@
 using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/sugestoes-produto")]
 [Produces("application/json")]
+[TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
 public class SugestaoProdutoController : ControllerBase
 {
     private readonly ISugestaoProdutoService _service;

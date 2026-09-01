@@ -28,7 +28,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **95 testes automatizados** (46 unitários + 49 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **96 testes automatizados** (46 unitários + 50 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória), incluindo autenticação.
 
 ---
 
@@ -467,7 +467,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `95` testes passando (`46` unitários + `49` de integração).
+**Resultado esperado:** `96` testes passando (`46` unitários + `50` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -532,6 +532,22 @@ END;
 
 > **Base path:** `/api/v1/`  
 > Todos os endpoints retornam `application/json`.
+
+### 🔐 Autenticação
+
+Os endpoints principais (`/produtos`, `/lembretes`, `/eventos-pet`, `/sugestoes-produto`) exigem o header `X-Api-Key`. Sem ele, ou com um valor errado, a API retorna `401 Unauthorized`.
+
+```bash
+dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
+```
+
+```bash
+curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
+```
+
+No Swagger (`/swagger`), clique no botão **"Authorize"** (canto superior direito) e informe a chave uma vez — ela é aplicada automaticamente em todas as chamadas feitas por ali depois.
+
+> Os endpoints extras (WhatsApp, Telegram) usam o mesmo mecanismo, mas com chaves próprias (`WhatsApp:ApiKey`, `Telegram:ApiKey`) — veja as seções correspondentes mais abaixo.
 
 ---
 
@@ -922,7 +938,8 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 
 > **54 testes** conferidos com Oracle real, todos passando.  
 > Acesse **`http://localhost:5191/swagger`**, siga a sequência indicada e reaproveite os JSONs já prontos.  
-> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)
+> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
+> ⚠️ Desde a Sprint 3, os endpoints principais exigem a `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](#-autenticação)).
 
 ---
 
