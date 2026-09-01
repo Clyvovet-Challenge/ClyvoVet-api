@@ -112,7 +112,9 @@ builder.Services.AddSwaggerGen(options =>
         options.IncludeXmlComments(xmlPath);
 
     // Botão "Authorize" no Swagger — os endpoints principais (Produto, Lembrete,
-    // EventoPet, SugestaoProduto) exigem o header X-Api-Key.
+    // EventoPet, SugestaoProduto) exigem o header X-Api-Key. O cadeado só aparece
+    // nesses endpoints (ver ApiKeySecurityOperationFilter) — Widget não exige
+    // chave, e WhatsApp/Telegram exigem chaves próprias e diferentes desta.
     options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
     {
         Name        = "X-Api-Key",
@@ -120,10 +122,7 @@ builder.Services.AddSwaggerGen(options =>
         In          = ParameterLocation.Header,
         Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
     });
-    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
-    {
-        { new OpenApiSecuritySchemeReference("ApiKey"), new List<string>() }
-    });
+    options.OperationFilter<ApiKeySecurityOperationFilter>();
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
