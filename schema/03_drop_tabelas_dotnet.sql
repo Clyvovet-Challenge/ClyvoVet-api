@@ -1,6 +1,6 @@
 -- =============================================================
 -- ClyvoVet — schema/03_drop_tabelas_dotnet.sql
--- Remove APENAS as 5 tabelas gerenciadas pela API .NET (C#).
+-- Remove APENAS as 6 tabelas gerenciadas pela API .NET (C#).
 -- As tabelas da API Java (t_clyvo_animal, t_clyvo_tutor,
 -- t_clyvo_veterinario, t_clyvo_clinica, t_clyvo_evento_clinico,
 -- t_clyvo_consulta) NÃO são tocadas por este script.
@@ -102,6 +102,23 @@ END;
 /
 
 -- -------------------------------------------------------------
+-- 6. T_CLYVO_TUTOR_TELEGRAM
+--    Sem FK — vínculo tutor_id (validado via API) -> chat_id.
+-- -------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE T_CLYVO_TUTOR_TELEGRAM CASCADE CONSTRAINTS PURGE';
+    DBMS_OUTPUT.PUT_LINE('[OK] T_CLYVO_TUTOR_TELEGRAM removida.');
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE = -942 THEN
+            DBMS_OUTPUT.PUT_LINE('[SKIP] T_CLYVO_TUTOR_TELEGRAM nao encontrada, ignorando.');
+        ELSE
+            RAISE;
+        END IF;
+END;
+/
+
+-- -------------------------------------------------------------
 -- Verificação final: confirma que as tabelas foram removidas
 -- -------------------------------------------------------------
 PROMPT ============================================================
@@ -115,7 +132,8 @@ WHERE  table_name IN (
            'T_CLYVO_SUGESTAO_PRODUTO',
            'T_CLYVO_LEMBRETE',
            'T_CLYVO_EVENTO_PET',
-           'T_CLYVO_PREDISPOSICAO_SAUDE'
+           'T_CLYVO_PREDISPOSICAO_SAUDE',
+           'T_CLYVO_TUTOR_TELEGRAM'
        )
 ORDER BY table_name;
 

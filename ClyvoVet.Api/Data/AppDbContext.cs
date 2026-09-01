@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<EventoPet> EventosPet => Set<EventoPet>();
     public DbSet<SugestaoProduto> SugestoesProduto => Set<SugestaoProduto>();
     public DbSet<PredisposicaoSaude> PredisposicoesSaude => Set<PredisposicaoSaude>();
+    public DbSet<TutorTelegram> TutoresTelegram => Set<TutorTelegram>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
