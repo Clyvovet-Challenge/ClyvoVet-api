@@ -21,16 +21,16 @@ CREATE TABLE t_clyvo_tutor_telegram (
     tutor_id   VARCHAR2(36)  NOT NULL,
     chat_id    NUMBER(19)    NOT NULL,
     criado_em  TIMESTAMP     DEFAULT SYSTIMESTAMP,
-    CONSTRAINT pk_tutor_telegram        PRIMARY KEY (id),
-    CONSTRAINT uq_tutor_telegram_tutor  UNIQUE (tutor_id)
+    CONSTRAINT pk_clyvo_tutor_telegram        PRIMARY KEY (id),
+    CONSTRAINT uq_clyvo_tutor_telegram_tutor  UNIQUE (tutor_id)
 );
 
-CREATE OR REPLACE TRIGGER trg_tutor_telegram_id
+CREATE OR REPLACE TRIGGER trg_clyvo_tutor_telegram_id
 BEFORE INSERT ON t_clyvo_tutor_telegram
 FOR EACH ROW
 BEGIN
     IF :NEW.id IS NULL THEN
-        :NEW.id := fn_uuid();
+        :NEW.id := fn_clyvo_uuid();
     END IF;
 END;
 /
