@@ -33,6 +33,20 @@ public class ProdutoEndpointsTests
     }
 
     [Fact]
+    public async Task GetAll_ApiKeyErrada_RetornaUnauthorized()
+    {
+        // Arrange
+        var clientComApiKeyErrada = _fixture.Server.CreateClient();
+        clientComApiKeyErrada.DefaultRequestHeaders.Add("X-Api-Key", "chave-errada");
+
+        // Act
+        var response = await clientComApiKeyErrada.GetAsync("/api/v1/produtos");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetAll_ComProdutoSeedCadastrado_RetornaOkComLista()
     {
         // Arrange

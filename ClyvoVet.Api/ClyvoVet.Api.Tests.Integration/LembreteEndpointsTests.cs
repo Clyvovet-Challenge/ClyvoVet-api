@@ -19,6 +19,33 @@ public class LembreteEndpointsTests
     }
 
     [Fact]
+    public async Task GetAll_SemApiKey_RetornaUnauthorized()
+    {
+        // Arrange
+        var clientSemApiKey = _fixture.Server.CreateClient();
+
+        // Act
+        var response = await clientSemApiKey.GetAsync("/api/v1/lembretes");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_ApiKeyErrada_RetornaUnauthorized()
+    {
+        // Arrange
+        var clientComApiKeyErrada = _fixture.Server.CreateClient();
+        clientComApiKeyErrada.DefaultRequestHeaders.Add("X-Api-Key", "chave-errada");
+
+        // Act
+        var response = await clientComApiKeyErrada.GetAsync("/api/v1/lembretes");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Create_DadosValidos_RetornaCreatedComStatusPendente()
     {
         // Arrange
