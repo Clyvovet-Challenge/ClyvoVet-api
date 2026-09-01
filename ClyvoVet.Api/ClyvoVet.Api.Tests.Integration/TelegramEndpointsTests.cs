@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Api.DTOs.Response;
 using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
@@ -162,6 +163,39 @@ public class TelegramEndpointsTests
 
         // Act
         var response = await client.PostAsJsonAsync("/api/v1/telegram/enviar", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GerarLink_TutorIdValido_RetornaLinkComTutorId()
+    {
+        // Arrange
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+
+        // Act
+        var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<TelegramLinkResponse>();
+        Assert.NotNull(result);
+        Assert.Contains("start=tutor-abc-123", result!.Link);
+        Assert.StartsWith("https://t.me/", result.Link);
+    }
+
+    [Fact]
+    public async Task GerarLink_SemApiKey_RetornaUnauthorized()
+    {
+        // Arrange
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
 
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

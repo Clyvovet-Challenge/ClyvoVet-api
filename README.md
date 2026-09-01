@@ -28,7 +28,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **86 testes automatizados** (46 unitários + 40 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **88 testes automatizados** (46 unitários + 42 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -98,9 +98,10 @@ ClyvoVet-api/
 └── schema/
     ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
     ├── 02_seed_dotnet.sql                       → Dados de exemplo para os endpoints originais
-    ├── 03_drop_tabelas_dotnet.sql               → Remove as 5 tabelas .NET
+    ├── 03_drop_tabelas_dotnet.sql               → Remove as 6 tabelas .NET
     ├── 04_criar_tabela_predisposicao_dotnet.sql → DDL da tabela do Widget de Saúde Preditiva
     ├── 05_seed_predisposicao_dotnet.sql         → 42 predisposições reais por espécie/raça/idade
+    ├── 06_criar_tabela_tutor_telegram_dotnet.sql → DDL da tabela de vínculo Tutor ↔ Telegram
     └── README.md                                → Guia do schema
 ```
 
@@ -466,7 +467,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `86` testes passando (`46` unitários + `40` de integração).
+**Resultado esperado:** `88` testes passando (`46` unitários + `42` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -492,6 +493,7 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_LEMBRETE`** | **API .NET** | `T_CLYVO_ANIMAL` |
 | **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
+| **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
 
 > Mesmo pertencendo à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
 
@@ -522,6 +524,7 @@ END;
 | `schema/03_drop_tabelas_dotnet.sql` | Para limpar apenas as tabelas .NET (preserva as Java) |
 | `schema/04_criar_tabela_predisposicao_dotnet.sql` | Cria a tabela `T_CLYVO_PREDISPOSICAO_SAUDE` (widget de saúde preditiva) |
 | `schema/05_seed_predisposicao_dotnet.sql` | Após o `04` — insere as 42 predisposições de saúde por espécie/raça/idade |
+| `schema/06_criar_tabela_tutor_telegram_dotnet.sql` | Cria a tabela `T_CLYVO_TUTOR_TELEGRAM` (vínculo tutor ↔ bot do Telegram) |
 
 ---
 
@@ -867,6 +870,7 @@ Alternativa ao WhatsApp usando um bot próprio no [Telegram](https://core.telegr
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
 | POST | `/api/v1/telegram/enviar` | Envia uma mensagem de Telegram para o `chatId` informado | 204 |
+| GET | `/api/v1/telegram/link/{tutorId}` | Gera o deep link (`t.me/<bot>?start=<tutorId>`) para o tutor vincular sua conta ao bot | 200 |
 
 **Request — POST**
 
@@ -886,7 +890,16 @@ Alternativa ao WhatsApp usando um bot próprio no [Telegram](https://core.telegr
 ```bash
 dotnet user-secrets set "Telegram:BotToken" "SEU_BOT_TOKEN"
 dotnet user-secrets set "Telegram:ApiKey" "SUA_CHAVE_AQUI"
+dotnet user-secrets set "Telegram:BotUsername" "seu_bot_username"
 ```
+
+**Vínculo tutor ↔ Telegram**
+
+Como o `Tutor` é uma tabela da API Java, a gente não pode adicionar uma coluna `chatId` nela. Em vez disso, o vínculo `TutorId → ChatId` fica numa tabela própria (`T_CLYVO_TUTOR_TELEGRAM`), preenchida assim:
+
+1. O frontend chama `GET /api/v1/telegram/link/{tutorId}` (usando o `tutorId` do tutor já logado) e recebe o deep link de volta.
+2. O tutor clica no link — o Telegram abre e manda `/start {tutorId}` pro bot automaticamente.
+3. Um serviço em background na API .NET fica consultando o Telegram (`getUpdates`) e, ao ver esse `/start`, salva o vínculo `TutorId → ChatId` na tabela.
 
 O endpoint também exige o header `X-Api-Key` (mesmo mecanismo do WhatsApp, com uma chave própria):
 
