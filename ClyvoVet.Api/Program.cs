@@ -133,7 +133,10 @@ builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
 if (!builder.Environment.IsEnvironment("Testing"))
+{
     builder.Services.AddHostedService<TelegramLinkListenerService>();
+    builder.Services.AddHostedService<LembreteNotificationService>();
+}
 
 // Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
 // cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,

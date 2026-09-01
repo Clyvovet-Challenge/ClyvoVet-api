@@ -45,4 +45,33 @@ public class TutorTelegramRepositoryTests
         var registro = Assert.Single(registros);
         Assert.Equal(333333, registro.ChatId);
     }
+
+    [Fact]
+    public async Task GetChatIdByTutorIdAsync_TutorVinculado_RetornaOChatId()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+        await repository.VincularAsync("tutor-3", 444444);
+
+        // Act
+        var chatId = await repository.GetChatIdByTutorIdAsync("tutor-3");
+
+        // Assert
+        Assert.Equal(444444, chatId);
+    }
+
+    [Fact]
+    public async Task GetChatIdByTutorIdAsync_TutorSemVinculo_RetornaNull()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+
+        // Act
+        var chatId = await repository.GetChatIdByTutorIdAsync("tutor-sem-vinculo");
+
+        // Assert
+        Assert.Null(chatId);
+    }
 }

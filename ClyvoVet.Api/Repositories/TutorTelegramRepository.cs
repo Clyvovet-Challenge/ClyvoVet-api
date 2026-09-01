@@ -29,4 +29,10 @@ public class TutorTelegramRepository : ITutorTelegramRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task<long?> GetChatIdByTutorIdAsync(string tutorId)
+    {
+        var vinculo = await _context.TutoresTelegram.FirstOrDefaultAsync(t => t.TutorId == tutorId);
+        return vinculo?.ChatId;
+    }
 }

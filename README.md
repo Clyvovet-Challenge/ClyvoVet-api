@@ -28,7 +28,7 @@ Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes a
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
 - **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
 - **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **90 testes automatizados** (46 unitários + 44 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
+- **95 testes automatizados** (46 unitários + 49 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória).
 
 ---
 
@@ -467,7 +467,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `90` testes passando (`46` unitários + `44` de integração).
+**Resultado esperado:** `95` testes passando (`46` unitários + `49` de integração).
 
 ### Detalhes dos testes de integração
 
@@ -911,6 +911,10 @@ curl -X POST http://localhost:5191/api/v1/telegram/enviar \
 ```
 
 > ✅ Diferente do WhatsApp, esse endpoint (e o fluxo completo de vínculo, incluindo o `TelegramLinkListenerService`) foi validado de ponta a ponta com um bot real — sem bloqueio de trial/template. Os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) ainda assim usam fakes/banco em memória, para manter os testes determinísticos e sem depender de rede externa — o `TelegramLinkListenerService` fica desativado em ambiente de `Testing` pelo mesmo motivo.
+
+**Notificação automática de lembretes**
+
+O `LembreteNotificationService` (também um `BackgroundService`, desativado em `Testing`) verifica a cada 1 minuto se existe algum lembrete `Pendente` vencendo na próxima hora. Quando encontra um, manda a notificação — pelo Telegram, se o tutor tiver vinculado a conta (`T_CLYVO_TUTOR_TELEGRAM`), ou pelo WhatsApp, usando o `Tutor.Telefone` já cadastrado (dado da API Java) — e marca o lembrete como `Enviado`, pra não notificar de novo.
 
 ---
 

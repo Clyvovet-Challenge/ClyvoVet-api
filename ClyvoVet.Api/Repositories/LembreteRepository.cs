@@ -44,6 +44,15 @@ public class LembreteRepository : ILembreteRepository
             .FirstOrDefaultAsync(l => l.Id == id);
     }
 
+    public async Task<IEnumerable<Lembrete>> GetPendentesVencendoAsync(DateTime limite)
+    {
+        return await _context.Lembretes
+            .Include(l => l.Animal)
+            .ThenInclude(a => a.Tutor)
+            .Where(l => l.Status == StatusLembreteEnum.Pendente && l.AgendadoEm <= limite)
+            .ToListAsync();
+    }
+
     public async Task<Lembrete> CreateAsync(Lembrete lembrete)
     {
         // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
