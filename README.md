@@ -11,6 +11,18 @@
 
 ---
 
+## 🌐 API em produção
+
+A API está publicada e rodando continuamente (24/7) no Render — não precisa clonar nem rodar nada localmente para acessar:
+
+- **Base URL:** [`https://clyvovet-api.onrender.com`](https://clyvovet-api.onrender.com)
+- **Swagger:** [`https://clyvovet-api.onrender.com/swagger`](https://clyvovet-api.onrender.com/swagger)
+- **Health Check:** [`https://clyvovet-api.onrender.com/health`](https://clyvovet-api.onrender.com/health)
+
+> Roda no plano **Free** do Render — ocasionalmente uma requisição pode retornar `404`/demorar mais por instabilidade da instância gratuita (sem redundância). Se isso acontecer, é só tentar de novo.
+
+---
+
 ## Sobre o Projeto
 
 A **ClyvoVet API** é uma API RESTful construída em **ASP.NET Core 8**, desenvolvida como parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Ela é responsável pelo **domínio de engajamento** dentro da plataforma veterinária, respondendo por:
