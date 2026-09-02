@@ -122,7 +122,7 @@ builder.Services.AddSwaggerGen(options =>
         In          = ParameterLocation.Header,
         Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
     });
-    options.OperationFilter<ApiKeySecurityOperationFilter>();
+    options.DocumentFilter<ApiKeySecurityDocumentFilter>();
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
