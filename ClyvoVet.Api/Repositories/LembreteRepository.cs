@@ -53,6 +53,15 @@ public class LembreteRepository : ILembreteRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Lembrete>> GetPendentesByTutorIdAsync(string tutorId)
+    {
+        return await _context.Lembretes
+            .Include(l => l.Animal)
+            .Where(l => l.Status == StatusLembreteEnum.Pendente && l.Animal.TutorId == tutorId)
+            .OrderBy(l => l.AgendadoEm)
+            .ToListAsync();
+    }
+
     public async Task<Lembrete> CreateAsync(Lembrete lembrete)
     {
         // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.

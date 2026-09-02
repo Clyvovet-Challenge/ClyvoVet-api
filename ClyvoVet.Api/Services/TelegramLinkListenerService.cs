@@ -4,9 +4,11 @@ using Telegram.Bot;
 namespace ClyvoVet.Api.Services;
 
 // Fica de olho nas mensagens que chegam pro bot (via polling em getUpdates, já
-// que rodar sem HTTPS público não permite usar webhook do Telegram) e, ao ver
-// um "/start <tutorId>" (o deep link gerado em /api/v1/telegram/link/{tutorId}),
-// salva o vínculo TutorId -> ChatId.
+// que rodar sem HTTPS público não permite usar webhook do Telegram). Trata dois
+// comandos: "/start <tutorId>" (o deep link gerado em /api/v1/telegram/link/{tutorId}),
+// que salva o vínculo TutorId -> ChatId, e "/meuslembretes", que lista os lembretes
+// pendentes do tutor já vinculado. Qualquer outra mensagem recebe uma resposta
+// padrão explicando que o bot não tem fluxo de conversa livre.
 public class TelegramLinkListenerService : BackgroundService
 {
     private static readonly TimeSpan IntervaloPolling = TimeSpan.FromSeconds(5);
@@ -95,11 +97,45 @@ public class TelegramLinkListenerService : BackgroundService
             return;
         }
 
+        if (texto.Trim().Equals("/meuslembretes", StringComparison.OrdinalIgnoreCase))
+        {
+            await ResponderMeusLembretesAsync(chatId, cancellationToken);
+            return;
+        }
+
         // Bot só envia notificações automáticas — não tem fluxo de conversa, então
-        // qualquer mensagem que não seja o /start do deep link cai aqui.
+        // qualquer mensagem que não seja um comando reconhecido cai aqui.
         await _botClient.SendMessage(
             chatId,
-            "Esse bot só envia notificações automáticas da ClyvoVet (lembretes de cuidados do seu pet) — não é possível conversar por aqui.",
+            "Esse bot só envia notificações automáticas da ClyvoVet (lembretes de cuidados do seu pet) — não é possível conversar por aqui.\n\nComandos disponíveis: /meuslembretes",
             cancellationToken: cancellationToken);
+    }
+
+    private async Task ResponderMeusLembretesAsync(long chatId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
+        var lembreteRepository = scope.ServiceProvider.GetRequiredService<ILembreteRepository>();
+
+        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
+        if (tutorId is null)
+        {
+            await _botClient.SendMessage(
+                chatId,
+                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+        var lembretes = (await lembreteRepository.GetPendentesByTutorIdAsync(tutorId)).ToList();
+        if (lembretes.Count == 0)
+        {
+            await _botClient.SendMessage(chatId, "Você não tem lembretes pendentes no momento. 🎉", cancellationToken: cancellationToken);
+            return;
+        }
+
+        var linhas = lembretes.Select(l => $"• {l.Titulo} ({l.Animal.Nome}) — {l.AgendadoEm:dd/MM/yyyy HH:mm}");
+        var mensagem = "📋 Seus lembretes pendentes:\n\n" + string.Join("\n", linhas);
+        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
     }
 }

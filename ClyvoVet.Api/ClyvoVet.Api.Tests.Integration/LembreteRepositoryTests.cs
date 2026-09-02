@@ -105,4 +105,85 @@ public class LembreteRepositoryTests
         // Assert
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task GetPendentesByTutorIdAsync_TutorComLembretePendente_RetornaOLembrete()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var (tutor, animal) = CriarTutorEAnimal(context);
+        context.Lembretes.Add(new Lembrete
+        {
+            Id = Guid.NewGuid().ToString(),
+            AnimalId = animal.Id,
+            Animal = animal,
+            Titulo = "Vacina",
+            Tipo = TipoLembreteEnum.Vacina,
+            AgendadoEm = DateTime.UtcNow.AddDays(2),
+            Status = StatusLembreteEnum.Pendente,
+            CriadoEm = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var repository = new LembreteRepository(context);
+
+        // Act
+        var result = await repository.GetPendentesByTutorIdAsync(tutor.Id);
+
+        // Assert
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task GetPendentesByTutorIdAsync_LembreteJaEnviado_NaoRetornaOLembrete()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var (tutor, animal) = CriarTutorEAnimal(context);
+        context.Lembretes.Add(new Lembrete
+        {
+            Id = Guid.NewGuid().ToString(),
+            AnimalId = animal.Id,
+            Animal = animal,
+            Titulo = "Vacina",
+            Tipo = TipoLembreteEnum.Vacina,
+            AgendadoEm = DateTime.UtcNow.AddDays(2),
+            Status = StatusLembreteEnum.Enviado,
+            CriadoEm = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var repository = new LembreteRepository(context);
+
+        // Act
+        var result = await repository.GetPendentesByTutorIdAsync(tutor.Id);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetPendentesByTutorIdAsync_LembreteDeOutroTutor_NaoRetornaOLembrete()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var (_, animal) = CriarTutorEAnimal(context);
+        context.Lembretes.Add(new Lembrete
+        {
+            Id = Guid.NewGuid().ToString(),
+            AnimalId = animal.Id,
+            Animal = animal,
+            Titulo = "Vacina",
+            Tipo = TipoLembreteEnum.Vacina,
+            AgendadoEm = DateTime.UtcNow.AddDays(2),
+            Status = StatusLembreteEnum.Pendente,
+            CriadoEm = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var repository = new LembreteRepository(context);
+
+        // Act
+        var result = await repository.GetPendentesByTutorIdAsync(Guid.NewGuid().ToString());
+
+        // Assert
+        Assert.Empty(result);
+    }
 }
