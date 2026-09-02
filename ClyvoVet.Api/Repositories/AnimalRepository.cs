@@ -20,4 +20,12 @@ public class AnimalRepository : IAnimalRepository
             .Include(a => a.Tutor)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
+
+    public async Task<IEnumerable<Animal>> GetByTutorIdAsync(string tutorId)
+    {
+        return await _context.Animais
+            .Where(a => a.TutorId == tutorId)
+            .OrderBy(a => a.Nome)
+            .ToListAsync();
+    }
 }

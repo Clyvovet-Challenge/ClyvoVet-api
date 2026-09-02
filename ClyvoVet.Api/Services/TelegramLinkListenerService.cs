@@ -7,12 +7,12 @@ namespace ClyvoVet.Api.Services;
 // que rodar sem HTTPS público não permite usar webhook do Telegram). Trata os
 // comandos "/start <tutorId>" (deep link gerado em /api/v1/telegram/link/{tutorId},
 // salva o vínculo TutorId -> ChatId), "/meuslembretes" (lista lembretes pendentes),
-// "/desvincular" (remove o vínculo) e "/ajuda" (lista os comandos). Qualquer outra
-// mensagem recebe uma resposta padrão explicando que o bot não tem fluxo de
-// conversa livre.
+// "/meusanimais" (lista os pets do tutor), "/desvincular" (remove o vínculo) e
+// "/ajuda" (lista os comandos). Qualquer outra mensagem recebe uma resposta padrão
+// explicando que o bot não tem fluxo de conversa livre.
 public class TelegramLinkListenerService : BackgroundService
 {
-    private const string ComandosDisponiveis = "/meuslembretes, /desvincular, /ajuda";
+    private const string ComandosDisponiveis = "/meuslembretes, /meusanimais, /desvincular, /ajuda";
     private static readonly TimeSpan IntervaloPolling = TimeSpan.FromSeconds(5);
 
     private readonly ITelegramBotClient _botClient;
@@ -107,6 +107,12 @@ public class TelegramLinkListenerService : BackgroundService
             return;
         }
 
+        if (comando.Equals("/meusanimais", StringComparison.OrdinalIgnoreCase))
+        {
+            await ResponderMeusAnimaisAsync(chatId, cancellationToken);
+            return;
+        }
+
         if (comando.Equals("/desvincular", StringComparison.OrdinalIgnoreCase))
         {
             await ResponderDesvincularAsync(chatId, cancellationToken);
@@ -119,6 +125,7 @@ public class TelegramLinkListenerService : BackgroundService
                 chatId,
                 $"Comandos disponíveis:\n\n" +
                 "/meuslembretes — lista seus lembretes pendentes\n" +
+                "/meusanimais — lista seus pets cadastrados\n" +
                 "/desvincular — remove o vínculo do seu Telegram com a ClyvoVet\n" +
                 "/ajuda — mostra esta mensagem",
                 cancellationToken: cancellationToken);
@@ -152,6 +159,34 @@ public class TelegramLinkListenerService : BackgroundService
             chatId,
             "✅ Vínculo removido. Você não vai mais receber notificações da ClyvoVet por aqui.",
             cancellationToken: cancellationToken);
+    }
+
+    private async Task ResponderMeusAnimaisAsync(long chatId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
+        var animalRepository = scope.ServiceProvider.GetRequiredService<IAnimalRepository>();
+
+        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
+        if (tutorId is null)
+        {
+            await _botClient.SendMessage(
+                chatId,
+                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
+                cancellationToken: cancellationToken);
+            return;
+        }
+
+        var animais = (await animalRepository.GetByTutorIdAsync(tutorId)).ToList();
+        if (animais.Count == 0)
+        {
+            await _botClient.SendMessage(chatId, "Você ainda não tem nenhum pet cadastrado.", cancellationToken: cancellationToken);
+            return;
+        }
+
+        var linhas = animais.Select(a => $"• {a.Nome} — {a.Especie}{(string.IsNullOrWhiteSpace(a.Raca) ? "" : $" ({a.Raca})")}");
+        var mensagem = "🐾 Seus pets:\n\n" + string.Join("\n", linhas);
+        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
     }
 
     private async Task ResponderMeusLembretesAsync(long chatId, CancellationToken cancellationToken)
