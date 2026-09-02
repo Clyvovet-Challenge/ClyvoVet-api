@@ -71,19 +71,35 @@ public class TelegramLinkListenerService : BackgroundService
     private async Task ProcessarAsync(Telegram.Bot.Types.Update update, CancellationToken cancellationToken)
     {
         var texto = update.Message?.Text;
-        if (string.IsNullOrWhiteSpace(texto) || !texto.StartsWith("/start "))
+        if (string.IsNullOrWhiteSpace(texto))
             return;
 
-        var tutorId = texto["/start ".Length..].Trim();
         var chatId = update.Message!.Chat.Id;
 
-        if (string.IsNullOrWhiteSpace(tutorId))
+        if (texto.StartsWith("/start "))
+        {
+            var tutorId = texto["/start ".Length..].Trim();
+            if (string.IsNullOrWhiteSpace(tutorId))
+                return;
+
+            using var scope = _scopeFactory.CreateScope();
+            var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
+            await repository.VincularAsync(tutorId, chatId);
+
+            _logger.LogInformation("Tutor {TutorId} vinculado ao chatId {ChatId} no Telegram.", tutorId, chatId);
+
+            await _botClient.SendMessage(
+                chatId,
+                "✅ Vínculo confirmado! A partir de agora você recebe por aqui os lembretes de cuidados do seu pet.",
+                cancellationToken: cancellationToken);
             return;
+        }
 
-        using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        await repository.VincularAsync(tutorId, chatId);
-
-        _logger.LogInformation("Tutor {TutorId} vinculado ao chatId {ChatId} no Telegram.", tutorId, chatId);
+        // Bot só envia notificações automáticas — não tem fluxo de conversa, então
+        // qualquer mensagem que não seja o /start do deep link cai aqui.
+        await _botClient.SendMessage(
+            chatId,
+            "Esse bot só envia notificações automáticas da ClyvoVet (lembretes de cuidados do seu pet) — não é possível conversar por aqui.",
+            cancellationToken: cancellationToken);
     }
 }
