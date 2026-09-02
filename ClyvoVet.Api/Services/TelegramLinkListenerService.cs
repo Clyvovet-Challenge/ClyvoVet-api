@@ -4,13 +4,15 @@ using Telegram.Bot;
 namespace ClyvoVet.Api.Services;
 
 // Fica de olho nas mensagens que chegam pro bot (via polling em getUpdates, já
-// que rodar sem HTTPS público não permite usar webhook do Telegram). Trata dois
-// comandos: "/start <tutorId>" (o deep link gerado em /api/v1/telegram/link/{tutorId}),
-// que salva o vínculo TutorId -> ChatId, e "/meuslembretes", que lista os lembretes
-// pendentes do tutor já vinculado. Qualquer outra mensagem recebe uma resposta
-// padrão explicando que o bot não tem fluxo de conversa livre.
+// que rodar sem HTTPS público não permite usar webhook do Telegram). Trata os
+// comandos "/start <tutorId>" (deep link gerado em /api/v1/telegram/link/{tutorId},
+// salva o vínculo TutorId -> ChatId), "/meuslembretes" (lista lembretes pendentes),
+// "/desvincular" (remove o vínculo) e "/ajuda" (lista os comandos). Qualquer outra
+// mensagem recebe uma resposta padrão explicando que o bot não tem fluxo de
+// conversa livre.
 public class TelegramLinkListenerService : BackgroundService
 {
+    private const string ComandosDisponiveis = "/meuslembretes, /desvincular, /ajuda";
     private static readonly TimeSpan IntervaloPolling = TimeSpan.FromSeconds(5);
 
     private readonly ITelegramBotClient _botClient;
@@ -97,9 +99,29 @@ public class TelegramLinkListenerService : BackgroundService
             return;
         }
 
-        if (texto.Trim().Equals("/meuslembretes", StringComparison.OrdinalIgnoreCase))
+        var comando = texto.Trim();
+
+        if (comando.Equals("/meuslembretes", StringComparison.OrdinalIgnoreCase))
         {
             await ResponderMeusLembretesAsync(chatId, cancellationToken);
+            return;
+        }
+
+        if (comando.Equals("/desvincular", StringComparison.OrdinalIgnoreCase))
+        {
+            await ResponderDesvincularAsync(chatId, cancellationToken);
+            return;
+        }
+
+        if (comando.Equals("/ajuda", StringComparison.OrdinalIgnoreCase))
+        {
+            await _botClient.SendMessage(
+                chatId,
+                $"Comandos disponíveis:\n\n" +
+                "/meuslembretes — lista seus lembretes pendentes\n" +
+                "/desvincular — remove o vínculo do seu Telegram com a ClyvoVet\n" +
+                "/ajuda — mostra esta mensagem",
+                cancellationToken: cancellationToken);
             return;
         }
 
@@ -107,7 +129,28 @@ public class TelegramLinkListenerService : BackgroundService
         // qualquer mensagem que não seja um comando reconhecido cai aqui.
         await _botClient.SendMessage(
             chatId,
-            "Esse bot só envia notificações automáticas da ClyvoVet (lembretes de cuidados do seu pet) — não é possível conversar por aqui.\n\nComandos disponíveis: /meuslembretes",
+            $"Esse bot só envia notificações automáticas da ClyvoVet (lembretes de cuidados do seu pet) — não é possível conversar por aqui.\n\nComandos disponíveis: {ComandosDisponiveis}",
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task ResponderDesvincularAsync(long chatId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
+
+        var tutorId = await repository.GetTutorIdByChatIdAsync(chatId);
+        if (tutorId is null)
+        {
+            await _botClient.SendMessage(chatId, "Você não está vinculado a nenhum tutor no momento.", cancellationToken: cancellationToken);
+            return;
+        }
+
+        await repository.DesvincularAsync(tutorId);
+        _logger.LogInformation("Tutor {TutorId} desvinculado do chatId {ChatId} no Telegram.", tutorId, chatId);
+
+        await _botClient.SendMessage(
+            chatId,
+            "✅ Vínculo removido. Você não vai mais receber notificações da ClyvoVet por aqui.",
             cancellationToken: cancellationToken);
     }
 

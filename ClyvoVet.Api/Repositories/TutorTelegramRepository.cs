@@ -41,4 +41,15 @@ public class TutorTelegramRepository : ITutorTelegramRepository
         var vinculo = await _context.TutoresTelegram.FirstOrDefaultAsync(t => t.ChatId == chatId);
         return vinculo?.TutorId;
     }
+
+    public async Task<bool> DesvincularAsync(string tutorId)
+    {
+        var vinculo = await _context.TutoresTelegram.FirstOrDefaultAsync(t => t.TutorId == tutorId);
+        if (vinculo is null)
+            return false;
+
+        _context.TutoresTelegram.Remove(vinculo);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

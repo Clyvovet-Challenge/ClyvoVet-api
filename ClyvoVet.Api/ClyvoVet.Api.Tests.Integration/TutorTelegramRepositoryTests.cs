@@ -103,4 +103,34 @@ public class TutorTelegramRepositoryTests
         // Assert
         Assert.Null(tutorId);
     }
+
+    [Fact]
+    public async Task DesvincularAsync_TutorVinculado_RemoveORegistroERetornaTrue()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+        await repository.VincularAsync("tutor-5", 666666);
+
+        // Act
+        var resultado = await repository.DesvincularAsync("tutor-5");
+
+        // Assert
+        Assert.True(resultado);
+        Assert.False(await context.TutoresTelegram.AnyAsync(t => t.TutorId == "tutor-5"));
+    }
+
+    [Fact]
+    public async Task DesvincularAsync_TutorSemVinculo_RetornaFalse()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+
+        // Act
+        var resultado = await repository.DesvincularAsync("tutor-sem-vinculo");
+
+        // Assert
+        Assert.False(resultado);
+    }
 }
