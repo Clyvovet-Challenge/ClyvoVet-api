@@ -79,7 +79,7 @@ public class LembreteService : ILembreteService
             Tipo = request.Tipo,
             AgendadoEm = request.AgendadoEm,
             Recorrente = request.Recorrente,
-            Status = request.Status
+            Status = existing.Status
         };
 
         await _repository.UpdateAsync(id, lembrete);

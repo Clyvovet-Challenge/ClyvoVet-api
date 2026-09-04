@@ -158,6 +158,39 @@ public class LembreteServiceTests
 
         // Assert
         Assert.Equal("Título Atualizado", result.Titulo);
+        Assert.Equal(StatusLembreteEnum.Pendente, result.Status);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_LembreteJaEnviado_MantemStatusEnviadoAposEditarOutrosCampos()
+    {
+        // Arrange
+        var existing = new Lembrete { Id = "1", AnimalId = "animal-1", Titulo = "Original", Status = StatusLembreteEnum.Enviado };
+        Lembrete? lembreteAtualizado = null;
+
+        _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(() => lembreteAtualizado ?? existing);
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        _repositoryMock
+            .Setup(r => r.UpdateAsync("1", It.IsAny<Lembrete>()))
+            .ReturnsAsync((string _, Lembrete l) =>
+            {
+                lembreteAtualizado = l;
+                return l;
+            });
+
+        var request = new LembreteRequest
+        {
+            AnimalId = "animal-1",
+            Titulo = "Título Atualizado",
+            Tipo = TipoLembreteEnum.Consulta,
+            AgendadoEm = DateTime.UtcNow.AddDays(10)
+        };
+
+        // Act
+        var result = await _service.UpdateAsync("1", request);
+
+        // Assert
+        Assert.Equal("Título Atualizado", result.Titulo);
         Assert.Equal(StatusLembreteEnum.Enviado, result.Status);
     }
 
