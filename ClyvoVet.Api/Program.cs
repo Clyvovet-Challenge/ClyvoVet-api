@@ -151,15 +151,20 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<LembreteNotificationService>();
 }
 
-// Health Checks — "self" cobre liveness (processo respondendo) e "oracle-database"
-// cobre readiness + disponibilidade do serviço externo (Oracle FIAP fica fora do processo,
-// em oracle.fiap.com.br), validando a conectividade real via Database.CanConnectAsync().
+// Health Checks — "self" cobre liveness (processo respondendo), "oracle-database" cobre
+// readiness (Database.CanConnectAsync() contra o Oracle FIAP). "telegram-bot" e
+// "whatsapp-twilio" verificam os demais serviços externos integrados pela API, mas ficam
+// fora da tag "ready": uma instabilidade neles não deveria tirar a API inteira de rotação,
+// já que os outros recursos (Produto, Lembrete, EventoPet, SugestaoProduto) continuam
+// funcionando normalmente sem Telegram/WhatsApp.
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(
         name: "oracle-database",
         failureStatus: HealthStatus.Unhealthy,
-        tags: ["ready", "database", "external"]);
+        tags: ["ready", "database", "external"])
+    .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"])
+    .AddCheck<WhatsAppHealthCheck>("whatsapp-twilio", tags: ["external"]);
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(

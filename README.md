@@ -430,7 +430,9 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 |----------|----------------|-----|
 | `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
-| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe — como o Oracle FIAP é um serviço **externo** ao processo, esse check também cobre "disponibilidade de serviços externos" |
+| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe |
+
+Além do Oracle, `GET /health` também verifica a disponibilidade dos demais serviços externos integrados pela API — Telegram Bot API (`telegram-bot`, via `GetMe`) e Twilio/WhatsApp (`whatsapp-twilio`, buscando os dados da conta). Esses dois ficam de fora da tag `ready` de propósito: uma instabilidade neles não deveria tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto continuam funcionando normalmente sem Telegram/WhatsApp.
 
 Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
@@ -441,15 +443,17 @@ curl http://localhost:5191/health
 ```json
 {
   "status": "Healthy",
-  "totalDurationMs": 5.34,
+  "totalDurationMs": 1317.72,
   "checks": [
-    { "name": "self", "status": "Healthy", "durationMs": 0.02, "tags": ["live"] },
-    { "name": "oracle-database", "status": "Healthy", "durationMs": 4.92, "tags": ["ready", "database", "external"] }
+    { "name": "self", "status": "Healthy", "durationMs": 0.31, "tags": ["live"] },
+    { "name": "oracle-database", "status": "Healthy", "durationMs": 16.52, "tags": ["ready", "database", "external"] },
+    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] },
+    { "name": "whatsapp-twilio", "status": "Healthy", "durationMs": 876.12, "description": "Conta Twilio active respondendo.", "tags": ["external"] }
   ]
 }
 ```
 
-Quando o Oracle fica inacessível (connection string errada, sem internet, etc.), o `status` muda para `"Unhealthy"` e o campo `error` de cada check traz a exceção correspondente.
+Quando algum desses serviços fica inacessível (connection string errada, token inválido, sem internet, etc.), o `status` daquele check muda para `"Unhealthy"` e o campo `error` traz a exceção correspondente.
 
 ### Logging Estruturado (Serilog)
 
