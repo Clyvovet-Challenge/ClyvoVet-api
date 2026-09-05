@@ -8,52 +8,50 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
 {
     public void Configure(EntityTypeBuilder<Animal> builder)
     {
-        builder.ToTable("T_CLYVO_ANIMAL");
+        builder.ToTable("t_clyvo_animal");
 
         builder.HasKey(a => a.Id);
 
         builder.Property(a => a.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(a => a.Nome)
-            .HasColumnName("NOME")
-            .HasColumnType("VARCHAR2(100)")
+            .HasColumnName("nome")
+            .HasColumnType("VARCHAR(100)")
             .IsRequired();
 
         builder.Property(a => a.Especie)
-            .HasColumnName("ESPECIE")
-            .HasColumnType("VARCHAR2(50)");
+            .HasColumnName("especie")
+            .HasColumnType("VARCHAR(50)");
 
         builder.Property(a => a.Raca)
-            .HasColumnName("RACA")
-            .HasColumnType("VARCHAR2(100)");
+            .HasColumnName("raca")
+            .HasColumnType("VARCHAR(100)");
 
         builder.Property(a => a.DataNascimento)
-            .HasColumnName("DATA_NASCIMENTO");
+            .HasColumnName("data_nascimento");
 
         // DDL real: coluna é GENERO (não SEXO) — CHECK: MACHO, FEMEA, DESCONHECIDO
         builder.Property(a => a.Sexo)
-            .HasColumnName("GENERO")
-            .HasColumnType("VARCHAR2(10)");
+            .HasColumnName("genero")
+            .HasColumnType("VARCHAR(10)");
 
         builder.Property(a => a.Castrado)
-            .HasColumnName("CASTRADO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("castrado");
 
         builder.Property(a => a.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
 
         builder.Property(a => a.TutorId)
-            .HasColumnName("TUTOR_ID")
-            .HasColumnType("VARCHAR2(36)");
+            .HasColumnName("tutor_id")
+            .HasColumnType("VARCHAR(36)");
 
         builder.HasOne(a => a.Tutor)
             .WithMany(t => t.Animais)
             .HasForeignKey(a => a.TutorId)
-            .HasConstraintName("FK_ANIMAL_TUTOR");
+            .HasConstraintName("fk_animal_tutor");
     }
 }

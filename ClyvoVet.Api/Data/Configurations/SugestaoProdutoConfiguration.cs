@@ -9,28 +9,28 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
 {
     public void Configure(EntityTypeBuilder<SugestaoProduto> builder)
     {
-        builder.ToTable("T_CLYVO_SUGESTAO_PRODUTO");
+        builder.ToTable("t_clyvo_sugestao_produto");
 
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(s => s.AnimalId)
-            .HasColumnName("ANIMAL_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("animal_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.Property(s => s.ProdutoId)
-            .HasColumnName("PRODUTO_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("produto_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.Property(s => s.Justificativa)
-            .HasColumnName("JUSTIFICATIVA")
-            .HasColumnType("VARCHAR2(500)");   // DDL real: VARCHAR2(500)
+            .HasColumnName("justificativa")
+            .HasColumnType("VARCHAR(500)");   // DDL real: VARCHAR(500)
 
         // Oracle EF Core não suporta DateOnly nativamente — converter para DateTime
         var dateOnlyConverter = new ValueConverter<DateOnly, DateTime>(
@@ -38,28 +38,26 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
             dt => DateOnly.FromDateTime(dt));
 
         builder.Property(s => s.DataSugestao)
-            .HasColumnName("DATA_SUGESTAO")
+            .HasColumnName("data_sugestao")
             .HasColumnType("DATE")
             .HasConversion(dateOnlyConverter)
             .IsRequired();
 
         builder.Property(s => s.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("ativo");
 
         builder.Property(s => s.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
 
         builder.HasOne(s => s.Animal)
             .WithMany()
             .HasForeignKey(s => s.AnimalId)
-            .HasConstraintName("FK_SUGESTAO_ANIMAL");
+            .HasConstraintName("fk_sugestao_animal");
 
         builder.HasOne(s => s.Produto)
             .WithMany(p => p.Sugestoes)
             .HasForeignKey(s => s.ProdutoId)
-            .HasConstraintName("FK_SUGESTAO_PRODUTO");
+            .HasConstraintName("fk_sugestao_produto");
     }
 }

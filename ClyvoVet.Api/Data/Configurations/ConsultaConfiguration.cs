@@ -8,58 +8,58 @@ public class ConsultaConfiguration : IEntityTypeConfiguration<Consulta>
 {
     public void Configure(EntityTypeBuilder<Consulta> builder)
     {
-        builder.ToTable("T_CLYVO_CONSULTA");
+        builder.ToTable("t_clyvo_consulta");
 
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(c => c.DataHora)
-            .HasColumnName("DATA_HORA")
+            .HasColumnName("data_hora")
             .IsRequired();
 
         builder.Property(c => c.Status)
-            .HasColumnName("STATUS")
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnName("status")
+            .HasColumnType("VARCHAR(30)")
             .IsRequired();
 
         builder.Property(c => c.Motivo)
-            .HasColumnName("MOTIVO")
-            .HasColumnType("VARCHAR2(500)");
+            .HasColumnName("motivo")
+            .HasColumnType("VARCHAR(500)");
 
         builder.Property(c => c.Observacoes)
-            .HasColumnName("OBSERVACOES")
-            .HasColumnType("VARCHAR2(2000)");
+            .HasColumnName("observacoes")
+            .HasColumnType("VARCHAR(2000)");
 
         builder.Property(c => c.Valor)
-            .HasColumnName("VALOR")
-            .HasColumnType("NUMBER(10,2)");
+            .HasColumnName("valor")
+            .HasColumnType("NUMERIC(10,2)");
 
         builder.Property(c => c.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
 
         builder.Property(c => c.AnimalId)
-            .HasColumnName("ANIMAL_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("animal_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.Property(c => c.VeterinarioId)
-            .HasColumnName("VETERINARIO_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("veterinario_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.HasOne(c => c.Animal)
             .WithMany(a => a.Consultas)
             .HasForeignKey(c => c.AnimalId)
-            .HasConstraintName("FK_CONSULTA_ANIMAL");
+            .HasConstraintName("fk_consulta_animal");
 
         builder.HasOne(c => c.Veterinario)
             .WithMany(v => v.Consultas)
             .HasForeignKey(c => c.VeterinarioId)
-            .HasConstraintName("FK_CONSULTA_VETERINARIO");
+            .HasConstraintName("fk_consulta_veterinario");
     }
 }

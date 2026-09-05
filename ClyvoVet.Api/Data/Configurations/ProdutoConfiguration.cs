@@ -8,41 +8,39 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
 {
     public void Configure(EntityTypeBuilder<Produto> builder)
     {
-        builder.ToTable("T_CLYVO_PRODUTO");
+        builder.ToTable("t_clyvo_produto");
 
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(p => p.Nome)
-            .HasColumnName("NOME")
-            .HasColumnType("VARCHAR2(200)")
+            .HasColumnName("nome")
+            .HasColumnType("VARCHAR(200)")
             .IsRequired();
 
         builder.Property(p => p.Descricao)
-            .HasColumnName("DESCRICAO")
-            .HasColumnType("VARCHAR2(1000)");
+            .HasColumnName("descricao")
+            .HasColumnType("VARCHAR(1000)");
 
         builder.Property(p => p.Categoria)
-            .HasColumnName("CATEGORIA");
+            .HasColumnName("categoria");
 
         builder.Property(p => p.Preco)
-            .HasColumnName("PRECO")
-            .HasColumnType("NUMBER(10,2)");
+            .HasColumnName("preco")
+            .HasColumnType("NUMERIC(10,2)");
 
         builder.Property(p => p.EspecieIndicada)
-            .HasColumnName("ESPECIE_INDICADA");
+            .HasColumnName("especie_indicada");
 
         builder.Property(p => p.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("ativo");
 
         builder.Property(p => p.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
     }
 }

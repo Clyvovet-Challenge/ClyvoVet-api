@@ -9,6 +9,147 @@
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing_%26_Metrics-425CC7?style=flat&logo=opentelemetry&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-Testes_Automatizados-512BD4?style=flat)
 
+## ☁️ Sprint DevOps Tools & Cloud Computing — Deploy na Azure
+
+> Esta seção documenta a entrega da disciplina **DevOps Tools & Cloud Computing**, que reutiliza a mesma API (ClyvoVet .NET) descrita no restante deste README, mas publicada num ambiente **completamente separado** na Azure — banco e app diferentes dos usados no Render/Oracle FIAP. As instruções abaixo são o passo a passo exato seguido no vídeo de entrega.
+
+### Descrição da Solução
+
+A ClyvoVet API é uma API REST em ASP.NET Core 8 que gerencia o catálogo de produtos/serviços veterinários e as sugestões de produto feitas para cada animal — duas tabelas relacionadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), com CRUD completo pelos dois lados. Nesta entrega, a API roda num **Azure App Service** (Linux, sem container) e persiste os dados num **Azure Database for PostgreSQL Flexible Server**.
+
+### Benefícios para o Negócio
+
+- **Catálogo centralizado**: produtos e serviços da clínica ficam num único lugar, com preço, categoria e espécie indicada — em vez de planilhas soltas ou papel.
+- **Sugestão de produto rastreável**: cada sugestão feita a um tutor fica registrada com justificativa e data, permitindo à clínica acompanhar o histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
+- **Escalabilidade sem gerenciar servidor**: rodando em PaaS (App Service + banco gerenciado), a clínica não precisa manter infraestrutura própria — a Azure cuida de disponibilidade, backup e patch do banco.
+
+### Banco de Dados em Nuvem
+
+- **Motor:** PostgreSQL 16, via **Azure Database for PostgreSQL Flexible Server** (não é H2, não é container).
+- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) — tabelas, colunas, chaves primárias/estrangeiras, comentários (`COMMENT ON`) e uma massa de dados inicial significativa.
+- **Tabelas do CRUD (CORE da solução):** `t_clyvo_produto` e `t_clyvo_sugestao_produto`, relacionadas por `produto_id`. `t_clyvo_tutor` e `t_clyvo_animal` existem só como apoio, porque o EF Core faz `Include(Animal)` em toda consulta de sugestão, e `Animal` exige um `Tutor`.
+
+### Arquitetura escolhida: Opção 2 — App Service + Banco PaaS
+
+Não há nenhum container nesta entrega — nem o app, nem o banco. Tudo roda em serviços gerenciados da Azure, criados via **Azure CLI**:
+
+| Recurso | Serviço Azure | Criado por |
+|---|---|---|
+| Grupo de recursos | Resource Group | `azure/01-criar-recursos.sh` |
+| Banco de dados | Azure Database for PostgreSQL Flexible Server | `azure/01-criar-recursos.sh` |
+| Plano de aplicativo | App Service Plan (Linux, B1) | `azure/02-criar-app-service.sh` |
+| Aplicativo web | App Service (.NET 8, runtime nativo, sem container) | `azure/02-criar-app-service.sh` |
+
+![Arquitetura da solução na Azure](docs/arquitetura-azure.svg)
+
+### Pré-requisitos
+
+| Ferramenta | Para que serve |
+|---|---|
+| [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) | Criar todos os recursos (obrigatório pelo edital) |
+| Conta ativa na Azure (`az login`) | Ter uma subscription onde criar os recursos |
+| [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) | `dotnet publish` local antes do deploy |
+| `psql` (cliente PostgreSQL) | Aplicar `schema/script_bd.sql` no banco recém-criado |
+| Git | Clonar o repositório |
+
+### Passo a passo — do zero até a API rodando na Azure
+
+**1. Clonar o repositório**
+
+```bash
+git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
+cd ClyvoVet-api
+git checkout devops-sprint3-azure
+```
+
+**2. Login na Azure**
+
+```bash
+az login
+```
+
+**3. Ajustar as variáveis (se necessário)**
+
+Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, nomes de recursos (precisam ser únicos globalmente na Azure) e a região (`LOCATION`). A região usada nesta entrega foi `canadacentral` — algumas assinaturas acadêmicas bloqueiam outras regiões para o Postgres Flexible Server via Azure Policy; se der erro `RequestDisallowedByAzure` ou `The location is restricted`, troque para uma região liberada na sua assinatura.
+
+**4. Criar o Resource Group + banco PostgreSQL**
+
+```bash
+export PSQL_PASSWORD='DefinaUmaSenhaForte123!'
+bash azure/01-criar-recursos.sh
+```
+
+Isso cria o Resource Group, o servidor PostgreSQL Flexible Server, o banco `clyvovet` e libera seu IP atual no firewall.
+
+**5. Aplicar o schema no banco**
+
+```bash
+psql "host=<PSQL_SERVER>.postgres.database.azure.com port=5432 dbname=clyvovet user=clyvovetadmin password=$PSQL_PASSWORD sslmode=require" -f schema/script_bd.sql
+```
+
+(o próprio script `01` imprime esse comando já com os valores certos no final da execução)
+
+**6. Criar o App Service e configurar os segredos**
+
+```bash
+export API_KEY='GereUmaChaveAleatoria'
+export TELEGRAM_BOT_TOKEN='...' TELEGRAM_API_KEY='...' TELEGRAM_BOT_USERNAME='...'
+export TWILIO_ACCOUNT_SID='...' TWILIO_AUTH_TOKEN='...' WHATSAPP_API_KEY='...'
+bash azure/02-criar-app-service.sh
+```
+
+Todos os segredos são configurados como **App Settings** do App Service — nunca ficam no código-fonte.
+
+**7. Publicar o app**
+
+Todos os scripts carregam `00-variaveis.sh`, que exige `PSQL_PASSWORD` no ambiente mesmo quando o script em si não usa o banco — se você abriu um terminal novo desde o passo 4, exporte a senha de novo antes de rodar:
+
+```bash
+export PSQL_PASSWORD='DefinaUmaSenhaForte123!'
+bash azure/03-deploy.sh
+```
+
+Esse script roda `dotnet publish`, empacota em zip e sobe via `az webapp deploy`. Ao final, ele mostra a URL da API.
+
+**8. Validar**
+
+```bash
+curl https://<APP_NAME>.azurewebsites.net/health
+```
+
+Deve responder `"status": "Healthy"` em todos os checks.
+
+### Testando o CRUD
+
+Acesse `https://<APP_NAME>.azurewebsites.net/swagger`, clique em **Authorize** e informe a `Api__ApiKey` configurada no passo 6.
+
+| Operação | Endpoint | Tabela afetada |
+|---|---|---|
+| Consultar | `GET /api/v1/produtos` | `t_clyvo_produto` |
+| Inserir | `POST /api/v1/produtos` | `t_clyvo_produto` |
+| Atualizar | `PUT /api/v1/produtos/{id}` | `t_clyvo_produto` |
+| Excluir | `DELETE /api/v1/produtos/{id}` | `t_clyvo_produto` |
+| Consultar | `GET /api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
+| Inserir | `POST /api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
+| Atualizar | `PUT /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
+| Excluir | `DELETE /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
+
+Para confirmar cada operação direto no banco (exigido no vídeo), conecte via `psql` (mesmo comando do passo 5, trocando `-f schema/script_bd.sql` por nada, pra abrir um shell interativo) e rode:
+
+```sql
+SELECT * FROM t_clyvo_produto ORDER BY criado_em DESC;
+SELECT * FROM t_clyvo_sugestao_produto ORDER BY criado_em DESC;
+```
+
+### Removendo os recursos (depois da correção)
+
+```bash
+export PSQL_PASSWORD='DefinaUmaSenhaForte123!'   # mesma observação do passo 7
+bash azure/04-destruir-recursos.sh
+```
+
+Apaga o Resource Group inteiro e tudo dentro dele. Só rode isso depois que o vídeo e a correção já tiverem saído — depois disso a URL da API para de funcionar.
+
 ---
 
 ## 🌐 API em produção

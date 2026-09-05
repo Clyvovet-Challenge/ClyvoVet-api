@@ -1,0 +1,62 @@
+<svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="560" fill="#ffffff"/>
+
+  <text x="500" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a">ClyvoVet API — Arquitetura na Azure</text>
+  <text x="500" y="62" text-anchor="middle" font-size="14" fill="#475569">Opção 2 do edital — App Service + Banco PaaS (sem containers)</text>
+
+  <!-- Client -->
+  <rect x="40" y="230" width="190" height="110" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+  <text x="135" y="278" text-anchor="middle" font-size="15" font-weight="600" fill="#0f172a">Cliente</text>
+  <text x="135" y="298" text-anchor="middle" font-size="13" fill="#475569">Swagger UI / curl /</text>
+  <text x="135" y="314" text-anchor="middle" font-size="13" fill="#475569">app externo</text>
+
+  <!-- Resource Group boundary -->
+  <rect x="330" y="120" width="620" height="380" rx="14" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="350" y="146" font-size="14" font-weight="700" fill="#2563eb">Resource Group — rg-clyvovet-devops (Azure)</text>
+
+  <!-- App Service -->
+  <rect x="370" y="230" width="240" height="150" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="490" y="260" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a8a">Azure App Service</text>
+  <text x="490" y="280" text-anchor="middle" font-size="12.5" fill="#1e3a8a">Linux · .NET 8 · sem container</text>
+  <text x="490" y="298" text-anchor="middle" font-size="12.5" fill="#1e3a8a">ClyvoVet.Api</text>
+  <text x="490" y="320" text-anchor="middle" font-size="11.5" fill="#334155">App Settings (env vars):</text>
+  <text x="490" y="336" text-anchor="middle" font-size="11" fill="#334155">ConnectionStrings__DefaultConnection</text>
+  <text x="490" y="350" text-anchor="middle" font-size="11" fill="#334155">Api__ApiKey · Telegram__* · Twilio__*</text>
+  <text x="490" y="366" text-anchor="middle" font-size="11" fill="#64748b" font-style="italic">segredos nunca no código-fonte</text>
+
+  <!-- Postgres -->
+  <rect x="700" y="230" width="220" height="150" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="1.5"/>
+  <text x="810" y="262" text-anchor="middle" font-size="15" font-weight="700" fill="#14532d">Azure Database for</text>
+  <text x="810" y="280" text-anchor="middle" font-size="15" font-weight="700" fill="#14532d">PostgreSQL</text>
+  <text x="810" y="300" text-anchor="middle" font-size="12.5" fill="#14532d">Flexible Server</text>
+  <text x="810" y="322" text-anchor="middle" font-size="12" fill="#334155">db: clyvovet</text>
+  <text x="810" y="340" text-anchor="middle" font-size="11.5" fill="#334155">tabelas: t_clyvo_produto,</text>
+  <text x="810" y="356" text-anchor="middle" font-size="11.5" fill="#334155">t_clyvo_sugestao_produto,</text>
+  <text x="810" y="372" text-anchor="middle" font-size="11.5" fill="#334155">t_clyvo_tutor, t_clyvo_animal</text>
+
+  <!-- Arrows -->
+  <line x1="230" y1="285" x2="368" y2="285" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="299" y="272" text-anchor="middle" font-size="12" fill="#334155">HTTPS :443</text>
+
+  <line x1="610" y1="305" x2="698" y2="305" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="698" y1="325" x2="610" y2="325" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="654" y="292" text-anchor="middle" font-size="12" fill="#334155">TCP 5432</text>
+  <text x="654" y="345" text-anchor="middle" font-size="11" fill="#64748b">(SSL/TLS)</text>
+
+  <!-- Deploy source -->
+  <rect x="370" y="420" width="240" height="60" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+  <text x="490" y="445" text-anchor="middle" font-size="13" font-weight="600" fill="#78350f">Deploy via Azure CLI</text>
+  <text x="490" y="463" text-anchor="middle" font-size="11.5" fill="#78350f">dotnet publish → az webapp deploy (zip)</text>
+
+  <line x1="490" y1="418" x2="490" y2="382" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <text x="330" y="520" font-size="12" fill="#64748b">Todos os recursos dentro do Resource Group foram criados via Azure CLI (scripts azure/01, azure/02, azure/03).</text>
+  <text x="330" y="538" font-size="12" fill="#64748b">Nenhum recurso desta entrega é containerizado — App Service e PostgreSQL rodam como serviços PaaS gerenciados.</text>
+</svg>

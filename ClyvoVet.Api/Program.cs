@@ -54,29 +54,33 @@ builder.Services.AddSwaggerGen(options =>
         Title   = "🐾 Clyvo Vet API",
         Version = "v1",
         Description = """
-            API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + Oracle).
+            API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + PostgreSQL).
 
             ---
 
             ### Recursos gerenciados por esta API
 
-            | Recurso | Rota base | Tabela Oracle |
+            | Recurso | Rota base | Tabela PostgreSQL |
             |---------|-----------|---------------|
             | Produtos | `/api/v1/produtos` | `t_clyvo_produto` |
             | Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |
             | Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |
             | Sugestões de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
 
-            ### Tabelas lidas da API Java (somente consulta)
+            ### Tabelas de apoio (somente consulta / seed fixo)
 
             | Tabela | Finalidade |
             |--------|-----------|
             | `t_clyvo_animal` | Validação de `animalId` nas FKs |
             | `t_clyvo_tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
 
+            > Nesta entrega (Sprint 3 — DevOps Tools & Cloud Computing), o banco é um PostgreSQL isolado
+            > no Azure, populado por `schema/script_bd.sql` — não é o mesmo banco compartilhado com a
+            > API Java usado na entrega da disciplina .NET.
+
             ---
 
-            **Banco de dados:** Oracle FIAP — `oracle.fiap.com.br:1521/ORCL`
+            **Banco de dados:** Azure Database for PostgreSQL Flexible Server
             """,
         Contact = new OpenApiContact
         {
@@ -126,7 +130,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProdutoRepository,         ProdutoRepository>();
 builder.Services.AddScoped<ISugestaoProdutoRepository, SugestaoProdutoRepository>();
@@ -160,7 +164,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(
-        name: "oracle-database",
+        name: "postgres-database",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready", "database", "external"])
     .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"])

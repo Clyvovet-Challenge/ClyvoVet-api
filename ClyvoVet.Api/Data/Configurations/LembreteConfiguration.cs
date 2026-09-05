@@ -8,51 +8,49 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
 {
     public void Configure(EntityTypeBuilder<Lembrete> builder)
     {
-        builder.ToTable("T_CLYVO_LEMBRETE");
+        builder.ToTable("t_clyvo_lembrete");
 
         builder.HasKey(l => l.Id);
 
         builder.Property(l => l.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(l => l.AnimalId)
-            .HasColumnName("ANIMAL_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("animal_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.Property(l => l.Titulo)
-            .HasColumnName("TITULO")
-            .HasColumnType("VARCHAR2(200)")
+            .HasColumnName("titulo")
+            .HasColumnType("VARCHAR(200)")
             .IsRequired();
 
         builder.Property(l => l.Descricao)
-            .HasColumnName("DESCRICAO")
-            .HasColumnType("VARCHAR2(1000)");
+            .HasColumnName("descricao")
+            .HasColumnType("VARCHAR(1000)");
 
         builder.Property(l => l.Tipo)
-            .HasColumnName("TIPO");
+            .HasColumnName("tipo");
 
         builder.Property(l => l.AgendadoEm)
-            .HasColumnName("AGENDADO_EM")
+            .HasColumnName("agendado_em")
             .IsRequired();
 
         builder.Property(l => l.Recorrente)
-            .HasColumnName("RECORRENTE")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("recorrente");
 
         builder.Property(l => l.Status)
-            .HasColumnName("STATUS");
+            .HasColumnName("status");
 
         builder.Property(l => l.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
 
         builder.HasOne(l => l.Animal)
             .WithMany()
             .HasForeignKey(l => l.AnimalId)
-            .HasConstraintName("FK_LEMBRETE_ANIMAL");
+            .HasConstraintName("fk_lembrete_animal");
     }
 }

@@ -8,28 +8,28 @@ public class TutorTelegramConfiguration : IEntityTypeConfiguration<TutorTelegram
 {
     public void Configure(EntityTypeBuilder<TutorTelegram> builder)
     {
-        builder.ToTable("T_CLYVO_TUTOR_TELEGRAM");
+        builder.ToTable("t_clyvo_tutor_telegram");
 
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(t => t.TutorId)
-            .HasColumnName("TUTOR_ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("tutor_id")
+            .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
         builder.HasIndex(t => t.TutorId).IsUnique();
 
         builder.Property(t => t.ChatId)
-            .HasColumnName("CHAT_ID")
+            .HasColumnName("chat_id")
             .IsRequired();
 
         builder.Property(t => t.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
     }
 }

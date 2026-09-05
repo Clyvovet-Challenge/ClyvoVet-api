@@ -9,50 +9,50 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 {
     public void Configure(EntityTypeBuilder<EventoPet> builder)
     {
-        builder.ToTable("T_CLYVO_EVENTO_PET");
+        builder.ToTable("t_clyvo_evento_pet");
 
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("ID")
-            .HasColumnType("VARCHAR2(36)")
+            .HasColumnName("id")
+            .HasColumnType("VARCHAR(36)")
             .ValueGeneratedOnAdd();
 
         builder.Property(e => e.Titulo)
-            .HasColumnName("TITULO")
-            .HasColumnType("VARCHAR2(200)")   // DDL real: VARCHAR2(200)
+            .HasColumnName("titulo")
+            .HasColumnType("VARCHAR(200)")   // DDL real: VARCHAR(200)
             .IsRequired();
 
         builder.Property(e => e.Descricao)
-            .HasColumnName("DESCRICAO")
-            .HasColumnType("VARCHAR2(1000)");
+            .HasColumnName("descricao")
+            .HasColumnType("VARCHAR(1000)");
 
         builder.Property(e => e.Tipo)
-            .HasColumnName("TIPO");
+            .HasColumnName("tipo");
 
         builder.Property(e => e.Rua)
-            .HasColumnName("RUA")
-            .HasColumnType("VARCHAR2(300)");
+            .HasColumnName("rua")
+            .HasColumnType("VARCHAR(300)");
 
         builder.Property(e => e.Numero)
-            .HasColumnName("NUMERO")
-            .HasColumnType("VARCHAR2(10)");   // DDL real: VARCHAR2(10)
+            .HasColumnName("numero")
+            .HasColumnType("VARCHAR(10)");   // DDL real: VARCHAR(10)
 
         builder.Property(e => e.Bairro)
-            .HasColumnName("BAIRRO")
-            .HasColumnType("VARCHAR2(150)");  // DDL real: VARCHAR2(150)
+            .HasColumnName("bairro")
+            .HasColumnType("VARCHAR(150)");  // DDL real: VARCHAR(150)
 
         builder.Property(e => e.Cidade)
-            .HasColumnName("CIDADE")
-            .HasColumnType("VARCHAR2(100)");  // DDL real: VARCHAR2(100)
+            .HasColumnName("cidade")
+            .HasColumnType("VARCHAR(100)");  // DDL real: VARCHAR(100)
 
         builder.Property(e => e.Estado)
-            .HasColumnName("ESTADO")
-            .HasColumnType("VARCHAR2(50)");   // DDL real: VARCHAR2(50)
+            .HasColumnName("estado")
+            .HasColumnType("VARCHAR(50)");   // DDL real: VARCHAR(50)
 
         builder.Property(e => e.Cep)
-            .HasColumnName("CEP")
-            .HasColumnType("VARCHAR2(10)");   // DDL real: VARCHAR2(10)
+            .HasColumnName("cep")
+            .HasColumnType("VARCHAR(10)");   // DDL real: VARCHAR(10)
 
         // Oracle EF Core não suporta DateOnly nativamente — converter para DateTime
         var dateOnlyConverter = new ValueConverter<DateOnly, DateTime>(
@@ -64,39 +64,35 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
             dt => dt.HasValue ? DateOnly.FromDateTime(dt.Value) : null);
 
         builder.Property(e => e.DataInicio)
-            .HasColumnName("DATA_INICIO")
+            .HasColumnName("data_inicio")
             .HasColumnType("DATE")
             .HasConversion(dateOnlyConverter)
             .IsRequired();
 
         builder.Property(e => e.DataFim)
-            .HasColumnName("DATA_FIM")
+            .HasColumnName("data_fim")
             .HasColumnType("DATE")
             .HasConversion(dateOnlyNullConverter);
 
         builder.Property(e => e.EspecieAlvo)
-            .HasColumnName("ESPECIE_ALVO");
+            .HasColumnName("especie_alvo");
 
         builder.Property(e => e.Organizador)
-            .HasColumnName("ORGANIZADOR")
-            .HasColumnType("VARCHAR2(200)");  // DDL real: VARCHAR2(200)
+            .HasColumnName("organizador")
+            .HasColumnType("VARCHAR(200)");  // DDL real: VARCHAR(200)
 
         builder.Property(e => e.Gratuito)
-            .HasColumnName("GRATUITO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("gratuito");
 
         builder.Property(e => e.LinkInscricao)
-            .HasColumnName("LINK_INSCRICAO")
-            .HasColumnType("VARCHAR2(500)");
+            .HasColumnName("link_inscricao")
+            .HasColumnType("VARCHAR(500)");
 
         builder.Property(e => e.Ativo)
-            .HasColumnName("ATIVO")
-            .HasColumnType("NUMBER(1)")
-            .HasConversion<int>();
+            .HasColumnName("ativo");
 
         builder.Property(e => e.CriadoEm)
-            .HasColumnName("CRIADO_EM")
+            .HasColumnName("criado_em")
             .ValueGeneratedOnAdd();
     }
 }

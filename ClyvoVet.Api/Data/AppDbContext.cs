@@ -25,49 +25,49 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Produto>()
             .Property(p => p.Categoria)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (CategoriaEnum)Enum.Parse(typeof(CategoriaEnum), v, true));
 
         modelBuilder.Entity<Produto>()
             .Property(p => p.EspecieIndicada)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
 
         modelBuilder.Entity<Lembrete>()
             .Property(l => l.Tipo)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (TipoLembreteEnum)Enum.Parse(typeof(TipoLembreteEnum), v, true));
 
         modelBuilder.Entity<Lembrete>()
             .Property(l => l.Status)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (StatusLembreteEnum)Enum.Parse(typeof(StatusLembreteEnum), v, true));
 
         modelBuilder.Entity<EventoPet>()
             .Property(e => e.Tipo)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (TipoEventoPetEnum)Enum.Parse(typeof(TipoEventoPetEnum), v, true));
 
         modelBuilder.Entity<EventoPet>()
             .Property(e => e.EspecieAlvo)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
 
         modelBuilder.Entity<PredisposicaoSaude>()
             .Property(p => p.Especie)
-            .HasColumnType("VARCHAR2(30)")
+            .HasColumnType("VARCHAR(30)")
             .HasConversion(
                 v => v.ToString().ToUpper(),
                 v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
