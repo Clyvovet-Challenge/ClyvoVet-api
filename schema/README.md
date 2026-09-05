@@ -9,9 +9,9 @@
   Sugestão de Produto funcionem via API
 
 > **Por que `t_clyvo_tutor` é necessária?**  
-> O `AnimalRepository` usa `.Include(a => a.Tutor)`, e isso gera um JOIN com
-> `t_clyvo_tutor`. Faltando essa tabela, qualquer validação de `animalId`
-> na API acaba lançando `ORA-00942` e retornando HTTP 500.
+> O `AnimalRepository` usa `.Include(a => a.Tutor)`, o que gera um JOIN com
+> `t_clyvo_tutor`. Sem essa tabela, qualquer validação de `animalId`
+> na API termina em `ORA-00942`, com HTTP 500 de resposta.
 
 ---
 
@@ -49,13 +49,13 @@ Todas as tabelas usam o prefixo `t_clyvo_`:
 | **Bloco 1** | `t_clyvo_produto`, `t_clyvo_evento_pet` | Sempre — sem FK Java |
 | **Bloco 2** | `t_clyvo_lembrete`, `t_clyvo_sugestao_produto` | Só se existir um `animal_id` real em `t_clyvo_animal` |
 
-Caso a tabela Java não exista, o Bloco 2 é encerrado com um aviso, e **os dados do Bloco 1 ficam intactos**.
+Não existindo a tabela Java, o Bloco 2 termina com um aviso, mas **os dados do Bloco 1 permanecem intactos**.
 
 ---
 
 ## Ordem de execução
 
-> Abra cada arquivo no Oracle SQL Developer e pressione **F5 (Run Script)** para executar
+> Abra cada arquivo no Oracle SQL Developer e pressione **F5 (Run Script)** para rodar
 
 ### Deploy completo (primeira vez)
 
@@ -148,13 +148,13 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ## Fluxo de teste sugerido
 
-> Siga a sequência a seguir para validar as dependências passo a passo.
+> Siga esta sequência para validar as dependências, passo a passo.
 
 **1. Listar produtos (sem dependência Java)**
 ```
 GET /api/v1/produtos
 ```
-→ Retorna os 5 produtos do seed. Confirma a conexão com o Oracle.
+→ Devolve os 5 produtos do seed, confirmando a conexão com o Oracle.
 
 **2. Criar novo produto**
 ```json
@@ -172,7 +172,7 @@ POST /api/v1/produtos
 ```
 GET /api/v1/eventos-pet
 ```
-→ Retorna os 4 eventos do seed.
+→ Devolve os 4 eventos do seed.
 
 **4. Criar evento pet**
 ```json
@@ -200,7 +200,7 @@ POST /api/v1/lembretes
   "recorrente": true
 }
 ```
-→ O `status` sempre vem `Pendente`, não importa o valor enviado.
+→ O `status` vem sempre `Pendente`, seja qual for o valor enviado.
 
 **6. Criar sugestão** *(exige `animalId` real e `produtoId` existente)*
 ```json

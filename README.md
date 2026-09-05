@@ -11,32 +11,33 @@
 
 ## ☁️ Sprint DevOps Tools & Cloud Computing — Deploy na Azure
 
-> Esta seção documenta a entrega da disciplina **DevOps Tools & Cloud Computing**, que reutiliza a mesma API (ClyvoVet .NET) descrita no restante deste README, mas publicada num ambiente **completamente separado** na Azure — banco e app diferentes dos usados no Render/Oracle FIAP. As instruções abaixo são o passo a passo exato seguido no vídeo de entrega.
+> Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
 
 ### Descrição da Solução
 
-A ClyvoVet API é uma API REST em ASP.NET Core 8 que gerencia o catálogo de produtos/serviços veterinários e as sugestões de produto feitas para cada animal — duas tabelas relacionadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), com CRUD completo pelos dois lados. Nesta entrega, a API roda num **Azure App Service** (Linux, sem container) e persiste os dados num **Azure Database for PostgreSQL Flexible Server**.
+Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
 
 ### Benefícios para o Negócio
 
-- **Catálogo centralizado**: produtos e serviços da clínica ficam num único lugar, com preço, categoria e espécie indicada — em vez de planilhas soltas ou papel.
-- **Sugestão de produto rastreável**: cada sugestão feita a um tutor fica registrada com justificativa e data, permitindo à clínica acompanhar o histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
-- **Escalabilidade sem gerenciar servidor**: rodando em PaaS (App Service + banco gerenciado), a clínica não precisa manter infraestrutura própria — a Azure cuida de disponibilidade, backup e patch do banco.
+- **Catálogo centralizado**: preço, categoria e espécie indicada de cada produto/serviço da clínica passam a viver num só lugar, no lugar de planilhas soltas ou anotações em papel.
+- **Sugestão de produto rastreável**: toda sugestão feita a um tutor guarda justificativa e data, o que dá à clínica um histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
+- **Integração real entre os sistemas do time**: .NET e Java apontam para o mesmo banco, então um animal já cadastrado na API Java pode receber lembretes e sugestões de produto pela API .NET sem precisar de um segundo cadastro.
+- **Escalabilidade sem gerenciar servidor**: por rodar em PaaS (App Service + banco gerenciado), a clínica dispensa infraestrutura própria — disponibilidade, backup e patch do banco ficam por conta da Azure.
 
 ### Banco de Dados em Nuvem
 
-- **Motor:** PostgreSQL 16, via **Azure Database for PostgreSQL Flexible Server** (não é H2, não é container).
-- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) — tabelas, colunas, chaves primárias/estrangeiras, comentários (`COMMENT ON`) e uma massa de dados inicial significativa.
-- **Tabelas do CRUD (CORE da solução):** `t_clyvo_produto` e `t_clyvo_sugestao_produto`, relacionadas por `produto_id`. `t_clyvo_tutor` e `t_clyvo_animal` existem só como apoio, porque o EF Core faz `Include(Animal)` em toda consulta de sugestão, e `Animal` exige um `Tutor`.
+- **Motor:** MySQL 8.0, via **Azure Database for MySQL Flexible Server** (nada de H2, nada de container).
+- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) traz o schema inteiro (tabelas da API Java somadas às nossas), com colunas, chaves primárias/estrangeiras, comentários e uma carga inicial de dados relevante. As tabelas `tutor`/`animal`/etc. reproduzem as migrations Flyway reais do repositório da API Java (`clyvovet-backend-java`); mudando o schema de lá, essa cópia precisa acompanhar.
+- **Tabelas do CRUD (núcleo da solução, avaliado nesta entrega):** `t_clyvo_produto` e `t_clyvo_sugestao_produto`, ligadas por `produto_id`. Já `tutor` e `animal` são da API Java — entram aqui apenas via FK/JOIN, para leitura, e o .NET nunca escreve nelas.
 
 ### Arquitetura escolhida: Opção 2 — App Service + Banco PaaS
 
-Não há nenhum container nesta entrega — nem o app, nem o banco. Tudo roda em serviços gerenciados da Azure, criados via **Azure CLI**:
+Nenhuma parte desta entrega roda em container — nem o app, nem o banco: tudo fica em serviços gerenciados da Azure, provisionados via **Azure CLI**:
 
 | Recurso | Serviço Azure | Criado por |
 |---|---|---|
 | Grupo de recursos | Resource Group | `azure/01-criar-recursos.sh` |
-| Banco de dados | Azure Database for PostgreSQL Flexible Server | `azure/01-criar-recursos.sh` |
+| Banco de dados | Azure Database for MySQL Flexible Server | `azure/01-criar-recursos.sh` |
 | Plano de aplicativo | App Service Plan (Linux, B1) | `azure/02-criar-app-service.sh` |
 | Aplicativo web | App Service (.NET 8, runtime nativo, sem container) | `azure/02-criar-app-service.sh` |
 
@@ -49,7 +50,7 @@ Não há nenhum container nesta entrega — nem o app, nem o banco. Tudo roda em
 | [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) | Criar todos os recursos (obrigatório pelo edital) |
 | Conta ativa na Azure (`az login`) | Ter uma subscription onde criar os recursos |
 | [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) | `dotnet publish` local antes do deploy |
-| `psql` (cliente PostgreSQL) | Aplicar `schema/script_bd.sql` no banco recém-criado |
+| Cliente `mysql` (MySQL Shell ou `mysql-client`) | Aplicar `schema/script_bd.sql` no banco recém-criado |
 | Git | Clonar o repositório |
 
 ### Passo a passo — do zero até a API rodando na Azure
@@ -70,24 +71,24 @@ az login
 
 **3. Ajustar as variáveis (se necessário)**
 
-Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, nomes de recursos (precisam ser únicos globalmente na Azure) e a região (`LOCATION`). A região usada nesta entrega foi `canadacentral` — algumas assinaturas acadêmicas bloqueiam outras regiões para o Postgres Flexible Server via Azure Policy; se der erro `RequestDisallowedByAzure` ou `The location is restricted`, troque para uma região liberada na sua assinatura.
+Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, os nomes de recursos (precisam ser únicos em toda a Azure) e a região (`LOCATION`). Nesta entrega usamos `mexicocentral` — certas assinaturas acadêmicas bloqueiam outras regiões via Azure Policy (erro `RequestDisallowedByAzure`), e mesmo dentro das regiões liberadas o MySQL Flexible Server às vezes devolve `InternalServerError` (instabilidade pontual do serviço, não da conta); nesse caso, tente outra região liberada na sua assinatura.
 
-**4. Criar o Resource Group + banco PostgreSQL**
+**4. Criar o Resource Group + banco MySQL**
 
 ```bash
-export PSQL_PASSWORD='DefinaUmaSenhaForte123!'
+export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'
 bash azure/01-criar-recursos.sh
 ```
 
-Isso cria o Resource Group, o servidor PostgreSQL Flexible Server, o banco `clyvovet` e libera seu IP atual no firewall.
+O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banco `clyvovet`, além de liberar seu IP atual no firewall.
 
 **5. Aplicar o schema no banco**
 
 ```bash
-psql "host=<PSQL_SERVER>.postgres.database.azure.com port=5432 dbname=clyvovet user=clyvovetadmin password=$PSQL_PASSWORD sslmode=require" -f schema/script_bd.sql
+mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u clyvovetadmin -p$MYSQL_PASSWORD --ssl-mode=REQUIRED clyvovet < schema/script_bd.sql
 ```
 
-(o próprio script `01` imprime esse comando já com os valores certos no final da execução)
+(o script `01` já imprime esse mesmo comando, com os valores corretos, ao final da execução)
 
 **6. Criar o App Service e configurar os segredos**
 
@@ -98,18 +99,18 @@ export TWILIO_ACCOUNT_SID='...' TWILIO_AUTH_TOKEN='...' WHATSAPP_API_KEY='...'
 bash azure/02-criar-app-service.sh
 ```
 
-Todos os segredos são configurados como **App Settings** do App Service — nunca ficam no código-fonte.
+Todos os segredos entram como **App Settings** do App Service; em nenhum momento ficam gravados no código-fonte.
 
 **7. Publicar o app**
 
-Todos os scripts carregam `00-variaveis.sh`, que exige `PSQL_PASSWORD` no ambiente mesmo quando o script em si não usa o banco — se você abriu um terminal novo desde o passo 4, exporte a senha de novo antes de rodar:
+Todo script carrega `00-variaveis.sh`, e esse arquivo exige `MYSQL_PASSWORD` no ambiente mesmo quando o script não toca no banco — abrindo um terminal novo depois do passo 4, exporte a senha outra vez antes de rodar:
 
 ```bash
-export PSQL_PASSWORD='DefinaUmaSenhaForte123!'
+export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'
 bash azure/03-deploy.sh
 ```
 
-Esse script roda `dotnet publish`, empacota em zip e sobe via `az webapp deploy`. Ao final, ele mostra a URL da API.
+O script executa `dotnet publish`, compacta o resultado em zip e publica com `az webapp deploy`, exibindo a URL da API ao terminar.
 
 **8. Validar**
 
@@ -117,7 +118,7 @@ Esse script roda `dotnet publish`, empacota em zip e sobe via `az webapp deploy`
 curl https://<APP_NAME>.azurewebsites.net/health
 ```
 
-Deve responder `"status": "Healthy"` em todos os checks.
+A resposta esperada traz `"status": "Healthy"` em cada verificação.
 
 ### Testando o CRUD
 
@@ -134,7 +135,7 @@ Acesse `https://<APP_NAME>.azurewebsites.net/swagger`, clique em **Authorize** e
 | Atualizar | `PUT /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
 | Excluir | `DELETE /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
 
-Para confirmar cada operação direto no banco (exigido no vídeo), conecte via `psql` (mesmo comando do passo 5, trocando `-f schema/script_bd.sql` por nada, pra abrir um shell interativo) e rode:
+Para confirmar cada operação direto no banco (como pedido no vídeo), abra um shell interativo via `mysql` (o mesmo comando do passo 5, tirando o `< schema/script_bd.sql`) e execute:
 
 ```sql
 SELECT * FROM t_clyvo_produto ORDER BY criado_em DESC;
@@ -144,57 +145,57 @@ SELECT * FROM t_clyvo_sugestao_produto ORDER BY criado_em DESC;
 ### Removendo os recursos (depois da correção)
 
 ```bash
-export PSQL_PASSWORD='DefinaUmaSenhaForte123!'   # mesma observação do passo 7
+export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'   # mesma observação do passo 7
 bash azure/04-destruir-recursos.sh
 ```
 
-Apaga o Resource Group inteiro e tudo dentro dele. Só rode isso depois que o vídeo e a correção já tiverem saído — depois disso a URL da API para de funcionar.
+O script remove o Resource Group inteiro, com tudo o que há dentro dele. **Atenção:** caso o banco já esteja de fato compartilhado com a API Java em produção, alinhe com o time antes de executar — ele apaga o banco de todo mundo, não só o nosso.
 
 ---
 
 ## 🌐 API em produção
 
-A API está publicada e rodando continuamente (24/7) no Render — não precisa clonar nem rodar nada localmente para acessar:
+A API já está publicada e no ar 24/7 no Render — dá pra acessar sem clonar nem rodar nada localmente:
 
 - **Base URL:** [`https://clyvovet-api.onrender.com`](https://clyvovet-api.onrender.com)
 - **Swagger:** [`https://clyvovet-api.onrender.com/swagger`](https://clyvovet-api.onrender.com/swagger)
 - **Health Check:** [`https://clyvovet-api.onrender.com/health`](https://clyvovet-api.onrender.com/health)
 
-> Roda no plano **Free** do Render — ocasionalmente uma requisição pode retornar `404`/demorar mais por instabilidade da instância gratuita (sem redundância). Se isso acontecer, é só tentar de novo.
+> Está no plano **Free** do Render — de vez em quando uma requisição pode vir `404` ou demorar mais, por causa da instância gratuita (sem redundância). Nesse caso, basta tentar novamente.
 
 ---
 
 ## Sobre o Projeto
 
-A **ClyvoVet API** é uma API RESTful construída em **ASP.NET Core 8**, desenvolvida como parte do **Challenge FIAP 2026 — projeto Clyvo Vet**. Ela é responsável pelo **domínio de engajamento** dentro da plataforma veterinária, respondendo por:
+A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro do **Challenge FIAP 2026 — projeto Clyvo Vet**. Dentro da plataforma veterinária, ela cobre o **domínio de engajamento**, cuidando de:
 
 - Catálogo de produtos e serviços veterinários
 - Sugestões personalizadas de produtos por animal
 - Lembretes de saúde e cuidados para tutores
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
-- **Widget de Saúde Preditiva** — sugere condições de saúde relevantes pra espécie/raça/idade de um animal
-- **Envio de mensagens no WhatsApp** — via Twilio, para notificar tutores
-- **Envio de mensagens no Telegram** — alternativa via bot próprio, para notificar tutores
+- **Widget de Saúde Preditiva** — aponta condições de saúde relevantes para a espécie/raça/idade de cada animal
+- **Envio de mensagens no WhatsApp** — via Twilio, avisando os tutores
+- **Envio de mensagens no Telegram** — caminho alternativo, com bot próprio, para avisar os tutores
 
-Na **Sprint 3**, foi adicionada uma camada inteira de observabilidade e testes automatizados à API:
+A **Sprint 3** somou à API uma camada completa de observabilidade e testes automatizados:
 
-- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que verificam a conectividade real com o Oracle.
-- **Logging estruturado** via Serilog (console + arquivo), com correlação de requisições pelo header `X-Correlation-Id`.
-- **Distributed tracing e métricas** através do OpenTelemetry (spans exportados no console e endpoint `/metrics` no formato Prometheus).
-- **103 testes automatizados** (46 unitários + 57 de integração), cobrindo a camada de Aplicação (Services) e todo o fluxo HTTP (Controllers → banco em memória), incluindo autenticação.
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o Oracle está realmente funcionando.
+- **Logging estruturado** via Serilog (console + arquivo), correlacionando requisições através do header `X-Correlation-Id`.
+- **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console e endpoint `/metrics` em formato Prometheus).
+- **103 testes automatizados** (46 unitários + 57 de integração), abrangendo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória), autenticação inclusive.
 
 ---
 
 ## Arquitetura
 
-O mesmo banco Oracle XE (FIAP) é compartilhado por duas APIs independentes, cada qual em seu próprio container Docker:
+Duas APIs independentes — cada uma no seu próprio container Docker — dividem o mesmo banco Oracle XE (FIAP):
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
 | **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude` |
 | **Java (parceira)** | Clínica e cadastro | `t_clyvo_tutor`, `t_clyvo_animal`, `t_clyvo_clinica`, `t_clyvo_veterinario`, `t_clyvo_evento_clinico`, `t_clyvo_pagamento` |
 
-> Para validar FKs e enriquecer as respostas, a API .NET **lê** as tabelas de animal e tutor mantidas pela API Java — mas em nenhum momento **escreve** nelas.
+> A API .NET **lê** as tabelas de animal e tutor da API Java para validar FKs e enriquecer as respostas — mas **nunca escreve** nelas.
 
 ---
 
@@ -280,7 +281,7 @@ git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
 cd ClyvoVet-api
 ```
 
-**Confira se o clone deu certo:**
+**Verifique se o clone funcionou:**
 
 ```bash
 ls
@@ -288,31 +289,31 @@ ls
 ```
 
 > **Erro: `git: command not found`**  
-> O Git não está instalado nessa máquina. Baixe em [git-scm.com](https://git-scm.com) ou use "Code → Download ZIP" direto no GitHub.
+> Significa que o Git não está instalado na máquina. Instale a partir de [git-scm.com](https://git-scm.com), ou use "Code → Download ZIP" direto no GitHub.
 
 > **Erro: `Repository not found`**  
-> Confirme se a URL está certa e se o repositório está público.
+> Verifique se a URL está correta e se o repositório está público.
 
 ---
 
 ### Passo 2 — Configurar a connection string
 
-O arquivo `ClyvoVet.Api/appsettings.json`, que fica versionado no repositório, traz só um **placeholder** — não coloque sua senha real ali, senão você corre o risco de subir a credencial sem perceber. O jeito recomendado é usar o **User Secrets** do .NET, que guarda a connection string **fora da pasta do projeto**, num arquivo local que o `git` jamais enxerga:
+Por ficar versionado no repositório, `ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
 
 ```bash
 cd ClyvoVet.Api
 dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
 ```
 
-> Se for a primeira vez e o projeto ainda não tiver um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
+> Na primeira vez, se o projeto ainda não tem um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
 
-A API já lê o User Secrets automaticamente em ambiente de desenvolvimento, então não há nada mais para editar. Para conferir o que ficou salvo:
+Em ambiente de desenvolvimento, a API lê o User Secrets sozinha, então não sobra mais nada para editar. Para ver o que foi salvo:
 
 ```bash
 dotnet user-secrets list
 ```
 
-**Alternativa (menos segura):** gravar a connection string diretamente no `appsettings.json` local. Funciona igual, mas uma vez que sua senha real estiver ali, **evite fazer commit** do arquivo — confira com `git status` antes de commitar.
+**Alternativa (menos segura):** colocar a connection string direto no `appsettings.json` local. Funciona do mesmo jeito, mas assim que a senha real estiver ali, **evite comitar** o arquivo — cheque com `git status` antes de qualquer commit.
 
 ```json
 {
@@ -330,8 +331,8 @@ dotnet user-secrets list
 | `Password` | `fiap26` | Senha do Oracle FIAP |
 | `Data Source` | `oracle.fiap.com.br:1521/ORCL` | Host:Porta/ServiceName |
 
-> **⚠️ O service name certo pro Oracle FIAP é `ORCL`**  
-> Usar `XE` ou `XEPDB1` gera `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
+> **⚠️ Para o Oracle FIAP, o service name correto é `ORCL`**  
+> Usar `XE` ou `XEPDB1` no lugar gera `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
 
 **Pra Oracle local (instalação própria):**
 
@@ -340,19 +341,19 @@ dotnet user-secrets list
 ```
 
 > **Erro: `ORA-01017: invalid username/password`**  
-> Usuário ou senha errados. Confira as credenciais no portal FIAP ou redefina a senha pelo SQL Developer.
+> Usuário ou senha incorretos. Verifique as credenciais no portal FIAP, ou redefina a senha pelo SQL Developer.
 
 > **Erro: `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`**  
-> Service name errado. Vá testando `ORCL`, `XEPDB1` ou `XE` até conectar. No SQL Developer dá pra ver o service name correto na configuração de uma conexão existente.
+> O service name está errado. Teste `ORCL`, `XEPDB1` ou `XE` até conseguir conectar — o SQL Developer mostra o service name correto na configuração de uma conexão já existente.
 
 > **Erro: `ORA-12541: TNS:no listener`** ou **`Connection refused`**  
-> O servidor Oracle está inacessível. Cheque sua conexão com a internet (o servidor FIAP fica fora da rede local) ou veja se o Oracle local está de pé (`services.msc` → `OracleServiceXE`).
+> O servidor Oracle não está acessível. Confira a conexão com a internet (o servidor FIAP roda fora da rede local) ou veja se o Oracle local está ativo (`services.msc` → `OracleServiceXE`).
 
 ---
 
 ### Passo 3 — Preparar o banco de dados
 
-Abra o **Oracle SQL Developer**, conecte com suas credenciais e rode os scripts nesta ordem:
+Abra o **Oracle SQL Developer**, conecte usando suas credenciais e execute os scripts na ordem abaixo:
 
 #### 3.1 — Criar as tabelas
 
@@ -369,16 +370,16 @@ Trigger TRG_CLYVO_PRODUTO_ID compiled.
 ...
 ```
 
-> **Pode reexecutar esse script sem medo** — ele dropa as tabelas existentes antes de recriar.
+> **Reexecutar esse script é seguro** — ele derruba as tabelas existentes antes de recriar tudo.
 
 > **Erro: `ORA-00942: table or view does not exist`** durante o DROP  
-> Esperado na primeira execução. O script usa `EXCEPTION WHEN OTHERS THEN NULL` justamente pra ignorar esse erro — pode seguir em frente.
+> Normal na primeira execução — o script usa `EXCEPTION WHEN OTHERS THEN NULL` justamente para ignorar esse erro, então pode seguir.
 
 > **Erro: `ORA-01031: insufficient privileges`**  
-> Seu usuário não tem permissão pra criar tabelas. Conecte com um usuário com privilégios de DBA ou peça ajuda ao administrador do banco.
+> Seu usuário não tem permissão para criar tabelas. Conecte com um usuário com privilégios de DBA, ou peça apoio ao administrador do banco.
 
 > **Erro: `ORA-00955: name is already used by an existing object`**  
-> Já existe algum objeto (trigger, função) com esse nome. Rode `schema/03_drop_tabelas_dotnet.sql` primeiro pra limpar, depois execute o `01` de novo.
+> Já existe um objeto (trigger, função) com esse mesmo nome. Rode `schema/03_drop_tabelas_dotnet.sql` para limpar antes, depois execute o `01` outra vez.
 
 #### 3.2 — Inserir dados de exemplo
 
@@ -406,15 +407,15 @@ BLOCO 2 — Tutor, Animal, Lembretes e Sugestoes
 [COMMIT] Bloco 2 salvo.
 ```
 
-> **`[ERRO] Bloco 1`** — Sinal de que o script `01` ainda não rodou. Execute-o primeiro.
+> **`[ERRO] Bloco 1`** — indica que o script `01` ainda não rodou. Execute-o antes.
 
 > **`[AVISO] Nao foi possivel acessar t_clyvo_animal`**  
-> A tabela `t_clyvo_animal` não existe ainda. Rode o script `01` (que cria todas as tabelas) antes do `02`.
+> A tabela `t_clyvo_animal` ainda não existe. Rode o script `01` (que cria todas as tabelas) antes do `02`.
 
 > **`[ERRO] Bloco 2: ORA-00001: unique constraint violated`**  
-> Sinal de que o seed já rodou antes. É comum acontecer com o tutor de seed (CPF `00000000000`) — o script tolera isso, já que o Bloco 1 foi commitado e o Bloco 2 tenta localizar o tutor existente antes de criar um novo.
+> Indica que o seed já rodou antes. Costuma acontecer com o tutor de seed (CPF `00000000000`) — o script lida bem com isso, pois o Bloco 1 já foi commitado e o Bloco 2 procura o tutor existente antes de criar um novo.
 
-> **A contagem final de registros deve mostrar:**
+> **A contagem final de registros deve ficar assim:**
 
 ```
 TABELA                   TOTAL
@@ -432,13 +433,13 @@ T_CLYVO_TUTOR                1
 1. Abra `schema/04_criar_tabela_predisposicao_dotnet.sql` e pressione **F5**
 2. Abra `schema/05_seed_predisposicao_dotnet.sql` e pressione **F5** — insere as 42 predisposições de saúde por espécie/raça/idade
 
-> Sem esse passo, `GET /api/v1/widget-saude-preditiva/{animalId}` responde sempre com uma lista vazia de predisposições.
+> Pulando esse passo, `GET /api/v1/widget-saude-preditiva/{animalId}` sempre devolve a lista de predisposições vazia.
 
 #### 3.4 — Criar a tabela de vínculo com o Telegram
 
 1. Abra `schema/06_criar_tabela_tutor_telegram_dotnet.sql` e pressione **F5**
 
-> Sem esse passo, o recurso de notificação por Telegram não tem onde salvar o vínculo tutor ↔ chat, e a API loga erro no background service correspondente (mas continua rodando normalmente).
+> Sem esse passo, a notificação por Telegram fica sem onde salvar o vínculo tutor ↔ chat, e a API registra erro no background service correspondente (mas segue rodando normalmente).
 
 ---
 
@@ -460,13 +461,13 @@ Restaurando pacotes de C:\...\ClyvoVet.Api.csproj...
 ```
 
 > **Erro: `dotnet: command not found`**  
-> O .NET SDK não está instalado, ou não está no PATH. Baixe em [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) e reinicie o terminal depois de instalar.
+> O .NET SDK não está instalado, ou não está no PATH. Instale a partir de [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) e reinicie o terminal em seguida.
 
 > **Erro: `NETSDK1045: The current .NET SDK does not support targeting .NET 8.0`**  
-> A versão do SDK instalada é incompatível. Rode `dotnet --version` pra ver qual está ativa — precisa ser **8.0.x ou superior**.
+> A versão do SDK instalada não é compatível. Rode `dotnet --version` para ver qual está ativa — é preciso ter **8.0.x ou superior**.
 
 > **Erro: `Unable to load the service index for source https://api.nuget.org`**  
-> Falta acesso à internet pra baixar os pacotes. Verifique a conexão ou configure um proxy NuGet, caso esteja numa rede corporativa.
+> Falta acesso à internet para baixar os pacotes. Verifique sua conexão, ou configure um proxy NuGet se estiver numa rede corporativa.
 
 ---
 
@@ -487,22 +488,22 @@ info: Microsoft.Hosting.Lifetime[0]
 ```
 
 > **Erro: `Failed to bind to address http://localhost:5191: address already in use`**  
-> Outro processo já está usando a porta 5191. Encerre esse processo:
+> A porta 5191 já está em uso por outro processo. Encerre esse processo:
 > ```bash
 > # Windows
 > netstat -ano | findstr :5191
 > taskkill /PID <numero_do_pid> /F
 > ```
-> Ou troque a porta em `Properties/launchSettings.json`.
+> Ou mude a porta em `Properties/launchSettings.json`.
 
 > **Erro: `ORA-12514` ou `ORA-12541` ao fazer a primeira requisição**  
-> A connection string está incorreta — volte ao Passo 2. A aplicação sobe normalmente mesmo com credenciais inválidas; o erro só aparece na primeira chamada ao banco.
+> A connection string está errada — volte ao Passo 2. Mesmo com credenciais inválidas a aplicação sobe normalmente; o erro só se manifesta na primeira chamada ao banco.
 
 > **Erro: `Unable to load DLL 'oci.dll'`**  
-> Falta o cliente Oracle nativo. Como o pacote `Oracle.ManagedDataAccess` é 100% gerenciado, ele **dispensa** o Oracle Client instalado — confira se o projeto está usando a versão certa do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
+> Indica que falta o cliente Oracle nativo. Só que o pacote `Oracle.ManagedDataAccess` é 100% gerenciado e **dispensa** o Oracle Client instalado — confira se o projeto está mesmo usando a versão certa do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
 
 > **A API sobe mas retorna `500` em todos os endpoints**  
-> Olhe os logs no terminal — é lá que aparece o erro real. As causas mais comuns:
+> Confira os logs no terminal — é ali que o erro real aparece. As causas mais frequentes:
 > - Connection string incorreta (usuário, senha ou service name)
 > - Tabelas ainda não criadas (rode o script `01` primeiro)
 > - Tipo de dado não mapeado no EF Core
@@ -518,23 +519,23 @@ Com a API rodando, abra no navegador:
 | HTTP (recomendado para testes) | http://localhost:5191/swagger |
 | HTTPS | https://localhost:7225/swagger |
 
-O Swagger vai listar todos os endpoints agrupados por controller.
+Todos os endpoints aparecem no Swagger, agrupados por controller.
 
-> **Swagger está sempre ativo** — não fica restrito ao ambiente `Development`. Funciona em Docker, servidor e produção.
+> **O Swagger fica sempre ativo** — não é restrito ao ambiente `Development`, funcionando em Docker, servidor e produção.
 
 > **Erro: `ERR_CONNECTION_RESET` ou `ERR_SSL_PROTOCOL_ERROR` no HTTPS**  
-> O certificado de desenvolvimento não é confiável ainda. Rode:
+> O certificado de desenvolvimento ainda não é confiável. Rode:
 > ```bash
 > dotnet dev-certs https --clean
 > dotnet dev-certs https --trust
 > ```
-> Confirme quando o Windows pedir e reinicie a aplicação. Se ainda der problema, use a URL HTTP.
+> Confirme na janela que o Windows abrir e reinicie a aplicação. Persistindo o problema, use a URL HTTP.
 
 > **Swagger abre mas mostra "Failed to fetch" ao executar endpoints**  
-> O Swagger está tentando HTTPS com um certificado inválido. Clique em "Servers" no topo e selecione a URL HTTP (`http://localhost:5191`).
+> Sinal de que o Swagger está tentando HTTPS com um certificado inválido. Clique em "Servers" no topo e escolha a URL HTTP (`http://localhost:5191`).
 
 > **Página em branco ou `404` ao acessar `/swagger`**  
-> A aplicação está de pé, mas o Swagger não foi servido. Confira se `app.UseSwagger()` e `app.UseSwaggerUI()`, no `Program.cs`, estão **fora** de qualquer bloco `if (app.Environment.IsDevelopment())`.
+> A aplicação está no ar, mas o Swagger não foi servido. Confira, em `Program.cs`, se `app.UseSwagger()` e `app.UseSwaggerUI()` estão **fora** de qualquer bloco `if (app.Environment.IsDevelopment())`.
 
 ---
 
@@ -545,19 +546,19 @@ O Swagger vai listar todos os endpoints agrupados por controller.
 3. Pressione **F5** (com debug) ou **Ctrl+F5** (sem debug)
 4. O navegador abre sozinho no Swagger
 
-> **Visual Studio:** se o navegador abrir em `weatherforecast` ou numa página em branco, confira se `launchUrl` em `Properties/launchSettings.json` está definido como `"swagger"`.
+> **Visual Studio:** se o navegador abrir em `weatherforecast`, ou numa página em branco, confira se `launchUrl`, em `Properties/launchSettings.json`, está definido como `"swagger"`.
 
 ---
 
 ### Verificação rápida — API funcionando
 
-Depois de subir a API, faça uma requisição de teste:
+Com a API no ar, faça uma requisição de teste:
 
 ```bash
 curl http://localhost:5191/api/v1/produtos
 ```
 
-**Resposta esperada:** um array JSON com os produtos do seed. Se vier `[]`, o banco está conectado mas o seed não rodou. Se vier `{"error": "Erro interno no servidor."}`, tem algo errado na connection string — confira os logs do terminal.
+**Resposta esperada:** um array JSON com os produtos do seed. Vindo `[]`, o banco está conectado mas o seed não rodou; vindo `{"error": "Erro interno no servidor."}`, há algo errado na connection string — confira os logs do terminal.
 
 ---
 
@@ -573,7 +574,7 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
 | `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe |
 
-Além do Oracle, `GET /health` também verifica a disponibilidade dos demais serviços externos integrados pela API — Telegram Bot API (`telegram-bot`, via `GetMe`) e Twilio/WhatsApp (`whatsapp-twilio`, buscando os dados da conta). Esses dois ficam de fora da tag `ready` de propósito: uma instabilidade neles não deveria tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto continuam funcionando normalmente sem Telegram/WhatsApp.
+Além do Oracle, `GET /health` também confere os demais serviços externos integrados à API — a Telegram Bot API (`telegram-bot`, via `GetMe`) e o Twilio/WhatsApp (`whatsapp-twilio`, consultando os dados da conta). Os dois ficam fora da tag `ready` de propósito: uma instabilidade neles não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram/WhatsApp.
 
 Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
@@ -594,19 +595,19 @@ curl http://localhost:5191/health
 }
 ```
 
-Quando algum desses serviços fica inacessível (connection string errada, token inválido, sem internet, etc.), o `status` daquele check muda para `"Unhealthy"` e o campo `error` traz a exceção correspondente.
+Ficando algum desses serviços inacessível (connection string errada, token inválido, sem internet etc.), o `status` daquele check passa a `"Unhealthy"` e o campo `error` traz a exceção correspondente.
 
 ### Logging Estruturado (Serilog)
 
-- Fica configurado em [`Program.cs`](ClyvoVet.Api/Program.cs) e escreve ao mesmo tempo no **console** e num **arquivo** (`Logs/clyvovet-api-*.log`, com rotação diária e retenção dos últimos 7 dias).
-- Cada linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou reaproveitado do header `X-Correlation-Id` quando o cliente envia um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
-- Três níveis são usados: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
-- Os níveis mínimos por categoria podem ser ajustados em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
+- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs), grava simultaneamente no **console** e num **arquivo** (`Logs/clyvovet-api-*.log`, com rotação diária e retenção de 7 dias).
+- Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
+- São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
+- Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
 
 ### Tracing e Métricas (OpenTelemetry)
 
-- **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core são instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
-- **Métricas:** expostas em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+- **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core vêm instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
+- **Métricas:** disponíveis em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
 
 ```bash
 curl http://localhost:5191/metrics
@@ -616,7 +617,7 @@ curl http://localhost:5191/metrics
 
 ## Testes Automatizados
 
-Dentro de `ClyvoVet.Api/` os testes ficam divididos em dois projetos separados, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`:
+Dentro de `ClyvoVet.Api/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
 
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
@@ -637,12 +638,12 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `103` testes passando (`46` unitários + `57` de integração).
+**Resultado esperado:** `103` testes passando (`46` unitários e `57` de integração).
 
 ### Detalhes dos testes de integração
 
-- Toda a API sobe em memória por meio de `WebApplicationFactory<Program>`, o que **substitui o Oracle real por um banco EF Core InMemory** — logo, rodar `dotnet test` não exige acesso ao Oracle FIAP.
-- A maioria dos testes recorre a uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para toda a suíte, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, à parte, porque dependem de um Animal com raça e idade específicas.
+- A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o Oracle real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar do Oracle FIAP.
+- A maior parte dos testes usa uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para a suíte inteira, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, separada, por dependerem de um Animal com raça e idade específicas.
 
 ---
 
@@ -665,13 +666,13 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 | **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
 
-> Mesmo pertencendo à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
+> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
 
 ---
 
 ### Geração de IDs (UUID)
 
-Todos os IDs saem do Oracle via a função `fn_uuid()`, chamada no trigger `BEFORE INSERT` de cada tabela. O código C# **nunca** gera UUIDs — o EF Core usa `RETURNING` pra ler o valor já gerado:
+Todo ID sai do Oracle através da função `fn_uuid()`, chamada no trigger `BEFORE INSERT` de cada tabela. O código C# **nunca** gera UUID — o EF Core usa `RETURNING` para ler o valor já gerado:
 
 ```sql
 -- Função fn_uuid() — definida em 01_criar_tabelas_dotnet.sql
@@ -701,11 +702,11 @@ END;
 ## Documentação das Rotas
 
 > **Base path:** `/api/v1/`  
-> Todos os endpoints retornam `application/json`.
+> Toda resposta de endpoint vem em `application/json`.
 
 ### 🔐 Autenticação
 
-Os endpoints principais (`/produtos`, `/lembretes`, `/eventos-pet`, `/sugestoes-produto`) exigem o header `X-Api-Key`. Sem ele, ou com um valor errado, a API retorna `401 Unauthorized`.
+Os endpoints principais (`/produtos`, `/lembretes`, `/eventos-pet`, `/sugestoes-produto`) exigem o header `X-Api-Key` — sem ele, ou com valor incorreto, a API responde `401 Unauthorized`.
 
 ```bash
 dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
@@ -715,15 +716,15 @@ dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
 curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
 ```
 
-No Swagger (`/swagger`), clique no botão **"Authorize"** (canto superior direito) e informe a chave uma vez — ela é aplicada automaticamente em todas as chamadas feitas por ali depois.
+No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a chave uma única vez — a partir daí ela é aplicada automaticamente em toda chamada feita por ali.
 
-> Os endpoints extras (WhatsApp, Telegram) usam o mesmo mecanismo, mas com chaves próprias (`WhatsApp:ApiKey`, `Telegram:ApiKey`) — veja as seções correspondentes mais abaixo.
+> Os endpoints extras (WhatsApp, Telegram) seguem o mesmo mecanismo, só que com chaves próprias (`WhatsApp:ApiKey`, `Telegram:ApiKey`) — detalhes nas seções correspondentes, mais abaixo.
 
 ---
 
 ### 🛒 Produtos — `/api/v1/produtos`
 
-Cuida do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
+Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -774,7 +775,7 @@ Cuida do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 
 ### 🐾 Eventos Pet — `/api/v1/eventos-pet`
 
-Cuida dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Sem dependência de FK com as tabelas Java.
+Trata dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`), sem depender de FK com as tabelas Java.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -846,8 +847,8 @@ Cuida dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`). Sem dependência d
 
 ### 🔔 Lembretes — `/api/v1/lembretes`
 
-Cuida dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).  
-⚠️ Exige um `animalId` válido em `T_CLYVO_ANIMAL` (e a existência de `T_CLYVO_TUTOR`).
+Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).  
+⚠️ Exige `animalId` válido em `T_CLYVO_ANIMAL` (e que `T_CLYVO_TUTOR` já exista).
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -881,7 +882,7 @@ Cuida dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 }
 ```
 
-> **Atenção:** o `status` é **sempre forçado a `Pendente` (0)** na criação, não importa o valor enviado.  
+> **Atenção:** na criação, o `status` é **sempre forçado para `Pendente` (0)**, seja qual for o valor enviado.  
 > `agendadoEm` precisa ser uma data/hora **futura**.
 
 **Response — GET / POST / PUT**
@@ -905,7 +906,7 @@ Cuida dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 
 ### 💡 Sugestões de Produto — `/api/v1/sugestoes-produto`
 
-Cuida das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO`).  
+Trata das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUTO`).  
 ⚠️ Exige `animalId` válido em `T_CLYVO_ANIMAL` e `produtoId` válido em `T_CLYVO_PRODUTO`.
 
 | Método | Rota | Descrição | Status |
@@ -936,7 +937,7 @@ Cuida das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUT
 }
 ```
 
-> Se `dataSugestao` for omitido, assume a data de hoje.
+> Omitindo `dataSugestao`, assume-se a data de hoje.
 
 **Response — GET / POST / PUT**
 
@@ -960,7 +961,7 @@ Cuida das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUT
 
 > ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e, ao encontrar alguma condição relevante, sugere agendar uma consulta.
+Esse card compara os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e, encontrando alguma condição relevante, sugere marcar uma consulta.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -989,11 +990,11 @@ Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de
 
 **Regras de negócio**
 
-- A comparação de raça é flexível: maiúsculas e minúsculas são ignoradas e substrings casam nos dois sentidos, de modo que pequenas variações de digitação na raça cadastrada ainda batem com o catálogo.
-- Um `idadeMinimaAnos` nulo ou `0` serve para qualquer idade; fora isso, a idade do animal tem que ser maior ou igual ao mínimo — e um animal sem data de nascimento cadastrada jamais bate com um mínimo acima de zero.
-- Se a espécie do animal não for reconhecida, o widget simplesmente devolve a lista de predisposições vazia, sem lançar erro.
-- `sugerirAgendamentoConsulta` retorna `true` assim que pelo menos uma predisposição é encontrada — o widget se limita a sugerir; criar a consulta fica por conta de outra etapa.
-- Um `animalId` que não existe resulta em 404.
+- A comparação de raça é tolerante: ignora maiúsculas/minúsculas e casa substrings nos dois sentidos, então pequenas variações de digitação na raça cadastrada ainda encontram o catálogo.
+- Um `idadeMinimaAnos` nulo ou `0` vale para qualquer idade; nos demais casos, a idade do animal precisa ser maior ou igual ao mínimo — e um animal sem data de nascimento cadastrada nunca bate com um mínimo acima de zero.
+- Não reconhecendo a espécie do animal, o widget devolve a lista de predisposições vazia, sem erro algum.
+- `sugerirAgendamentoConsulta` vira `true` assim que aparece ao menos uma predisposição — o widget só sugere; marcar a consulta fica para outra etapa.
+- Um `animalId` inexistente resulta em 404.
 
 ---
 
@@ -1001,7 +1002,7 @@ Esse card cruza os dados do animal (espécie, raça e idade) com um catálogo de
 
 > ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Funciona como o único ponto de disparo de mensagens no WhatsApp, usando o [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Outras partes do sistema — lembretes, sugestões, etc. — se apoiam nele para notificar o tutor sem duplicar a lógica de envio.
+É o único ponto de disparo de mensagens no WhatsApp, via [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Outras partes do sistema — lembretes, sugestões etc. — se apoiam nele para notificar o tutor sem duplicar a lógica de envio.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -1026,9 +1027,9 @@ dotnet user-secrets set "Twilio:AuthToken" "SEU_AUTH_TOKEN"
 dotnet user-secrets set "Twilio:NumeroSandbox" "whatsapp:+1XXXXXXXXXX"
 ```
 
-O [Console do Twilio](https://console.twilio.com) disponibiliza o Account SID, o Auth Token e o número do sandbox em **Messaging → Try out WhatsApp**. Antes de poder receber qualquer mensagem, o destinatário precisa dar o "join" no sandbox pelo próprio WhatsApp.
+O Account SID, o Auth Token e o número do sandbox ficam disponíveis no [Console do Twilio](https://console.twilio.com), em **Messaging → Try out WhatsApp**. Antes de receber qualquer mensagem, o destinatário precisa dar o "join" no sandbox, pelo próprio WhatsApp.
 
-O endpoint também exige uma **API key própria** no header `X-Api-Key` — sem ela, retorna `401`:
+O endpoint também pede uma **API key própria** no header `X-Api-Key` — faltando ela, devolve `401`:
 
 ```bash
 dotnet user-secrets set "WhatsApp:ApiKey" "SUA_CHAVE_AQUI"
@@ -1041,9 +1042,9 @@ curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
   -d '{"telefone":"+5511999999999","mensagem":"Teste"}'
 ```
 
-> ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, qualquer mensagem enviada via API exige um `ContentSid` (template pré-aprovado); mandar texto livre (`Body`) é rejeitado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Tentar criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Na prática, isso quer dizer que **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas testá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código está pronto; falta só uma conta Twilio com upgrade feito para validar de verdade.
+> ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, toda mensagem via API precisa de um `ContentSid` (template pré-aprovado); texto livre (`Body`) é recusado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Ou seja: **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas validá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código já está pronto — falta apenas uma conta Twilio com upgrade para confirmar na prática.
 >
-> É por isso que o teste de integração do endpoint (`WhatsAppEndpointsTests`) troca o `IWhatsAppService` real por um fake: ele confirma que o controller recebe a requisição, aciona o serviço com os dados corretos e devolve `204`, sem depender do Twilio de fato.
+> Por isso o teste de integração do endpoint (`WhatsAppEndpointsTests`) troca o `IWhatsAppService` real por um fake: ele confirma que o controller recebe a requisição, aciona o serviço com os dados certos e devolve `204`, sem depender do Twilio de verdade.
 
 ---
 
@@ -1051,7 +1052,7 @@ curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
 
 > ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Alternativa ao WhatsApp usando um bot próprio no [Telegram](https://core.telegram.org/bots/api) — mesmo propósito (ponto único de disparo de mensagens), mas sem as limitações de conta trial do Twilio: não exige template pré-aprovado, e dá pra testar de ponta a ponta gratuitamente.
+Alternativa ao WhatsApp, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — mesmo propósito (ponto único de disparo de mensagens), mas livre das limitações de conta trial do Twilio: dispensa template pré-aprovado e permite testar de ponta a ponta de graça.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -1069,9 +1070,9 @@ Alternativa ao WhatsApp usando um bot próprio no [Telegram](https://core.telegr
 
 **Configuração**
 
-1. Crie um bot conversando com **[@BotFather](https://t.me/BotFather)** no Telegram, mandando `/newbot` e seguindo as instruções — ele devolve um **token** no formato `123456:ABC-DEF...`.
-2. Para receber mensagens, o destinatário precisa mandar `/start` pro bot pelo menos uma vez (mesma lógica do "join" do WhatsApp Sandbox).
-3. O `chatId` de cada destinatário é obtido consultando `https://api.telegram.org/bot<TOKEN>/getUpdates` depois do `/start`.
+1. Crie um bot falando com **[@BotFather](https://t.me/BotFather)** no Telegram: mande `/newbot` e siga as instruções — ele devolve um **token** no formato `123456:ABC-DEF...`.
+2. Para receber mensagens, o destinatário precisa mandar `/start` ao bot pelo menos uma vez (a mesma lógica do "join" do WhatsApp Sandbox).
+3. O `chatId` de cada destinatário sai de `https://api.telegram.org/bot<TOKEN>/getUpdates`, consultado depois do `/start`.
 
 ```bash
 dotnet user-secrets set "Telegram:BotToken" "SEU_BOT_TOKEN"
@@ -1081,13 +1082,13 @@ dotnet user-secrets set "Telegram:BotUsername" "seu_bot_username"
 
 **Vínculo tutor ↔ Telegram**
 
-Como o `Tutor` é uma tabela da API Java, a gente não pode adicionar uma coluna `chatId` nela. Em vez disso, o vínculo `TutorId → ChatId` fica numa tabela própria (`T_CLYVO_TUTOR_TELEGRAM`), preenchida assim:
+Como `Tutor` é uma tabela da API Java, não dá para adicionar uma coluna `chatId` nela. O vínculo `TutorId → ChatId` fica então numa tabela própria (`T_CLYVO_TUTOR_TELEGRAM`), preenchida assim:
 
-1. O frontend chama `GET /api/v1/telegram/link/{tutorId}` (usando o `tutorId` do tutor já logado) e recebe o deep link de volta.
-2. O tutor clica no link — o Telegram abre e manda `/start {tutorId}` pro bot automaticamente.
-3. Um serviço em background na API .NET fica consultando o Telegram (`getUpdates`) e, ao ver esse `/start`, salva o vínculo `TutorId → ChatId` na tabela.
+1. O frontend chama `GET /api/v1/telegram/link/{tutorId}` (com o `tutorId` do tutor já logado) e recebe o deep link de volta.
+2. Ao clicar no link, o tutor abre o Telegram, que manda `/start {tutorId}` ao bot automaticamente.
+3. Um serviço em background na API .NET consulta o Telegram (`getUpdates`) e, ao detectar esse `/start`, grava o vínculo `TutorId → ChatId` na tabela.
 
-O endpoint também exige o header `X-Api-Key` (mesmo mecanismo do WhatsApp, com uma chave própria):
+O endpoint também exige o header `X-Api-Key` (o mesmo mecanismo do WhatsApp, com chave própria):
 
 ```bash
 curl -X POST http://localhost:5191/api/v1/telegram/enviar \
@@ -1096,26 +1097,26 @@ curl -X POST http://localhost:5191/api/v1/telegram/enviar \
   -d '{"chatId": 123456789, "mensagem": "Teste"}'
 ```
 
-> ✅ Diferente do WhatsApp, esse endpoint (e o fluxo completo de vínculo, incluindo o `TelegramLinkListenerService`) foi validado de ponta a ponta com um bot real — sem bloqueio de trial/template. Os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) ainda assim usam fakes/banco em memória, para manter os testes determinísticos e sem depender de rede externa — o `TelegramLinkListenerService` fica desativado em ambiente de `Testing` pelo mesmo motivo.
+> ✅ Ao contrário do WhatsApp, esse endpoint (e o fluxo completo de vínculo, `TelegramLinkListenerService` incluído) foi validado de ponta a ponta com um bot real, sem travar em trial/template. Mesmo assim, os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) usam fakes/banco em memória, para permanecerem determinísticos e livres de rede externa — pelo mesmo motivo, o `TelegramLinkListenerService` fica desativado no ambiente de `Testing`.
 
 **Notificação automática de lembretes**
 
-O `LembreteNotificationService` (também um `BackgroundService`, desativado em `Testing`) verifica a cada 1 minuto se existe algum lembrete `Pendente` vencendo na próxima hora. Quando encontra um, manda a notificação — pelo Telegram, se o tutor tiver vinculado a conta (`T_CLYVO_TUTOR_TELEGRAM`), ou pelo WhatsApp, usando o `Tutor.Telefone` já cadastrado (dado da API Java) — e marca o lembrete como `Enviado`, pra não notificar de novo.
+O `LembreteNotificationService` (também um `BackgroundService`, desativado em `Testing`) checa a cada 1 minuto se algum lembrete `Pendente` está vencendo na próxima hora. Encontrando um, dispara a notificação — via Telegram, se o tutor já tiver vinculado a conta (`T_CLYVO_TUTOR_TELEGRAM`), ou via WhatsApp, usando o `Tutor.Telefone` já cadastrado (dado da API Java) — e marca o lembrete como `Enviado`, para não notificar de novo.
 
 ---
 
 ## Guia de Testes Manuais
 
-> **54 testes** conferidos com Oracle real, todos passando.  
-> Acesse **`http://localhost:5191/swagger`**, siga a sequência indicada e reaproveite os JSONs já prontos.  
+> **54 testes** rodados contra Oracle real, todos passando.  
+> Acesse **`http://localhost:5191/swagger`**, siga a ordem indicada e reaproveite os JSONs já prontos.  
 > Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
-> ⚠️ Desde a Sprint 3, os endpoints principais exigem a `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](#-autenticação)).
+> ⚠️ Desde a Sprint 3, os endpoints principais exigem `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](#-autenticação)).
 
 ---
 
 ### Antes de começar — obtenha os IDs necessários
 
-Execute no **Oracle SQL Developer** depois de rodar o seed:
+Rode no **Oracle SQL Developer** depois de executar o seed:
 
 ```sql
 -- animal_id (necessário nos testes de Lembrete e Sugestão)
@@ -1125,8 +1126,8 @@ SELECT id, nome FROM t_clyvo_animal WHERE ROWNUM = 1;
 SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
 ```
 
-> Guarde os dois UUIDs — eles substituem `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes abaixo.  
-> Também dá pra pegar o `animalId` direto no response do **T23** (GET /lembretes).
+> Guarde os dois UUIDs — eles entram no lugar de `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes a seguir.  
+> O `animalId` também pode ser pego direto na resposta do **T23** (GET /lembretes).
 
 ---
 
@@ -1135,7 +1136,7 @@ SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
 ---
 
 ### T01 — Listar todos os produtos
-**Confirma a conexão com o Oracle. Deve devolver os produtos do seed.**
+**Confirma a conexão com o Oracle — deve devolver os produtos do seed.**
 
 ```
 GET /api/v1/produtos
@@ -1451,8 +1452,8 @@ GET /api/v1/eventos-pet/id-que-nao-existe
 
 ## 🔔 BLOCO 3 — Lembretes
 
-> ⚠️ A partir do T28, os testes exigem um `animalId` válido.  
-> Pegue esse valor no T23 (campo `animalId` de qualquer lembrete do seed) ou pelo SQL do pré-requisito.
+> ⚠️ A partir do T28, os testes exigem `animalId` válido.  
+> Pegue esse valor no T23 (campo `animalId` de qualquer lembrete do seed), ou pelo SQL do pré-requisito.
 
 ---
 
@@ -1640,7 +1641,7 @@ GET /api/v1/lembretes/id-que-nao-existe
 ## 💡 BLOCO 4 — Sugestões de Produto
 
 > ⚠️ A partir do T39, os testes exigem `{ANIMAL_ID}` e `{PRODUTO_ID}` válidos.  
-> Pegue esses valores pelo SQL do pré-requisito ou pelos GETs anteriores.
+> Pegue esses valores pelo SQL do pré-requisito, ou pelos GETs anteriores.
 
 ---
 
@@ -1802,7 +1803,7 @@ GET /api/v1/sugestoes-produto/id-que-nao-existe
 
 ## 🗑️ BLOCO 5 — Delete e Confirmação
 
-> Execute na ordem abaixo para limpar os registros criados durante os testes.
+> Siga a ordem abaixo para limpar os registros criados durante os testes.
 
 ---
 
@@ -1878,7 +1879,7 @@ GET /api/v1/sugestoes-produto/{id do T39}
 
 ---
 
-> **Resultado esperado ao final:** todos os 54 testes passam, cada um com o status code indicado.  
+> **Resultado esperado ao final:** os 54 testes passam, cada um com o status code indicado.  
 > Essa suíte rodou contra Oracle real e fechou em **54/54 PASS**.
 
 ---
@@ -1932,8 +1933,8 @@ GET /api/v1/sugestoes-produto/{id do T39}
 ## Enums — Valores Aceitos
 
 > **No JSON do body (POST/PUT):** envie o valor **inteiro** do enum.  
-> **Nos query params (GET):** envie o **nome** do enum (ex: `?categoria=Racao`).  
-> **O Swagger exibe os valores disponíveis com dropdown automático.**
+> **Nos query params (GET):** envie o **nome** do enum (ex.: `?categoria=Racao`).  
+> **No Swagger, os valores disponíveis já aparecem num dropdown automático.**
 
 ### Categoria (Produto)
 
@@ -2003,4 +2004,4 @@ GET /api/v1/sugestoes-produto/{id do T39}
 
 ## Licença
 
-Distribuído sob a licença MIT. Consulte o arquivo `LICENSE` para mais informações.
+Distribuído sob licença MIT — mais detalhes no arquivo `LICENSE`.

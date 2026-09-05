@@ -15,7 +15,7 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
         builder.Property(l => l.Id)
             .HasColumnName("id")
             .HasColumnType("VARCHAR(36)")
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(l => l.AnimalId)
             .HasColumnName("animal_id")
@@ -45,8 +45,7 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
             .HasColumnName("status");
 
         builder.Property(l => l.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
+            .HasColumnName("criado_em");
 
         builder.HasOne(l => l.Animal)
             .WithMany()

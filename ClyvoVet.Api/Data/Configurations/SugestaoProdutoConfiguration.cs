@@ -16,7 +16,7 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
         builder.Property(s => s.Id)
             .HasColumnName("id")
             .HasColumnType("VARCHAR(36)")
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(s => s.AnimalId)
             .HasColumnName("animal_id")
@@ -47,8 +47,7 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
             .HasColumnName("ativo");
 
         builder.Property(s => s.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
+            .HasColumnName("criado_em");
 
         builder.HasOne(s => s.Animal)
             .WithMany()

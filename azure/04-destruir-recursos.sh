@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # apaga tudo que foi criado nessa entrega, pra parar de gastar.
-# só roda isso depois que o video e a correcao ja tiverem saido
 set -euo pipefail
 cd "$(dirname "$0")"
 source ./00-variaveis.sh

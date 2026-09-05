@@ -15,7 +15,7 @@ public class TutorTelegramConfiguration : IEntityTypeConfiguration<TutorTelegram
         builder.Property(t => t.Id)
             .HasColumnName("id")
             .HasColumnType("VARCHAR(36)")
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(t => t.TutorId)
             .HasColumnName("tutor_id")
@@ -29,7 +29,6 @@ public class TutorTelegramConfiguration : IEntityTypeConfiguration<TutorTelegram
             .IsRequired();
 
         builder.Property(t => t.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
+            .HasColumnName("criado_em");
     }
 }

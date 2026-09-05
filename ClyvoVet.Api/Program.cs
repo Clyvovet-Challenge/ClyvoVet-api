@@ -54,33 +54,33 @@ builder.Services.AddSwaggerGen(options =>
         Title   = "🐾 Clyvo Vet API",
         Version = "v1",
         Description = """
-            API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + PostgreSQL).
+            API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + MySQL).
 
             ---
 
             ### Recursos gerenciados por esta API
 
-            | Recurso | Rota base | Tabela PostgreSQL |
+            | Recurso | Rota base | Tabela |
             |---------|-----------|---------------|
             | Produtos | `/api/v1/produtos` | `t_clyvo_produto` |
             | Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |
             | Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |
             | Sugestões de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
 
-            ### Tabelas de apoio (somente consulta / seed fixo)
+            ### Tabelas da API Java (somente consulta)
 
             | Tabela | Finalidade |
             |--------|-----------|
-            | `t_clyvo_animal` | Validação de `animalId` nas FKs |
-            | `t_clyvo_tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
+            | `animal` | Validação de `animalId` nas FKs |
+            | `tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
 
-            > Nesta entrega (Sprint 3 — DevOps Tools & Cloud Computing), o banco é um PostgreSQL isolado
-            > no Azure, populado por `schema/script_bd.sql` — não é o mesmo banco compartilhado com a
-            > API Java usado na entrega da disciplina .NET.
+            > Nesta entrega (Sprint 3 — DevOps Tools & Cloud Computing), o banco é um Azure Database
+            > for MySQL Flexible Server **compartilhado com a API Java** — as tabelas `tutor` e `animal`
+            > seguem o schema definido pelas migrations Flyway do time de Java.
 
             ---
 
-            **Banco de dados:** Azure Database for PostgreSQL Flexible Server
+            **Banco de dados:** Azure Database for MySQL Flexible Server
             """,
         Contact = new OpenApiContact
         {
@@ -129,8 +129,9 @@ builder.Services.AddSwaggerGen(options =>
     options.DocumentFilter<ApiKeySecurityDocumentFilter>();
 });
 
+var mysqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString)));
 
 builder.Services.AddScoped<IProdutoRepository,         ProdutoRepository>();
 builder.Services.AddScoped<ISugestaoProdutoRepository, SugestaoProdutoRepository>();
@@ -155,8 +156,8 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<LembreteNotificationService>();
 }
 
-// Health Checks — "self" cobre liveness (processo respondendo), "oracle-database" cobre
-// readiness (Database.CanConnectAsync() contra o Oracle FIAP). "telegram-bot" e
+// Health Checks — "self" cobre liveness (processo respondendo), "mysql-database" cobre
+// readiness (Database.CanConnectAsync() contra o MySQL). "telegram-bot" e
 // "whatsapp-twilio" verificam os demais serviços externos integrados pela API, mas ficam
 // fora da tag "ready": uma instabilidade neles não deveria tirar a API inteira de rotação,
 // já que os outros recursos (Produto, Lembrete, EventoPet, SugestaoProduto) continuam
@@ -164,7 +165,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(
-        name: "postgres-database",
+        name: "mysql-database",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready", "database", "external"])
     .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"])

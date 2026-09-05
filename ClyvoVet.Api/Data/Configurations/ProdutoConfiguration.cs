@@ -15,7 +15,7 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
         builder.Property(p => p.Id)
             .HasColumnName("id")
             .HasColumnType("VARCHAR(36)")
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(p => p.Nome)
             .HasColumnName("nome")
@@ -40,7 +40,6 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
             .HasColumnName("ativo");
 
         builder.Property(p => p.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
+            .HasColumnName("criado_em");
     }
 }

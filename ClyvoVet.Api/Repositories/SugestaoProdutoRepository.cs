@@ -41,7 +41,10 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
 
     public async Task<SugestaoProduto> CreateAsync(SugestaoProduto sugestao)
     {
-        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
+        // MySQL nao suporta RETURNING, entao o Id/CriadoEm sao gerados aqui em vez de
+        // depender de DEFAULT do banco + leitura de volta pelo EF Core.
+        sugestao.Id = Guid.NewGuid().ToString();
+        sugestao.CriadoEm = DateTime.UtcNow;
         _context.SugestoesProduto.Add(sugestao);
         await _context.SaveChangesAsync();
         return sugestao;

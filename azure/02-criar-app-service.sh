@@ -12,7 +12,7 @@ az webapp list-runtimes --os linux -o table | grep -i dotnet || true
 
 echo "==> Criando App Service Plan ($PLAN_NAME, SKU B1 Linux)..."
 # usei B1 em vez do Free porque o Free tem cota de 60min de CPU/dia e não
-# deixa ligar o Always On, e não quero que pareça fora do ar na correção
+# deixar ligado o Always On
 az appservice plan create \
     --resource-group "$RG" \
     --name "$PLAN_NAME" \
@@ -40,7 +40,7 @@ az webapp config appsettings set \
     --resource-group "$RG" \
     --name "$APP_NAME" \
     --settings \
-        ConnectionStrings__DefaultConnection="Host=$PSQL_SERVER.postgres.database.azure.com;Port=5432;Database=$PSQL_DB;Username=$PSQL_ADMIN;Password=$PSQL_PASSWORD;Ssl Mode=Require;Trust Server Certificate=true" \
+        ConnectionStrings__DefaultConnection="Server=$MYSQL_SERVER.mysql.database.azure.com;Port=3306;Database=$MYSQL_DB;Uid=$MYSQL_ADMIN;Pwd=$MYSQL_PASSWORD;SslMode=Required;" \
         ASPNETCORE_ENVIRONMENT="Production" \
         Api__ApiKey="${API_KEY:-TROQUE_ESTE_VALOR}" \
         Twilio__AccountSid="${TWILIO_ACCOUNT_SID:-}" \

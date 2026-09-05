@@ -42,7 +42,10 @@ public class EventoPetRepository : IEventoPetRepository
 
     public async Task<EventoPet> CreateAsync(EventoPet evento)
     {
-        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
+        // MySQL nao suporta RETURNING, entao o Id/CriadoEm sao gerados aqui em vez de
+        // depender de DEFAULT do banco + leitura de volta pelo EF Core.
+        evento.Id = Guid.NewGuid().ToString();
+        evento.CriadoEm = DateTime.UtcNow;
         _context.EventosPet.Add(evento);
         await _context.SaveChangesAsync();
         return evento;

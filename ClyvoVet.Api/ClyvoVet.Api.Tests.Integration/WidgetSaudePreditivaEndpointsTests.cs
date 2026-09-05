@@ -25,7 +25,7 @@ public class WidgetSaudePreditivaEndpointsTests
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste Widget", Cpf = "22222222222", CriadoEm = DateTime.UtcNow };
+            var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste Widget", Cpf = "22222222222" };
             var animal = new Animal
             {
                 Id = Guid.NewGuid().ToString(),
@@ -33,8 +33,7 @@ public class WidgetSaudePreditivaEndpointsTests
                 Especie = "CACHORRO",
                 Raca = "Labrador Retriever",
                 DataNascimento = DateTime.UtcNow.AddYears(-7),
-                TutorId = tutor.Id,
-                CriadoEm = DateTime.UtcNow
+                TutorId = tutor.Id
             };
             db.Tutores.Add(tutor);
             db.Animais.Add(animal);

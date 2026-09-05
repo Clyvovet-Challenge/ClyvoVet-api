@@ -64,11 +64,11 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
     }
 
     private static WidgetSaudePreditivaResponse MontarResposta(
-        string animalId, string nome, string especie, string? raca, decimal? idadeAnos, List<PredisposicaoItemResponse> predisposicoes) => new()
+        string animalId, string nome, string? especie, string? raca, decimal? idadeAnos, List<PredisposicaoItemResponse> predisposicoes) => new()
     {
         AnimalId = animalId,
         NomeAnimal = nome,
-        Especie = especie,
+        Especie = especie ?? string.Empty,
         Raca = raca,
         IdadeAnos = idadeAnos,
         SugerirAgendamentoConsulta = predisposicoes.Count > 0,

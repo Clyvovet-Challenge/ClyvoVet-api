@@ -64,7 +64,10 @@ public class LembreteRepository : ILembreteRepository
 
     public async Task<Lembrete> CreateAsync(Lembrete lembrete)
     {
-        // Id e CriadoEm gerados pelo banco via trigger + DEFAULT SYSTIMESTAMP.
+        // MySQL nao suporta RETURNING, entao o Id/CriadoEm sao gerados aqui em vez de
+        // depender de DEFAULT do banco + leitura de volta pelo EF Core.
+        lembrete.Id = Guid.NewGuid().ToString();
+        lembrete.CriadoEm = DateTime.UtcNow;
         _context.Lembretes.Add(lembrete);
         await _context.SaveChangesAsync();
         return lembrete;

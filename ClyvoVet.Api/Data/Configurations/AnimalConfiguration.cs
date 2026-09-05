@@ -8,7 +8,9 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
 {
     public void Configure(EntityTypeBuilder<Animal> builder)
     {
-        builder.ToTable("t_clyvo_animal");
+        // Tabela pertence à API Java (schema em db/migration/mysql do repo dela) — aqui é
+        // só leitura via FK/Include, nunca escrita.
+        builder.ToTable("animal");
 
         builder.HasKey(a => a.Id);
 
@@ -33,17 +35,12 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
         builder.Property(a => a.DataNascimento)
             .HasColumnName("data_nascimento");
 
-        // DDL real: coluna é GENERO (não SEXO) — CHECK: MACHO, FEMEA, DESCONHECIDO
         builder.Property(a => a.Sexo)
             .HasColumnName("genero")
             .HasColumnType("VARCHAR(10)");
 
         builder.Property(a => a.Castrado)
             .HasColumnName("castrado");
-
-        builder.Property(a => a.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
 
         builder.Property(a => a.TutorId)
             .HasColumnName("tutor_id")

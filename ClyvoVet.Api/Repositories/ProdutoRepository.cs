@@ -39,10 +39,10 @@ public class ProdutoRepository : IProdutoRepository
 
     public async Task<Produto> CreateAsync(Produto produto)
     {
-        // Id e CriadoEm são gerados pelo banco:
-        //   Id       → trigger trg_produto_id chama fn_uuid() quando NULL
-        //   CriadoEm → DEFAULT SYSTIMESTAMP da tabela
-        // EF Core lê os valores gerados via RETURNING após o INSERT.
+        // MySQL nao suporta RETURNING, entao o Id/CriadoEm sao gerados aqui em vez de
+        // depender de DEFAULT do banco + leitura de volta pelo EF Core.
+        produto.Id = Guid.NewGuid().ToString();
+        produto.CriadoEm = DateTime.UtcNow;
         _context.Produtos.Add(produto);
         await _context.SaveChangesAsync();
         return produto;

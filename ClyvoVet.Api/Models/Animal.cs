@@ -4,12 +4,11 @@ public class Animal
 {
     public string Id { get; set; } = null!;
     public string Nome { get; set; } = null!;
-    public string Especie { get; set; } = null!;
+    public string? Especie { get; set; }
     public string? Raca { get; set; }
     public DateTime? DataNascimento { get; set; }
     public string? Sexo { get; set; }
-    public bool Castrado { get; set; }
-    public DateTime CriadoEm { get; set; }
+    public bool? Castrado { get; set; }
 
     public string TutorId { get; set; } = null!;
     public Tutor Tutor { get; set; } = null!;

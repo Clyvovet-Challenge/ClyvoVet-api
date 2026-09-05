@@ -55,8 +55,7 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
         {
             Id = Guid.NewGuid().ToString(),
             Nome = "Tutor de Teste",
-            Cpf = "00000000000",
-            CriadoEm = DateTime.UtcNow
+            Cpf = "00000000000"
         };
 
         var animal = new Animal
@@ -64,8 +63,7 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
             Id = Guid.NewGuid().ToString(),
             Nome = "Rex",
             Especie = "CACHORRO",
-            TutorId = tutor.Id,
-            CriadoEm = DateTime.UtcNow
+            TutorId = tutor.Id
         };
 
         var produto = new Produto

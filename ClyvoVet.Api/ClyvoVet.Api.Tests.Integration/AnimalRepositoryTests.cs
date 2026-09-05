@@ -20,10 +20,10 @@ public class AnimalRepositoryTests
     {
         // Arrange
         using var context = CriarContexto();
-        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000", CriadoEm = DateTime.UtcNow };
+        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000" };
         context.Tutores.Add(tutor);
-        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Zeus", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor, CriadoEm = DateTime.UtcNow });
-        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Amora", Especie = "GATO", TutorId = tutor.Id, Tutor = tutor, CriadoEm = DateTime.UtcNow });
+        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Zeus", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor });
+        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Amora", Especie = "GATO", TutorId = tutor.Id, Tutor = tutor });
         await context.SaveChangesAsync();
         var repository = new AnimalRepository(context);
 
@@ -41,9 +41,9 @@ public class AnimalRepositoryTests
     {
         // Arrange
         using var context = CriarContexto();
-        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000", CriadoEm = DateTime.UtcNow };
+        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000" };
         context.Tutores.Add(tutor);
-        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Rex", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor, CriadoEm = DateTime.UtcNow });
+        context.Animais.Add(new Animal { Id = Guid.NewGuid().ToString(), Nome = "Rex", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor });
         await context.SaveChangesAsync();
         var repository = new AnimalRepository(context);
 

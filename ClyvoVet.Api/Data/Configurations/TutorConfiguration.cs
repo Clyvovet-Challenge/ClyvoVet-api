@@ -8,7 +8,9 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
 {
     public void Configure(EntityTypeBuilder<Tutor> builder)
     {
-        builder.ToTable("t_clyvo_tutor");
+        // Tabela pertence à API Java (schema em db/migration/mysql do repo dela) — aqui é
+        // só leitura via FK/Include, nunca escrita.
+        builder.ToTable("tutor");
 
         builder.HasKey(t => t.Id);
 
@@ -19,12 +21,12 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
 
         builder.Property(t => t.Nome)
             .HasColumnName("nome")
-            .HasColumnType("VARCHAR(150)")   // DDL real: VARCHAR(150)
+            .HasColumnType("VARCHAR(150)")
             .IsRequired();
 
         builder.Property(t => t.Cpf)
             .HasColumnName("cpf")
-            .HasColumnType("VARCHAR(11)");   // DDL real: VARCHAR(11), sem NOT NULL
+            .HasColumnType("VARCHAR(11)");
 
         builder.Property(t => t.Email)
             .HasColumnName("email")
@@ -33,9 +35,5 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
         builder.Property(t => t.Telefone)
             .HasColumnName("telefone")
             .HasColumnType("VARCHAR(20)");
-
-        builder.Property(t => t.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
     }
 }

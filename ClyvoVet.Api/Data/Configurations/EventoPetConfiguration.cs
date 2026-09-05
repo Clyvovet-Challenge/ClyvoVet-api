@@ -16,7 +16,7 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
         builder.Property(e => e.Id)
             .HasColumnName("id")
             .HasColumnType("VARCHAR(36)")
-            .ValueGeneratedOnAdd();
+            .ValueGeneratedNever();
 
         builder.Property(e => e.Titulo)
             .HasColumnName("titulo")
@@ -92,7 +92,6 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
             .HasColumnName("ativo");
 
         builder.Property(e => e.CriadoEm)
-            .HasColumnName("criado_em")
-            .ValueGeneratedOnAdd();
+            .HasColumnName("criado_em");
     }
 }

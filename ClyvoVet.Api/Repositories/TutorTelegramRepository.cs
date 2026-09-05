@@ -24,7 +24,13 @@ public class TutorTelegramRepository : ITutorTelegramRepository
         }
         else
         {
-            _context.TutoresTelegram.Add(new TutorTelegram { TutorId = tutorId, ChatId = chatId });
+            _context.TutoresTelegram.Add(new TutorTelegram
+            {
+                Id = Guid.NewGuid().ToString(),
+                TutorId = tutorId,
+                ChatId = chatId,
+                CriadoEm = DateTime.UtcNow
+            });
         }
 
         await _context.SaveChangesAsync();

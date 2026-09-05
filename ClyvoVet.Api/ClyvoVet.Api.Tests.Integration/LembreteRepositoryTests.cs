@@ -18,8 +18,8 @@ public class LembreteRepositoryTests
 
     private static (Tutor tutor, Animal animal) CriarTutorEAnimal(AppDbContext context)
     {
-        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000", CriadoEm = DateTime.UtcNow };
-        var animal = new Animal { Id = Guid.NewGuid().ToString(), Nome = "Rex", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor, CriadoEm = DateTime.UtcNow };
+        var tutor = new Tutor { Id = Guid.NewGuid().ToString(), Nome = "Tutor Teste", Cpf = "00000000000" };
+        var animal = new Animal { Id = Guid.NewGuid().ToString(), Nome = "Rex", Especie = "CACHORRO", TutorId = tutor.Id, Tutor = tutor };
         context.Tutores.Add(tutor);
         context.Animais.Add(animal);
         return (tutor, animal);
