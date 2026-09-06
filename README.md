@@ -55,6 +55,11 @@ Nenhuma parte desta entrega roda em container — nem o app, nem o banco: tudo f
 
 ![Arquitetura da solução na Azure](docs/arquitetura-azure.svg)
 
+> Documentação técnica complementar em [`docs/`](docs/) — incluindo a
+> [auditoria de arquitetura](docs/auditoria-de-arquitetura.md) de 06/09/2026, que
+> registra por que o banco é compartilhado com a API Java e o que esta API ainda
+> precisa corrigir.
+
 ### Pré-requisitos
 
 | Ferramenta | Para que serve |
