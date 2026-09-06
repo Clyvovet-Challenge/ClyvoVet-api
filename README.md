@@ -13,6 +13,18 @@
 
 > Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
 
+**🎥 Vídeo de apresentação:** [assista aqui](https://www.youtube.com/watch?v=8R_eru120m8)
+
+**Integrantes:**
+
+| Nome | RM |
+|---|---|
+| Fabrício Henrique Pereira | RM563237 |
+| Henrique Sinkevicius Maran | RM562977 |
+| Leonardo José Pereira | RM563065 |
+| Miguel Henrique Oliveira Dias | RM565492 |
+| Pedro Henrique de Oliveira | RM562312 |
+
 ### Descrição da Solução
 
 Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
@@ -71,7 +83,7 @@ az login
 
 **3. Ajustar as variáveis (se necessário)**
 
-Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, os nomes de recursos (precisam ser únicos em toda a Azure) e a região (`LOCATION`). Nesta entrega usamos `mexicocentral` — certas assinaturas acadêmicas bloqueiam outras regiões via Azure Policy (erro `RequestDisallowedByAzure`), e mesmo dentro das regiões liberadas o MySQL Flexible Server às vezes devolve `InternalServerError` (instabilidade pontual do serviço, não da conta); nesse caso, tente outra região liberada na sua assinatura.
+Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, os nomes de recursos (precisam ser únicos em toda a Azure) e a região (`LOCATION`). Nesta entrega usamos `chilecentral` — certas assinaturas acadêmicas bloqueiam outras regiões via Azure Policy (erro `RequestDisallowedByAzure`), e mesmo dentro das regiões liberadas o MySQL Flexible Server às vezes devolve `InternalServerError` (instabilidade pontual do serviço, não da conta — já vimos isso acontecer em `brazilsouth`, `eastus2`, `southcentralus` e `canadacentral`); nesse caso, tente outra região liberada na sua assinatura.
 
 **4. Criar o Resource Group + banco MySQL**
 

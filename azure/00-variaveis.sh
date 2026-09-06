@@ -5,9 +5,9 @@
 export SUBSCRIPTION="2TDSPW-RM563065-LEONARDO-PEREIRA"
 export RG="rg-clyvovet-devops"
 export RG_LOCATION="brazilsouth"       # o RG em si já existia nessa região
-export LOCATION="mexicocentral"
+export LOCATION="chilecentral"
 
-export MYSQL_SERVER="mysql-clyvovet-rm563065"      # vira <servidor>.mysql.database.azure.com
+export MYSQL_SERVER="mysql-clyvovet-rm563065-v2"      # vira <servidor>.mysql.database.azure.com
 export MYSQL_DB="clyvovet"
 export MYSQL_ADMIN="clyvovetadmin"
 if [ -z "$MYSQL_PASSWORD" ]; then
