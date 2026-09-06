@@ -40,7 +40,8 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
             .HasColumnType("VARCHAR(10)");
 
         builder.Property(a => a.Castrado)
-            .HasColumnName("castrado");
+            .HasColumnName("castrado")
+            .HasColumnType("TINYINT(1)");
 
         builder.Property(a => a.TutorId)
             .HasColumnName("tutor_id")
