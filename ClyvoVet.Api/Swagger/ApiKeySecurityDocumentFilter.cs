@@ -9,8 +9,8 @@ namespace ClyvoVet.Api.Swagger;
 /// <summary>
 /// Só mostra o cadeado do Swagger nos endpoints que realmente usam
 /// [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })] —
-/// evita sugerir que o Widget/WhatsApp/Telegram (que ou não exigem chave, ou
-/// exigem uma chave diferente) aceitam a mesma "Api:ApiKey" do botão Authorize.
+/// evita sugerir que o WhatsApp/Telegram (que exigem uma chave diferente)
+/// aceitam a mesma "Api:ApiKey" do botão Authorize.
 ///
 /// Precisa ser um DocumentFilter (não um OperationFilter): a referência ao security
 /// scheme só serializa corretamente (vira {"ApiKey": []} em vez de um objeto vazio "{}")

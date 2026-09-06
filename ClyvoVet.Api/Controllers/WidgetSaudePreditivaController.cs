@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +12,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/widget-saude-preditiva")]
 [Produces("application/json")]
+[TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
 public class WidgetSaudePreditivaController : ControllerBase
 {
     private readonly IWidgetSaudePreditivaService _service;
