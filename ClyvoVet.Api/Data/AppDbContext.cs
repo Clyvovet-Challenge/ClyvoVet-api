@@ -10,8 +10,6 @@ public class AppDbContext : DbContext
 
     public DbSet<Tutor> Tutores => Set<Tutor>();
     public DbSet<Animal> Animais => Set<Animal>();
-    public DbSet<Veterinario> Veterinarios => Set<Veterinario>();
-    public DbSet<Consulta> Consultas => Set<Consulta>();
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<Lembrete> Lembretes => Set<Lembrete>();
     public DbSet<EventoPet> EventosPet => Set<EventoPet>();

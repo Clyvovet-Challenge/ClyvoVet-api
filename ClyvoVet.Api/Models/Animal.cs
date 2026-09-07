@@ -12,6 +12,4 @@ public class Animal
 
     public string TutorId { get; set; } = null!;
     public Tutor Tutor { get; set; } = null!;
-
-    public ICollection<Consulta> Consultas { get; set; } = new List<Consulta>();
 }
