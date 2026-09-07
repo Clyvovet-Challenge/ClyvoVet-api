@@ -69,7 +69,7 @@ profundidade em vez de ser a única.
 **Impacto fora daqui:** o app passa a mandar `Authorization` também para esta API,
 e a Java precisa expor a chave. É a correção mais valiosa e a mais invasiva.
 
-### 2.2 🔴 `schema/script_bd.sql` diverge do schema real
+### 2.2 ✅ `schema/script_bd.sql` diverge do schema real — CORRIGIDO
 
 Este arquivo é o entregável de DDL da disciplina e é o que o
 `azure/01-criar-recursos.sh` instrui a aplicar. A PARTE 1 dele é **cópia manual**
@@ -103,9 +103,13 @@ não é de convenção — é que cada tabela segue o ORM que a usa.
 
 1. **Trocar as sete linhas para `INT`.** Processo idêntico, mesmo comando, o vídeo
    de entrega continua fiel. É a opção mínima.
-2. **Substituir o arquivo pelo `documentos/script_bd.sql` gerado pela API Java** —
-   que desde a V8 descreve o schema inteiro e sai automaticamente das migrations,
-   em vez de ser copiado à mão. Elimina a classe do problema, não só a instância.
+2. ~~**Substituir o arquivo pelo `documentos/script_bd.sql` gerado pela API Java.**~~
+   **Esta recomendação estava errada e é retirada.** Aquele arquivo é gerado a
+   partir de `db/migration/oracle/`, então é DDL **Oracle** — `VARCHAR2`, sem
+   `ENGINE=InnoDB`. O banco desta API é MySQL. Substituir direto produziria um
+   script que não roda.
+   A versão correta da ideia é gerar um equivalente MySQL a partir de
+   `db/migration/mysql/`, e está registrada abaixo como pendência.
 
 **Pendência separada:** o `script_bd.sql` cria as tabelas sem popular
 `flyway_schema_history`. Se a API Java for publicada contra esse mesmo banco, o
@@ -130,7 +134,7 @@ extrair para um Azure Function com timer.
 **Para a entrega:** manter o App Service em **instância única** elimina o problema
 inteiro. É a decisão certa para o prazo.
 
-### 2.4 🟡 Serilog grava em disco local
+### 2.4 ✅ Serilog grava em disco local — CORRIGIDO
 
 `Program.cs:38` — `.WriteTo.File("Logs/clyvovet-api-.log")`.
 
@@ -141,7 +145,7 @@ de console já existe e é o que o App Service captura.
 **Correção:** remover o sink de arquivo, ou condicioná-lo a desenvolvimento. Uma
 linha. É a única dependência de armazenamento local em qualquer das duas APIs.
 
-### 2.5 🟡 Connection pool no padrão do driver
+### 2.5 ✅ Connection pool no padrão do driver — CORRIGIDO
 
 A connection string não traz parâmetro de pool. Vale o padrão do MySqlConnector:
 **100 conexões por instância**.
@@ -154,7 +158,7 @@ Não é dimensionamento, é o padrão que ninguém tocou.
 Java. Confirmar o teto real com `SHOW VARIABLES LIKE 'max_connections'` antes de
 escalar — o servidor é `Standard_B1ms`, tier Burstable.
 
-### 2.6 🟡 CORS não configurado
+### 2.6 ✅ CORS não configurado — CORRIGIDO
 
 Não há `AddCors` nem `UseCors` em `Program.cs`. A API Java configura por
 `CLYVOVET_CORS_ORIGENS`.
@@ -165,7 +169,7 @@ demonstrado.
 **Correção:** espelhar o desenho da Java — origens por variável de ambiente, nunca
 `AllowAnyOrigin` junto de credenciais.
 
-### 2.7 🟢 `DbSet` mortos apontando para tabelas inexistentes
+### 2.7 ✅ `DbSet` mortos apontando para tabelas inexistentes — CORRIGIDO
 
 `AppDbContext` declara `DbSet<Veterinario>` e `DbSet<Consulta>`, mapeados em
 `VeterinarioConfiguration.cs` e `ConsultaConfiguration.cs` para
@@ -197,7 +201,45 @@ ser o único mecanismo. Registrado por completude.
 
 ---
 
-## 3. Efeito colateral que precisa de dono
+### 2.10 🟠 `Microsoft.OpenApi` 2.4.1 tem vulnerabilidade conhecida
+
+Achado novo, encontrado ao compilar — não estava na auditoria original porque ela
+leu o código, não o resultado do build.
+
+O `dotnet build` emite `NU1903` apontando **vulnerabilidade de alta gravidade** em
+`Microsoft.OpenApi` 2.4.1 ([GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)).
+O pacote está declarado em `ClyvoVet.Api.csproj:36`.
+
+**Correção:** subir para a versão corrigida. Confirmar antes que o
+`Swashbuckle.AspNetCore` 10.1.7 aceita a nova — os dois andam juntos, e o Swagger
+é entregável da disciplina.
+
+---
+
+## 3. O que já foi corrigido
+
+| Correção | Commit |
+|---|---|
+| `ToTable` apontava para `animal` e `tutor`, renomeadas pela V9 do repo Java. A API subia e falhava só na consulta, porque o EF não valida schema no boot | `fix(ef): acompanha o rename das tabelas do schema compartilhado` |
+| Entidades mortas `Veterinario`/`Consulta`: eram inertes até a V9 criar `t_clyvo_veterinario` de verdade, com outro formato (§2.7) | `refactor: remove as entidades mortas Veterinario e Consulta` |
+| `script_bd.sql` com 7 colunas `TINYINT` e 13 tabelas sem prefixo — provisionaria um banco onde a API Java não sobe (§2.2) | `fix(schema): alinha o script_bd.sql ao schema real da API Java` |
+| Sink de arquivo do Serilog (§2.4), pool no padrão de 100 (§2.5) e ausência de CORS (§2.6) | `fix(program): sink de disco, teto de pool e CORS` |
+
+### Pendência que ficou desta rodada
+
+O `schema/script_bd.sql` continua sendo **cópia manual** do schema da API Java, e
+já defasou duas vezes. A correção durável é gerar um `script_bd_mysql.sql` a
+partir de `db/migration/mysql/` — o `scripts/gerar-script-bd.py` do repositório
+Java já faz isso para o Oracle e precisaria de uma variante.
+
+O que impede a substituição direta hoje: este arquivo tem um bloco
+`DROP TABLE IF EXISTS` no topo que o torna re-executável, e um script gerado por
+concatenação de migrations não tem isso. O gerador precisaria emitir o preâmbulo
+de limpeza para o arquivo servir ao mesmo propósito no vídeo de entrega.
+
+---
+
+## 4. Efeito colateral que precisa de dono
 
 `t_clyvo_lembrete.animal_id` e `t_clyvo_sugestao_produto.animal_id` referenciam
 `animal(id)` **sem** `ON DELETE CASCADE` — decisão deliberada da V8: apagar um
@@ -216,22 +258,28 @@ porque desconhece a tabela.
 
 ---
 
-## 4. Ordem sugerida
+## 5. Ordem sugerida
 
-| # | O quê | Bloqueia a entrega? |
+| # | O quê | Estado |
 |---|---|---|
-| 1 | Alinhar `script_bd.sql` (§2.2) | **Sim** — impede a Java de subir |
-| 2 | Manter App Service em instância única (§2.3) | **Sim**, e é decisão de configuração, não código |
-| 3 | Pool em 15 (§2.5) | Não, 1 linha |
-| 4 | Remover sink de arquivo (§2.4) | Não, 1 linha |
-| 5 | CORS (§2.6) | Só se o Expo web for demonstrado |
-| 6 | JWT compartilhado (§2.1) | Não bloqueia, mas é o furo mais grave |
-| 7 | Pipeline de CI (§2.8) | Não |
-| 8 | Remover `DbSet` mortos (§2.7) | Não |
+| 1 | Alinhar `script_bd.sql` (§2.2) | ✅ feito |
+| 2 | Remover sink de arquivo (§2.4) | ✅ feito |
+| 3 | Pool em 15 (§2.5) | ✅ feito |
+| 4 | CORS (§2.6) | ✅ feito |
+| 5 | Remover `DbSet` mortos (§2.7) | ✅ feito |
+| 6 | Manter App Service em **instância única** (§2.3) | **decisão de configuração**, não código — resolve o achado inteiro |
+| 7 | Subir `Microsoft.OpenApi` (§2.10) | pendente |
+| 8 | Pipeline de CI (§2.8) | pendente |
+| 9 | JWT compartilhado (§2.1) | pendente — **o furo mais grave**, e o mais invasivo: depende do Key Vault do deploy |
+| 10 | Tempo constante na chave (§2.9) | pendente, e cai para irrelevante depois do 9 |
+
+**O que sobrou é de dois tipos.** O 6 se resolve provisionando certo. O 9 é o único
+que exige coordenação entre os três repositórios, e o caminho natural é fazê-lo
+junto com o deploy, quando o Key Vault existir para guardar o segredo compartilhado.
 
 ---
 
-## 5. O que **não** fazer
+## 6. O que **não** fazer
 
 Caminhos plausíveis que a auditoria descartou com base no código:
 
