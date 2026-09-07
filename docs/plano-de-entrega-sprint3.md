@@ -23,13 +23,45 @@ repositório já tem. Verificado no código, não presumido:
 | **Testes unitários xUnit** no padrão AAA, com Moq ou NSubstitute | 20 | ✅ 47 testes, Moq 4.20 |
 | **Testes de integração** com `WebApplicationFactory`, validando fluxo HTTP completo, autenticação, sucesso e erro | 15 | ✅ 66 testes |
 | **Organização**: projetos separados por camada, nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`, Fixtures | 15 | ✅ `Tests.Unit` e `Tests.Integration` separados, `IntegrationTestFixture`, nomes como `GetAll_SemApiKey_RetornaUnauthorized` |
-| **README atualizado**: documentar health checks, como monitorar, como rodar `dotnet test`, descrição geral | 10 | ⬜ **é o que falta** |
+| **README atualizado**: documentar health checks, como monitorar, como rodar `dotnet test`, descrição geral | 10 | ✅ feito — e o buraco era outro, ver §2.1 |
 
 **São ~90 dos 100 pontos já construídos.** O trabalho restante desta disciplina é
 essencialmente o README.
 
 Isso reposiciona este repositório no plano: ele não é o gargalo. O gargalo é o
 deploy, que é entregável da disciplina de **DevOps** e vive no repositório Java.
+
+---
+
+## 2.1 O README: o buraco não era o que a régua descrevia
+
+A régua pede "README atualizado" e vale 10 pontos, e a leitura inicial deste plano
+era que o documento simplesmente não existia. **Existia, com 2.024 linhas**, e já
+cobria os quatro itens cobrados: health checks, como monitorar, `dotnet test` e a
+descrição geral. Os 10 pontos não estavam vazios.
+
+O problema era outro, e maior: **grande parte do README descrevia um projeto que
+não é mais este.** Verificado arquivo por arquivo:
+
+| O que o README afirmava | O que o código faz | Consequência |
+|---|---|---|
+| Configurar `ConnectionStrings:OracleConnection` | `Program.cs` lê `ConnectionStrings:DefaultConnection` | quem seguisse o Passo 2 terminava com a API sem conexão, e a chave antiga é **ignorada em silêncio** |
+| Preparar o banco pelo SQL Developer, rodando `schema/01_*.sql` a `06_*.sql` | esses scripts são Oracle (`VARCHAR2`, `NUMBER`, `fn_clyvo_uuid`) e não rodam no MySQL | o Passo 3 inteiro era impossível de executar |
+| "Todo ID sai do Oracle pela função `fn_uuid()` no trigger. O código C# **nunca** gera UUID" | os repositórios fazem `Guid.NewGuid().ToString()`, e o mapeamento é `ValueGeneratedNever()` | a afirmação era o **oposto** do código |
+| `Oracle.EntityFrameworkCore` como provider | `Pomelo.EntityFrameworkCore.MySql` 8.0.2 | tabela de tecnologias errada |
+| "A API já está publicada e no ar 24/7 no Render" | `clyvovet-api.onrender.com` não responde — a conexão nem se estabelece | link morto anunciado como serviço ativo |
+| "Duas APIs independentes — cada uma no seu próprio container Docker — dividem o mesmo banco **Oracle XE**" | as duas são publicadas nativas em App Service, sobre MySQL gerenciado | **contradiz a entrega de DevOps**, onde app em container e banco em container valem −40 cada |
+| "103 testes (46 + 57)" | 116 (47 + 69) | contagem desatualizada |
+| Passo 5 do deploy: aplicar `schema/script_bd.sql` no banco da nuvem | na Sprint 3 o banco nasce vazio e o Flyway da Java cria o schema | **quebra a API Java**: tabelas sem `flyway_schema_history`, e o Flyway recusa migrar schema não vazio desconhecido |
+
+As duas últimas linhas são as que custam nota, e nenhuma delas é "documentação
+desatualizada" no sentido inofensivo: uma contradiz a arquitetura que a entrega
+declara, e a outra é uma instrução que, seguida, impede a outra API de subir.
+
+A seção de deploy da entrega anterior **não foi apagada** — ela documenta o vídeo
+daquela sprint, e apagá-la seria reescrever o registro de outra pessoa. Ganhou um
+aviso no topo dizendo que o procedimento vigente está no repositório da API Java, e
+um aviso no passo 5 especificamente.
 
 ---
 

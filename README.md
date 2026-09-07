@@ -3,13 +3,32 @@
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-8.0-0078D4?style=flat&logo=microsoft&logoColor=white)
 ![Entity Framework Core](https://img.shields.io/badge/Entity_Framework_Core-8.0-68217A?style=flat&logo=nuget&logoColor=white)
-![Oracle](https://img.shields.io/badge/Oracle_Database-XE-F80000?style=flat&logo=oracle&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-OpenAPI-85EA2D?style=flat&logo=swagger&logoColor=black)
 ![Serilog](https://img.shields.io/badge/Serilog-Structured_Logging-1B1F26?style=flat)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing_%26_Metrics-425CC7?style=flat&logo=opentelemetry&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-Testes_Automatizados-512BD4?style=flat)
 
 ## ☁️ Sprint DevOps Tools & Cloud Computing — Deploy na Azure
+
+> ### ⚠️ Registro da entrega anterior — o procedimento vigente é outro
+>
+> O passo a passo desta seção foi o da **entrega anterior**, com a infraestrutura
+> daquele momento (região `chilecentral`, scripts `azure/01` a `azure/04` deste
+> repositório, schema aplicado por `schema/script_bd.sql`). Ele fica registrado
+> porque documenta o que o vídeo daquela entrega mostra.
+>
+> **Para provisionar a infraestrutura da Sprint 3, siga o README do repositório
+> [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java),
+> não este.** Lá os scripts `azure/00` a `azure/09` sobem, numa região só, o
+> Resource Group, o MySQL, o plano compartilhado e **as duas** APIs — esta
+> inclusive. Este repositório não provisiona mais nada sozinho.
+>
+> **Um ponto não é preferência, é quebra:** na Sprint 3 o banco é criado **vazio**,
+> e quem cria o schema é o **Flyway da API Java**, no primeiro boot dela. Aplicar
+> `schema/script_bd.sql` antes disso deixa o banco com as tabelas mas sem a
+> `flyway_schema_history` — e o Flyway recusa migrar um schema não vazio que ele
+> não conhece, então a API Java simplesmente não sobe. Ver o passo 5 abaixo.
 
 > Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
 
@@ -39,7 +58,7 @@ Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/s
 ### Banco de Dados em Nuvem
 
 - **Motor:** MySQL 8.0, via **Azure Database for MySQL Flexible Server** (nada de H2, nada de container).
-- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) traz o schema inteiro (tabelas da API Java somadas às nossas), com colunas, chaves primárias/estrangeiras, comentários e uma carga inicial de dados relevante. As tabelas `tutor`/`animal`/etc. reproduzem as migrations Flyway reais do repositório da API Java (`clyvovet-backend-java`); mudando o schema de lá, essa cópia precisa acompanhar.
+- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) traz o schema inteiro (tabelas da API Java somadas às nossas), com colunas, chaves primárias/estrangeiras, comentários e uma carga inicial de dados relevante. **Na Sprint 3 ele é documentação, não ferramenta de provisionamento** — serve para ler e conferir o modelo; quem cria as tabelas no banco de nuvem é o Flyway da API Java. As tabelas `tutor`/`animal`/etc. reproduzem as migrations Flyway reais do repositório da API Java (`clyvovet-backend-java`); mudando o schema de lá, essa cópia precisa acompanhar.
 - **Tabelas do CRUD (núcleo da solução, avaliado nesta entrega):** `t_clyvo_produto` e `t_clyvo_sugestao_produto`, ligadas por `produto_id`. Já `tutor` e `animal` são da API Java — entram aqui apenas via FK/JOIN, para leitura, e o .NET nunca escreve nelas.
 
 ### Arquitetura escolhida: Opção 2 — App Service + Banco PaaS
@@ -100,6 +119,10 @@ bash azure/01-criar-recursos.sh
 O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banco `clyvovet`, além de liberar seu IP atual no firewall.
 
 **5. Aplicar o schema no banco**
+
+> ⚠️ **Este passo não vale para a Sprint 3.** Lá o banco nasce vazio e o schema é
+> criado pelo Flyway da API Java. Rodar o comando abaixo contra o banco da Sprint 3
+> impede a API Java de subir, pelo motivo explicado no início desta seção.
 
 ```bash
 mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u clyvovetadmin -p$MYSQL_PASSWORD --ssl-mode=REQUIRED clyvovet < schema/script_bd.sql
@@ -172,13 +195,21 @@ O script remove o Resource Group inteiro, com tudo o que há dentro dele. **Aten
 
 ## 🌐 API em produção
 
-A API já está publicada e no ar 24/7 no Render — dá pra acessar sem clonar nem rodar nada localmente:
+A hospedagem da Sprint 3 é **Azure App Service**, provisionada pelos scripts do
+repositório da API Java (`azure/05-webapp-dotnet.sh` e `azure/08-deploy-dotnet.sh`).
+Os endereços que o deploy publica:
 
-- **Base URL:** [`https://clyvovet-api.onrender.com`](https://clyvovet-api.onrender.com)
-- **Swagger:** [`https://clyvovet-api.onrender.com/swagger`](https://clyvovet-api.onrender.com/swagger)
-- **Health Check:** [`https://clyvovet-api.onrender.com/health`](https://clyvovet-api.onrender.com/health)
+- **Base URL:** `https://app-clyvovet-dotnet-rm562312.azurewebsites.net`
+- **Swagger:** `.../swagger`
+- **Health Check:** `.../health`, `.../health/live`, `.../health/ready`
 
-> Está no plano **Free** do Render — de vez em quando uma requisição pode vir `404` ou demorar mais, por causa da instância gratuita (sem redundância). Nesse caso, basta tentar novamente.
+> **Os links viram clicáveis quando o deploy da Sprint 3 rodar** — enquanto isso,
+> os endereços acima são o destino, não um serviço no ar.
+>
+> A instância anterior ficava no plano Free do **Render**, em
+> `clyvovet-api.onrender.com`. Ela **não responde mais** (verificado: a conexão nem
+> se estabelece), e por isso saiu daqui em vez de continuar anunciada como "no ar
+> 24/7" — README que aponta para URL morta custa mais do que README sem URL.
 
 ---
 
@@ -196,16 +227,21 @@ A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro
 
 A **Sprint 3** somou à API uma camada completa de observabilidade e testes automatizados:
 
-- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o Oracle está realmente funcionando.
-- **Logging estruturado** via Serilog (console + arquivo), correlacionando requisições através do header `X-Correlation-Id`.
+- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o **MySQL** está realmente funcionando.
+- **Logging estruturado** via Serilog (console sempre; arquivo em desenvolvimento), correlacionando requisições através do header `X-Correlation-Id`.
 - **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console e endpoint `/metrics` em formato Prometheus).
-- **103 testes automatizados** (46 unitários + 57 de integração), abrangendo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória), autenticação inclusive.
+- **116 testes automatizados** (47 unitários + 69 de integração), abrangendo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória), autenticação e geração do documento OpenAPI inclusive.
 
 ---
 
 ## Arquitetura
 
-Duas APIs independentes — cada uma no seu próprio container Docker — dividem o mesmo banco Oracle XE (FIAP):
+Duas APIs independentes dividem **um único banco MySQL**, e nenhuma das duas roda
+em container: as duas são publicadas como aplicação nativa em **Azure App Service
+Linux**, sobre um **Azure Database for MySQL Flexible Server** gerenciado. É a
+Opção 2 exigida pela disciplina de DevOps, onde app em container e banco em
+container são penalizados. (O `Dockerfile` na raiz continua servindo ao
+desenvolvimento local; ele não produz o artefato publicado.)
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
@@ -222,12 +258,12 @@ Duas APIs independentes — cada uma no seu próprio container Docker — divide
 |------------|--------|-----|
 | .NET / ASP.NET Core | 8.0 | Framework da API |
 | Entity Framework Core | 8.0.11 | ORM (Database-First, sem migrations) |
-| Oracle.EntityFrameworkCore | 8.21.121 | Provider Oracle para EF Core |
+| Pomelo.EntityFrameworkCore.MySql | 8.0.2 | Provider MySQL para EF Core |
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
-| Microsoft.OpenApi | 2.4.1 | Modelos OpenAPI (namespace atualizado na v2) |
-| Oracle Database XE | — | Banco de dados |
+| Microsoft.OpenApi | 2.12.2 | Modelos OpenAPI (namespace atualizado na v2) |
+| MySQL | 8.0 | Banco de dados (Azure Database for MySQL Flexible Server na nuvem) |
 | Microsoft.Extensions.Diagnostics.HealthChecks | 8.0.11 | Health Checks (`/health`, `/health/live`, `/health/ready`) |
-| Serilog.AspNetCore | 10.0.0 | Logging estruturado (console + arquivo) |
+| Serilog.AspNetCore | 10.0.0 | Logging estruturado (console sempre; arquivo em `Development`) |
 | OpenTelemetry (.NET SDK) | 1.18.0 | Distributed tracing + métricas de desempenho |
 | OpenTelemetry.Exporter.Prometheus.AspNetCore | 1.18.0-beta.1 | Endpoint `/metrics` no formato Prometheus |
 | xUnit + Moq | 2.9.3 / 4.20.72 | Testes unitários (padrão AAA) |
@@ -248,7 +284,7 @@ ClyvoVet-api/
 │   │   └── Interfaces/
 │   ├── Repositories/          → Acesso ao banco via EF Core
 │   │   └── Interfaces/
-│   ├── Models/                 → Entidades mapeadas nas tabelas Oracle
+│   ├── Models/                 → Entidades mapeadas nas tabelas MySQL
 │   ├── DTOs/
 │   │   ├── Request/           → Dados recebidos nas requisições (POST/PUT)
 │   │   └── Response/          → Dados retornados nas respostas
@@ -261,9 +297,9 @@ ClyvoVet-api/
 │   ├── Middleware/            → CorrelationIdMiddleware (rastreio de requisições nos logs)
 │   ├── Properties/
 │   │   └── launchSettings.json
-│   ├── appsettings.json       → Connection string Oracle (placeholder) + níveis de log
+│   ├── appsettings.json       → Connection string MySQL (placeholder) + níveis de log
 │   ├── Program.cs             → DI, Swagger, Health Checks, Serilog, OpenTelemetry, middleware de erros
-│   ├── Logs/                   → Arquivos de log gerados pelo Serilog (não versionado)
+│   ├── Logs/                   → Log em arquivo do Serilog, só em `Development` (não versionado)
 │   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Services, mocks via Moq)
 │   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
 └── schema/
@@ -285,8 +321,8 @@ ClyvoVet-api/
 | Ferramenta | Versão mínima | Para que serve |
 |------------|--------------|----------------|
 | [.NET SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | 8.0 | Compilar e rodar a API |
-| Oracle Database | XE 21c+ | Banco de dados |
-| Oracle SQL Developer | Qualquer | Executar os scripts SQL |
+| MySQL | 8.0+ | Banco de dados |
+| Cliente `mysql` | Qualquer | Criar o banco e aplicar `schema/script_bd.sql` |
 | Git | Qualquer | Clonar o repositório |
 
 ---
@@ -315,11 +351,17 @@ ls
 
 ### Passo 2 — Configurar a connection string
 
+> **Se você tem um clone antigo:** a chave mudou. Era `ConnectionStrings:OracleConnection`,
+> apontando para o Oracle da FIAP; hoje o projeto usa **MySQL** via
+> `Pomelo.EntityFrameworkCore.MySql`, e o `Program.cs` lê
+> **`ConnectionStrings:DefaultConnection`**. Um secret antigo com o nome velho é
+> simplesmente ignorado, e a API sobe reclamando de connection string ausente.
+
 Por ficar versionado no repositório, `ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
 
 ```bash
 cd ClyvoVet.Api
-dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=clyvovet;Uid=root;Pwd=SUA_SENHA_LOCAL;"
 ```
 
 > Na primeira vez, se o projeto ainda não tem um `UserSecretsId`, rode antes: `dotnet user-secrets init`.
@@ -335,128 +377,84 @@ dotnet user-secrets list
 ```json
 {
   "ConnectionStrings": {
-    "OracleConnection": "User Id=SEU_RM;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/ORCL;"
+    "DefaultConnection": "Server=localhost;Port=3306;Database=clyvovet;Uid=root;Pwd=SUA_SENHA_LOCAL;"
   }
 }
 ```
 
-**Formato da connection string Oracle:**
+**Formato da connection string MySQL:**
 
 | Parte | Exemplo | Descrição |
 |-------|---------|-----------|
-| `User Id` | `rmxxxxxx` | Seu RM (usuário Oracle FIAP) |
-| `Password` | `fiap26` | Senha do Oracle FIAP |
-| `Data Source` | `oracle.fiap.com.br:1521/ORCL` | Host:Porta/ServiceName |
+| `Server` | `localhost` | Host do MySQL |
+| `Port` | `3306` | Porta (o padrão do MySQL) |
+| `Database` | `clyvovet` | Nome do banco |
+| `Uid` / `Pwd` | `root` / sua senha | Credenciais |
+| `SslMode` | `Required` | **Obrigatório na Azure**; dispensável em `localhost` |
 
-> **⚠️ Para o Oracle FIAP, o service name correto é `ORCL`**  
-> Usar `XE` ou `XEPDB1` no lugar gera `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`.
+**Contra o banco da Azure** (o mesmo que a API Java usa), acrescente o TLS — o MySQL Flexible Server recusa a conexão sem ele:
 
-**Pra Oracle local (instalação própria):**
-
-```json
-"OracleConnection": "User Id=system;Password=SUA_SENHA;Data Source=localhost:1521/XEPDB1;"
+```
+Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvovetadmin;Pwd=<SENHA>;SslMode=Required;
 ```
 
-> **Erro: `ORA-01017: invalid username/password`**  
-> Usuário ou senha incorretos. Verifique as credenciais no portal FIAP, ou redefina a senha pelo SQL Developer.
+> **Erro: `Unable to connect to any of the specified MySQL hosts`**
+> O MySQL não está no ar ou o host/porta estão errados. Confira com `mysql -h localhost -u root -p`.
 
-> **Erro: `ORA-12514: TNS:listener não tem conhecimento sobre o serviço`**  
-> O service name está errado. Teste `ORCL`, `XEPDB1` ou `XE` até conseguir conectar — o SQL Developer mostra o service name correto na configuração de uma conexão já existente.
+> **Erro: `Access denied for user`**
+> Usuário ou senha incorretos no `Uid`/`Pwd`.
 
-> **Erro: `ORA-12541: TNS:no listener`** ou **`Connection refused`**  
-> O servidor Oracle não está acessível. Confira a conexão com a internet (o servidor FIAP roda fora da rede local) ou veja se o Oracle local está ativo (`services.msc` → `OracleServiceXE`).
+> **Erro: `Unknown database 'clyvovet'`**
+> O banco ainda não existe. É o Passo 3.
+
+> **Erro na Azure: `The SSL connection could not be established`**
+> Faltou `SslMode=Required;` na connection string.
 
 ---
 
 ### Passo 3 — Preparar o banco de dados
 
-Abra o **Oracle SQL Developer**, conecte usando suas credenciais e execute os scripts na ordem abaixo:
+> ⚠️ **Só para desenvolvimento local.** No banco da Azure **não execute nada disto**:
+> lá o banco nasce vazio e quem cria o schema é o **Flyway da API Java**, no primeiro
+> boot dela. Aplicar DDL antes deixa as tabelas sem a `flyway_schema_history`, e o
+> Flyway então recusa migrar um schema não vazio que ele não conhece — a API Java
+> não sobe.
 
-#### 3.1 — Criar as tabelas
+#### 3.1 — Criar o banco e aplicar o schema
 
-1. Abra `schema/01_criar_tabelas_dotnet.sql` no SQL Developer
-2. Pressione **F5** (Run Script — não F9)
-3. Aguarde até ver no output:
-
-```
-Table T_CLYVO_PRODUTO created.
-Table T_CLYVO_EVENTO_PET created.
-Table T_CLYVO_LEMBRETE created.
-Table T_CLYVO_SUGESTAO_PRODUTO created.
-Trigger TRG_CLYVO_PRODUTO_ID compiled.
-...
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS clyvovet CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p clyvovet < schema/script_bd.sql
 ```
 
-> **Reexecutar esse script é seguro** — ele derruba as tabelas existentes antes de recriar tudo.
+[`schema/script_bd.sql`](schema/script_bd.sql) é o schema completo em **MySQL**, nas duas partes:
 
-> **Erro: `ORA-00942: table or view does not exist`** durante o DROP  
-> Normal na primeira execução — o script usa `EXCEPTION WHEN OTHERS THEN NULL` justamente para ignorar esse erro, então pode seguir.
+| Parte | Tabelas | Quem escreve |
+|---|---|---|
+| **1** | `t_clyvo_tutor`, `t_clyvo_animal`, `t_clyvo_clinica`, `t_clyvo_veterinario`, … | a **API Java** — aqui elas existem para as FKs e os JOINs; esta API só lê |
+| **2** | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude`, `t_clyvo_tutor_telegram` | esta API |
 
-> **Erro: `ORA-01031: insufficient privileges`**  
-> Seu usuário não tem permissão para criar tabelas. Conecte com um usuário com privilégios de DBA, ou peça apoio ao administrador do banco.
+O arquivo já inclui a carga inicial: produtos, eventos pet, um tutor e um animal de
+exemplo, as predisposições de saúde do Widget e a tabela de vínculo com o Telegram.
+Não há passo separado para nenhum deles.
 
-> **Erro: `ORA-00955: name is already used by an existing object`**  
-> Já existe um objeto (trigger, função) com esse mesmo nome. Rode `schema/03_drop_tabelas_dotnet.sql` para limpar antes, depois execute o `01` outra vez.
+#### 3.2 — Conferir
 
-#### 3.2 — Inserir dados de exemplo
-
-1. Abra `schema/02_seed_dotnet.sql`
-2. Pressione **F5**
-3. Confira o output:
-
-```
-BLOCO 1 — Produtos e Eventos Pet
---- Inserindo produtos ---
-[OK] 5 produtos inseridos.
---- Inserindo eventos pet ---
-[OK] 4 eventos inseridos.
-[COMMIT] Bloco 1 salvo.
-
-BLOCO 2 — Tutor, Animal, Lembretes e Sugestoes
---- Resolvendo animal_id ---
-[INFO] t_clyvo_animal vazia. Criando tutor e animal de seed...
-[OK] Tutor de seed criado: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-[OK] Animal de seed criado: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
---- Inserindo lembretes ---
-[OK] 3 lembretes inseridos.
---- Inserindo sugestoes de produto ---
-[OK] 3 sugestoes inseridas.
-[COMMIT] Bloco 2 salvo.
+```bash
+mysql -u root -p clyvovet -e "
+SELECT TABLE_NAME, TABLE_ROWS FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = 'clyvovet' AND TABLE_NAME LIKE 't_clyvo_%'
+ ORDER BY TABLE_NAME;"
 ```
 
-> **`[ERRO] Bloco 1`** — indica que o script `01` ainda não rodou. Execute-o antes.
+Se `t_clyvo_produto` e `t_clyvo_predisposicao_saude` aparecerem com linhas, o seed
+entrou. Sem as predisposições, `GET /api/v1/widget-saude-preditiva/{animalId}`
+responde normalmente, mas sempre com a lista vazia.
 
-> **`[AVISO] Nao foi possivel acessar t_clyvo_animal`**  
-> A tabela `t_clyvo_animal` ainda não existe. Rode o script `01` (que cria todas as tabelas) antes do `02`.
-
-> **`[ERRO] Bloco 2: ORA-00001: unique constraint violated`**  
-> Indica que o seed já rodou antes. Costuma acontecer com o tutor de seed (CPF `00000000000`) — o script lida bem com isso, pois o Bloco 1 já foi commitado e o Bloco 2 procura o tutor existente antes de criar um novo.
-
-> **A contagem final de registros deve ficar assim:**
-
-```
-TABELA                   TOTAL
------------------------- -----
-T_CLYVO_ANIMAL               1
-T_CLYVO_LEMBRETE             3
-T_CLYVO_PRODUTO              5
-T_CLYVO_EVENTO_PET           4
-T_CLYVO_SUGESTAO_PRODUTO     3
-T_CLYVO_TUTOR                1
-```
-
-#### 3.3 — Criar a tabela de predisposições de saúde (usada pelo Widget)
-
-1. Abra `schema/04_criar_tabela_predisposicao_dotnet.sql` e pressione **F5**
-2. Abra `schema/05_seed_predisposicao_dotnet.sql` e pressione **F5** — insere as 42 predisposições de saúde por espécie/raça/idade
-
-> Pulando esse passo, `GET /api/v1/widget-saude-preditiva/{animalId}` sempre devolve a lista de predisposições vazia.
-
-#### 3.4 — Criar a tabela de vínculo com o Telegram
-
-1. Abra `schema/06_criar_tabela_tutor_telegram_dotnet.sql` e pressione **F5**
-
-> Sem esse passo, a notificação por Telegram fica sem onde salvar o vínculo tutor ↔ chat, e a API registra erro no background service correspondente (mas segue rodando normalmente).
+> **Os arquivos `schema/01_*.sql` a `schema/06_*.sql` são do tempo do Oracle** —
+> `VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`. Eles
+> não rodam no MySQL e ficam apenas como registro histórico. O único script vigente
+> é o `script_bd.sql`.
 
 ---
 
@@ -513,11 +511,11 @@ info: Microsoft.Hosting.Lifetime[0]
 > ```
 > Ou mude a porta em `Properties/launchSettings.json`.
 
-> **Erro: `ORA-12514` ou `ORA-12541` ao fazer a primeira requisição**  
+> **Erro: `Unable to connect to any of the specified MySQL hosts` na primeira requisição**  
 > A connection string está errada — volte ao Passo 2. Mesmo com credenciais inválidas a aplicação sobe normalmente; o erro só se manifesta na primeira chamada ao banco.
 
-> **Erro: `Unable to load DLL 'oci.dll'`**  
-> Indica que falta o cliente Oracle nativo. Só que o pacote `Oracle.ManagedDataAccess` é 100% gerenciado e **dispensa** o Oracle Client instalado — confira se o projeto está mesmo usando a versão certa do pacote (`Oracle.ManagedDataAccess.Core` ou `Oracle.EntityFrameworkCore`).
+> **Erro: `Table 'clyvovet.t_clyvo_produto' doesn't exist`**  
+> O banco existe mas está vazio: falta aplicar `schema/script_bd.sql` (Passo 3).
 
 > **A API sobe mas retorna `500` em todos os endpoints**  
 > Confira os logs no terminal — é ali que o erro real aparece. As causas mais frequentes:
@@ -589,9 +587,9 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 |----------|----------------|-----|
 | `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
-| `GET /health/ready` | Conectividade real com o Oracle (`Database.CanConnectAsync()`) | Readiness probe |
+| `GET /health/ready` | Conectividade real com o MySQL (`Database.CanConnectAsync()`) | Readiness probe |
 
-Além do Oracle, `GET /health` também confere os demais serviços externos integrados à API — a Telegram Bot API (`telegram-bot`, via `GetMe`) e o Twilio/WhatsApp (`whatsapp-twilio`, consultando os dados da conta). Os dois ficam fora da tag `ready` de propósito: uma instabilidade neles não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram/WhatsApp.
+Além do MySQL, `GET /health` também confere os demais serviços externos integrados à API — a Telegram Bot API (`telegram-bot`, via `GetMe`) e o Twilio/WhatsApp (`whatsapp-twilio`, consultando os dados da conta). Os dois ficam fora da tag `ready` de propósito: uma instabilidade neles não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram/WhatsApp.
 
 Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
@@ -616,7 +614,8 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
 
 ### Logging Estruturado (Serilog)
 
-- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs), grava simultaneamente no **console** e num **arquivo** (`Logs/clyvovet-api-*.log`, com rotação diária e retenção de 7 dias).
+- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
+- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
 - Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
 - São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
 - Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
@@ -655,11 +654,12 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `103` testes passando (`46` unitários e `57` de integração).
+**Resultado esperado:** `116` testes passando (`47` unitários e `69` de integração).
 
 ### Detalhes dos testes de integração
 
-- A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o Oracle real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar do Oracle FIAP.
+- A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o MySQL real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar de banco nenhum, nem local nem na nuvem.
+- `SwaggerEndpointsTests` cobre a geração do documento OpenAPI: que `/swagger/v1/swagger.json` responde, que ele é um documento válido com rotas, e que uma rota protegida por `X-Api-Key` continua declarando o requisito de segurança. Existe porque o Swagger é entregável avaliado e falha nele é 500 em tempo de execução, não erro de compilação — foi o que permitiu subir o `Microsoft.OpenApi` para corrigir a vulnerabilidade GHSA-v5pm-xwqc-g5wc sem apostar que nada quebrou.
 - A maior parte dos testes usa uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para a suíte inteira, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, separada, por dependerem de um Animal com raça e idade específicas.
 
 ---
@@ -683,27 +683,42 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 | **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
 
-> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `ORA-00942` em qualquer endpoint de lembrete ou sugestão.
+> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `Table 'clyvovet.t_clyvo_tutor' doesn't exist` em qualquer endpoint de lembrete ou sugestão.
 
 ---
 
 ### Geração de IDs (UUID)
 
-Todo ID sai do Oracle através da função `fn_uuid()`, chamada no trigger `BEFORE INSERT` de cada tabela. O código C# **nunca** gera UUID — o EF Core usa `RETURNING` para ler o valor já gerado:
+Todo ID é um UUID gerado **em C#**, no repositório, antes do `INSERT`. O banco não
+participa: as colunas `id` são `VARCHAR(36)` simples, sem trigger, sem `DEFAULT`, e o
+mapeamento diz isso explicitamente com `ValueGeneratedNever()`.
 
-```sql
--- Função fn_uuid() — definida em 01_criar_tabelas_dotnet.sql
-CREATE OR REPLACE FUNCTION fn_uuid RETURN VARCHAR2 IS
-BEGIN
-  RETURN LOWER(REGEXP_REPLACE(RAWTOHEX(SYS_GUID()),
-    '([A-F0-9]{8})([A-F0-9]{4})([A-F0-9]{4})([A-F0-9]{4})([A-F0-9]{12})',
-    '\1-\2-\3-\4-\5'));
-END;
+```csharp
+// Repositories/ProdutoRepository.cs
+produto.Id = Guid.NewGuid().ToString();
 ```
+
+```csharp
+// Data/Configurations/ProdutoConfiguration.cs
+builder.Property(p => p.Id)
+    .HasColumnName("id")
+    .HasColumnType("VARCHAR(36)")
+    .ValueGeneratedNever();
+```
+
+> **Isto mudou com a migração para MySQL.** No Oracle, o ID vinha da função
+> `fn_uuid()` chamada num trigger `BEFORE INSERT`, e o EF Core o lia de volta com
+> `RETURNING`. Gerar do lado da aplicação tem uma vantagem prática aqui: o ID existe
+> antes de a linha ser gravada, então dá para montar respostas e relacionamentos sem
+> um segundo *round-trip* ao banco.
 
 ---
 
 ### Scripts disponíveis
+
+> **Os `01_` a `06_` abaixo são do tempo do Oracle** e não rodam no MySQL
+> (`VARCHAR2`, `NUMBER`, triggers, `fn_clyvo_uuid`). Ficam como registro. O script
+> vigente, e único aplicável, é o **`schema/script_bd.sql`**.
 
 | Arquivo | Quando usar |
 |---------|-------------|
@@ -1124,7 +1139,7 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 
 ## Guia de Testes Manuais
 
-> **54 testes** rodados contra Oracle real, todos passando.  
+> **54 testes** manuais, rodados contra o banco MySQL real, todos passando.  
 > Acesse **`http://localhost:5191/swagger`**, siga a ordem indicada e reaproveite os JSONs já prontos.  
 > Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
 > ⚠️ Desde a Sprint 3, os endpoints principais exigem `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](#-autenticação)).
@@ -1133,14 +1148,14 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 
 ### Antes de começar — obtenha os IDs necessários
 
-Rode no **Oracle SQL Developer** depois de executar o seed:
+Rode no cliente `mysql` (ou no MySQL Workbench) depois de aplicar o schema:
 
 ```sql
 -- animal_id (necessário nos testes de Lembrete e Sugestão)
-SELECT id, nome FROM t_clyvo_animal WHERE ROWNUM = 1;
+SELECT id, nome FROM t_clyvo_animal LIMIT 1;
 
 -- produto_id do seed (necessário nos testes de Sugestão)
-SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
+SELECT id, nome FROM t_clyvo_produto LIMIT 1;
 ```
 
 > Guarde os dois UUIDs — eles entram no lugar de `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes a seguir.  
@@ -1153,7 +1168,7 @@ SELECT id, nome FROM t_clyvo_produto WHERE ROWNUM = 1;
 ---
 
 ### T01 — Listar todos os produtos
-**Confirma a conexão com o Oracle — deve devolver os produtos do seed.**
+**Confirma a conexão com o MySQL — deve devolver os produtos do seed.**
 
 ```
 GET /api/v1/produtos
@@ -1220,7 +1235,7 @@ POST /api/v1/produtos
 }
 ```
 
-✅ **Esperado:** `201 Created` — produto criado com `id` gerado pelo Oracle.
+✅ **Esperado:** `201 Created` — produto criado com `id` gerado pela API.
 
 > 📋 **Guarde o `id` retornado** — será usado nos testes T07, T08 e T50.
 
@@ -1378,7 +1393,7 @@ POST /api/v1/eventos-pet
 }
 ```
 
-✅ **Esperado:** `201 Created` — evento criado com `id` gerado pelo Oracle.
+✅ **Esperado:** `201 Created` — evento criado com `id` gerado pela API.
 
 > 📋 **Guarde o `id` retornado** — será usado nos testes T18, T19 e T49.
 
@@ -1706,7 +1721,7 @@ POST /api/v1/sugestoes-produto
 }
 ```
 
-✅ **Esperado:** `201 Created` — sugestão criada com `id` gerado pelo Oracle.
+✅ **Esperado:** `201 Created` — sugestão criada com `id` gerado pela API.
 
 > 📋 **Guarde o `id` retornado** — será usado nos testes T40, T42 e T47.
 
@@ -1897,7 +1912,7 @@ GET /api/v1/sugestoes-produto/{id do T39}
 ---
 
 > **Resultado esperado ao final:** os 54 testes passam, cada um com o status code indicado.  
-> Essa suíte rodou contra Oracle real e fechou em **54/54 PASS**.
+> Essa suíte rodou contra o MySQL real e fechou em **54/54 PASS**.
 
 ---
 
@@ -1908,7 +1923,7 @@ GET /api/v1/sugestoes-produto/{id do T39}
 | Regra | Comportamento |
 |-------|---------------|
 | Preço não pode ser negativo | 400 Bad Request |
-| ID gerado pelo Oracle | Campo `id` ignorado no request — gerado via `fn_uuid()` na trigger |
+| ID gerado pela API | Campo `id` ignorado no request — o repositório atribui `Guid.NewGuid()` antes do INSERT |
 
 ### Evento Pet
 

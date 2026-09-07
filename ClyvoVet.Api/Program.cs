@@ -29,23 +29,39 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuração estática (em vez do padrão bootstrap-logger/ReloadableLogger): evita o erro
 // "the logger is already frozen" quando o host é construído mais de uma vez no mesmo
 // processo, como acontece com WebApplicationFactory nos testes de integração.
-Log.Logger = new LoggerConfiguration()
+const string TemplateLog =
+    "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}";
+
+var configuracaoLog = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .Enrich.WithMachineName()
     .Enrich.WithProperty("Application", ServiceName)
-    .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
+    .WriteTo.Console(outputTemplate: TemplateLog);
 
-// SEM SINK DE ARQUIVO, DE PROPOSITO
-// Havia um .WriteTo.File("Logs/clyvovet-api-.log") aqui. No App Service esse
-// caminho e efemero e por instancia: cada replica escreve o seu proprio arquivo,
-// ninguem os agrega, e o conteudo some no proximo restart. Era a unica
-// dependencia de armazenamento local em qualquer das duas APIs.
+// SINK DE ARQUIVO SO EM DESENVOLVIMENTO
+// O requisito da disciplina pede "saida para console/arquivo". O console atende a
+// leitura natural ("console ou arquivo"), mas o arquivo existir no codigo tira a
+// duvida -- e da o que demonstrar rodando local, que e onde ele serve para algo.
 //
-// O sink de console acima e o que o App Service captura, e o que aparece em
-// "Log stream" e no Application Insights.
+// Fora de Development ele nao entra, e o motivo e concreto: no App Service o
+// caminho e efemero e por instancia. Cada replica escreveria o seu proprio
+// arquivo, ninguem os agrega, e o conteudo some no proximo restart -- seria a
+// unica dependencia de armazenamento local em qualquer das duas APIs. Lá quem
+// captura o log e o console, via "Log stream" e Application Insights.
+//
+// O ambiente de teste e "Testing" (IntegrationTestFixture), entao a suite tambem
+// nao escreve arquivo -- 113 testes nao deixam rastro em disco.
+if (builder.Environment.IsDevelopment())
+{
+    configuracaoLog.WriteTo.File(
+        path: "Logs/clyvovet-api-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        outputTemplate: TemplateLog);
+}
+
+Log.Logger = configuracaoLog.CreateLogger();
 
 builder.Host.UseSerilog();
 

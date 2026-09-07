@@ -299,13 +299,13 @@ porque desconhece a tabela.
 | # | O quê | Estado |
 |---|---|---|
 | 1 | Alinhar `script_bd.sql` (§2.2) | ✅ feito |
-| 2 | Remover sink de arquivo (§2.4) | ✅ feito |
+| 2 | Remover sink de arquivo (§2.4) | ✅ feito, e depois **condicionado a `Development`** — ver §2 do plano de entrega |
 | 3 | Pool em 15 (§2.5) | ✅ feito |
 | 4 | CORS (§2.6) | ✅ feito |
 | 5 | Remover `DbSet` mortos (§2.7) | ✅ feito |
 | 6 | Manter App Service em **instância única** (§2.3) | **decisão de configuração**, não código — resolve o achado inteiro |
-| 7 | Subir `Microsoft.OpenApi` (§2.10) | pendente |
-| 8 | Pipeline de CI (§2.8) | pendente |
+| 7 | Subir `Microsoft.OpenApi` (§2.10) | ✅ feito — 2.4.1 → 2.12.2, e `Microsoft.Bcl.Memory` fixado em 9.0.19. `dotnet list package --vulnerable --include-transitive` volta limpo nos três projetos |
+| 8 | Pipeline de CI (§2.8) | fora de escopo — o documento oficial coloca CI/CD na **Sprint 4** |
 | 9 | JWT compartilhado (§2.1) | pendente — **o furo mais grave**, e o mais invasivo: depende do Key Vault do deploy |
 | 10 | Tempo constante na chave (§2.9) | pendente, e cai para irrelevante depois do 9 |
 

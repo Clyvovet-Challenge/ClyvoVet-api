@@ -41,9 +41,16 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
             .HasColumnName("genero")
             .HasColumnType("VARCHAR(10)");
 
+        // SEM HasColumnType, DE PROPOSITO
+        // Declarava TINYINT(1), mas a coluna real e INT: ela pertence a API Java,
+        // que a escreve via NumericBooleanConverter -- o converter entrega Integer
+        // ao JDBC, e o ddl-auto=validate de la reprova TINYINT contra INTEGER.
+        // Nao quebrava leitura (o MySQL converte), mas era um tipo errado escrito
+        // no codigo, e o proximo a gerar DDL a partir daqui recriaria a coluna
+        // como TINYINT e derrubaria o boot da outra API. Sem a anotacao o Pomelo
+        // infere bool <-> a coluna existente e ninguem afirma o tipo errado.
         builder.Property(a => a.Castrado)
-            .HasColumnName("castrado")
-            .HasColumnType("TINYINT(1)");
+            .HasColumnName("castrado");
 
         builder.Property(a => a.TutorId)
             .HasColumnName("tutor_id")

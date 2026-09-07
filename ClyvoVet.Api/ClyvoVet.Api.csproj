@@ -33,7 +33,13 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.18.0-beta.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
-    <PackageReference Include="Microsoft.OpenApi" Version="2.4.1" />
+    <!-- 2.12.2, e nao 2.4.1: GHSA-v5pm-xwqc-g5wc (alta) atinge >= 2.0.0-preview.11
+         ate 2.7.4, e a correcao saiu na 2.7.5. Fica na ultima 2.x em vez de pular
+         para a 3.x porque quem traz este pacote e o Swashbuckle.AspNetCore.Swagger
+         10.1.7, que declara dependencia de Microsoft.OpenApi 2.4.1 — dentro da
+         mesma major o contrato binario se mantem; a 3.x seria uma aposta. A
+         referencia direta existe justamente para sobrepor a transitiva. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
@@ -41,6 +47,16 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     <PackageReference Include="Telegram.Bot" Version="22.10.3" />
     <PackageReference Include="Twilio" Version="8.0.0" />
+
+    <!-- PIN DE PACOTE TRANSITIVO, NAO E DEPENDENCIA DO CODIGO
+         Nada aqui usa Microsoft.Bcl.Memory diretamente. Ele chega como
+         Twilio 8.0.0 -> Microsoft.IdentityModel.Tokens 8.3.1 -> Bcl.Memory 9.0.0,
+         e a 9.0.0 tem GHSA-73j8-2gch-69rq (negacao de servico, alta), corrigida na
+         9.0.14. Nao havia como subir pela raiz: 8.0.0 ja e a ultima do Twilio.
+         Declarar a versao aqui e o mecanismo do NuGet para elevar uma transitiva
+         — a referencia direta sempre vence a resolucao. Some quando o Twilio
+         atualizar a cadeia dele. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.19" />
   </ItemGroup>
 
 </Project>
