@@ -206,13 +206,24 @@ ser o único mecanismo. Registrado por completude.
 Achado novo, encontrado ao compilar — não estava na auditoria original porque ela
 leu o código, não o resultado do build.
 
-O `dotnet build` emite `NU1903` apontando **vulnerabilidade de alta gravidade** em
-`Microsoft.OpenApi` 2.4.1 ([GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)).
-O pacote está declarado em `ClyvoVet.Api.csproj:36`.
+São **dois** pacotes, e `dotnet list package --vulnerable --include-transitive`
+mostra os dois:
 
-**Correção:** subir para a versão corrigida. Confirmar antes que o
-`Swashbuckle.AspNetCore` 10.1.7 aceita a nova — os dois andam juntos, e o Swagger
-é entregável da disciplina.
+| Pacote | Versão | Gravidade | Como chega |
+|---|---|---|---|
+| `Microsoft.OpenApi` | 2.4.1 | **Alta** — [GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc) | direto, `ClyvoVet.Api.csproj:36` |
+| `Microsoft.Bcl.Memory` | 9.0.0 | **Alta** — [GHSA-73j8-2gch-69rq](https://github.com/advisories/GHSA-73j8-2gch-69rq) | **transitivo** |
+
+O `dotnet build` só avisa do primeiro (`NU1903`); o transitivo aparece apenas com
+`--include-transitive`, e é por isso que ele passou despercebido.
+
+**Correção:** subir `Microsoft.OpenApi`, confirmando antes que o
+`Swashbuckle.AspNetCore` 10.1.7 aceita a versão nova — os dois andam juntos e o
+Swagger é entregável da disciplina. O `Microsoft.Bcl.Memory` sai por quem o traz;
+descobrir com `dotnet nuget why`.
+
+**Vale rodar isto no CI (§2.8)**, quando ele existir: `dotnet list package
+--vulnerable --include-transitive` falhando o build é barato e pega a próxima.
 
 ---
 
