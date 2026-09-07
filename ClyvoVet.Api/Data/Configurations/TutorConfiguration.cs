@@ -9,8 +9,10 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
     public void Configure(EntityTypeBuilder<Tutor> builder)
     {
         // Tabela pertence à API Java (schema em db/migration/mysql do repo dela) — aqui é
-        // só leitura via FK/Include, nunca escrita.
-        builder.ToTable("tutor");
+        // só leitura via FK/Include, nunca escrita. O prefixo t_clyvo_ veio da V9 de lá:
+        // renomear a tabela no Java sem trocar este nome quebra a primeira consulta, e o
+        // EF não avisa no boot porque não valida schema.
+        builder.ToTable("t_clyvo_tutor");
 
         builder.HasKey(t => t.Id);
 
