@@ -230,7 +230,7 @@ A **Sprint 3** somou à API uma camada completa de observabilidade e testes auto
 - **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o **MySQL** está realmente funcionando.
 - **Logging estruturado** via Serilog (console sempre; arquivo em desenvolvimento), correlacionando requisições através do header `X-Correlation-Id`.
 - **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console e endpoint `/metrics` em formato Prometheus).
-- **116 testes automatizados** (47 unitários + 69 de integração), abrangendo a camada de Aplicação (Services) e o fluxo HTTP completo (Controllers → banco em memória), autenticação e geração do documento OpenAPI inclusive.
+- **124 testes automatizados** (55 unitários + 69 de integração), abrangendo a camada de Aplicação (Services), o filtro de API Key, o fluxo HTTP completo (Controllers → banco em memória) e a geração do documento OpenAPI.
 
 ---
 
@@ -637,7 +637,7 @@ Dentro de `ClyvoVet.Api/`, os testes se dividem em dois projetos, seguindo o pad
 
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
-| `ClyvoVet.Api.Tests.Unit` | Camada de Aplicação (`Services/`) — regras de negócio isoladas, com os repositórios mockados | xUnit + Moq |
+| `ClyvoVet.Api.Tests.Unit` | Camada de Aplicação (`Services/`) com os repositórios mockados, e o `ApiKeyFilterAttribute` | xUnit + Moq |
 | `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory |
 
 ### Rodando os testes
@@ -654,7 +654,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `116` testes passando (`47` unitários e `69` de integração).
+**Resultado esperado:** `124` testes passando (`55` unitários e `69` de integração).
 
 ### Detalhes dos testes de integração
 

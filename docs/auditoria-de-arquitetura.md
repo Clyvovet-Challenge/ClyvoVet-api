@@ -307,7 +307,7 @@ porque desconhece a tabela.
 | 7 | Subir `Microsoft.OpenApi` (§2.10) | ✅ feito — 2.4.1 → 2.12.2, e `Microsoft.Bcl.Memory` fixado em 9.0.19. `dotnet list package --vulnerable --include-transitive` volta limpo nos três projetos |
 | 8 | Pipeline de CI (§2.8) | fora de escopo — o documento oficial coloca CI/CD na **Sprint 4** |
 | 9 | JWT compartilhado (§2.1) | pendente — **o furo mais grave**, e o mais invasivo: depende do Key Vault do deploy |
-| 10 | Tempo constante na chave (§2.9) | pendente, e cai para irrelevante depois do 9 |
+| 10 | Tempo constante na chave (§2.9) | ✅ feito — `CryptographicOperations.FixedTimeEquals`, mais falha fechada quando `Api__ApiKey` não está configurada. Coberto por `ApiKeyFilterAttributeTests` |
 
 **O que sobrou é de dois tipos.** O 6 se resolve provisionando certo. O 9 é o único
 que exige coordenação entre os três repositórios, e o caminho natural é fazê-lo
