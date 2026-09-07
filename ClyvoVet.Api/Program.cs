@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MySqlConnector;                        // MySqlConnectionStringBuilder (transitivo via Pomelo)
 using Microsoft.OpenApi;                      // OpenApiInfo, OpenApiContact (Microsoft.OpenApi 2.x)
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -35,14 +36,41 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithProperty("Application", ServiceName)
     .WriteTo.Console(outputTemplate:
         "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File("Logs/clyvovet-api-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate:
-            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
+// SEM SINK DE ARQUIVO, DE PROPOSITO
+// Havia um .WriteTo.File("Logs/clyvovet-api-.log") aqui. No App Service esse
+// caminho e efemero e por instancia: cada replica escreve o seu proprio arquivo,
+// ninguem os agrega, e o conteudo some no proximo restart. Era a unica
+// dependencia de armazenamento local em qualquer das duas APIs.
+//
+// O sink de console acima e o que o App Service captura, e o que aparece em
+// "Log stream" e no Application Insights.
+
 builder.Host.UseSerilog();
+
+// CORS ESPELHANDO O DESENHO DA API JAVA
+// Nao afeta o app nativo, que nao faz CORS -- afeta o Expo web, se ele for
+// demonstrado, e qualquer chamada a partir do Swagger de outra origem.
+//
+// As origens vem de configuracao (Cors__Origens no ambiente), como o
+// clyvovet.cors.origens do lado Java. NUNCA AllowAnyOrigin: alem de liberar
+// geral, ele e incompativel com credenciais, e o navegador recusa a resposta
+// em silencio quando os dois aparecem juntos.
+const string PoliticaCors = "clyvovet";
+var origensPermitidas = (builder.Configuration["Cors:Origens"]
+        ?? "http://localhost:3000,http://localhost:8081")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+builder.Services.AddCors(options =>
+    options.AddPolicy(PoliticaCors, policy => policy
+        .WithOrigins(origensPermitidas)
+        .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+        // X-Api-Key porque e como esta API autentica hoje; X-Correlation-Id
+        // porque o CorrelationIdMiddleware aceita o id vindo do cliente.
+        .WithHeaders("Authorization", "Content-Type", "X-Api-Key", "X-Correlation-Id")
+        .WithExposedHeaders("X-Correlation-Id")
+        .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -130,6 +158,29 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var mysqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// TETO DE CONEXOES EXPLICITO
+// O padrao do MySqlConnector e 100 conexoes POR INSTANCIA. A API Java opera com o
+// padrao do HikariCP, 10 -- e ela tem 74 endpoints contra os 24 daqui. Esta API
+// podia abrir dez vezes mais conexao que a que recebe mais trafego. Nao era
+// dimensionamento: era o padrao que ninguem tocou.
+//
+// POR QUE AQUI E NAO NO appsettings.json
+// Na Azure a connection string vem de app setting e substitui a do arquivo. Um
+// teto escrito la nao chegaria a producao, que e exatamente onde ele importa.
+//
+// Quem precisar de outro valor sobrescreve por Database__MaxPoolSize, sem tocar em
+// codigo. Antes de subir, confirme o teto real do servidor com
+// SHOW VARIABLES LIKE 'max_connections' -- o Flexible Server e Standard_B1ms, tier
+// Burstable, e o limite dele nao se presume pelo tier.
+if (!string.IsNullOrWhiteSpace(mysqlConnectionString))
+{
+    mysqlConnectionString = new MySqlConnectionStringBuilder(mysqlConnectionString)
+    {
+        MaximumPoolSize = builder.Configuration.GetValue<uint?>("Database:MaxPoolSize") ?? 15,
+    }.ConnectionString;
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString)));
 
@@ -244,6 +295,9 @@ app.UseExceptionHandler(errorApp =>
 });
 
 app.UseHttpsRedirection();
+// Antes de UseAuthorization: o preflight OPTIONS chega sem credencial nenhuma e
+// precisa ser respondido pelo CORS, nao recusado pela autorizacao.
+app.UseCors(PoliticaCors);
 app.UseAuthorization();
 app.MapControllers();
 
