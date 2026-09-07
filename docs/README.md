@@ -5,6 +5,7 @@ passo a passo do deploy na Azure. Esta pasta guarda o que não cabe lá.
 
 | Documento | Conteúdo |
 |---|---|
+| [plano-de-entrega-sprint3.md](plano-de-entrega-sprint3.md) | **O plano da entrega de 12/09.** Por que esta API já atende ~90 dos 100 pontos da disciplina dela, o que falta, e o papel dela no deploy |
 | [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md) | Auditoria de 06/09/2026. Por que o banco é compartilhado com a API Java, o que esta API é dona, e a lista do que ela precisa corrigir — com arquivo e linha para cada achado |
 | [arquitetura-azure.svg](arquitetura-azure.svg) | Diagrama de implantação exigido pela disciplina de DevOps |
 
