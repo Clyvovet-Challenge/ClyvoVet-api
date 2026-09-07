@@ -225,6 +225,31 @@ descobrir com `dotnet nuget why`.
 **Vale rodar isto no CI (§2.8)**, quando ele existir: `dotnet list package
 --vulnerable --include-transitive` falhando o build é barato e pega a próxima.
 
+### 2.11 🟢 `Castrado` declara `TINYINT(1)`, mas a coluna é `INT`
+
+`AnimalConfiguration.cs` declara `.HasColumnType("TINYINT(1)")` para `Castrado`.
+A coluna real, do lado da API Java, é **`INT`** — e precisa ser: o
+`NumericBooleanConverter` do JPA entrega `Integer` ao JDBC, e o `ddl-auto=validate`
+reprova `TINYINT` contra `INTEGER`, impedindo aquela API de subir.
+
+**Não quebra nada hoje**, e isso foi verificado: com o mapeamento em `TINYINT(1)`
+contra a coluna `INT`, `GET /widget-saude-preditiva/{id}` — que carrega a entidade
+`Animal` inteira — responde **200**. O MySqlConnector converte o inteiro devolvido
+para `bool?` sem reclamar, e esta API só **lê** essa coluna.
+
+O problema é de outra natureza: o mapeamento **documenta um tipo que a coluna não
+tem**, e reintroduz exatamente a confusão `TINYINT`/`INT` que custou uma rodada de
+diagnóstico do lado Java. Quem ler este arquivo para descobrir o tipo da coluna vai
+ler errado.
+
+**Correção:** remover o `.HasColumnType("TINYINT(1)")` e deixar o Pomelo inferir,
+como estava, ou declarar `INT`. É decisão de quem escreveu — vale alinhar antes de
+mexer.
+
+> A regra que evita a próxima: **`TINYINT` nas tabelas `t_clyvo_*` de conteúdo
+> desta API, `INT` nas colunas booleanas que a API Java escreve.** Cada tabela
+> segue o ORM que a usa; `animal` é da Java.
+
 ---
 
 ## 3. O que já foi corrigido
