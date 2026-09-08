@@ -49,7 +49,13 @@ public class SugestaoProdutoService : ISugestaoProdutoService
             AnimalId = request.AnimalId,
             ProdutoId = request.ProdutoId,
             Justificativa = request.Justificativa,
-            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.Today),
+            // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
+            // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
+            // servidor, os dois discordavam sobre que dia e hoje sempre que o
+            // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
+            // aplicacao brasileira. Uma sugestao criada perto da meia-noite
+            // nasceria com a data de ontem para o validador.
+            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Ativo = request.Ativo
         };
 
@@ -77,7 +83,7 @@ public class SugestaoProdutoService : ISugestaoProdutoService
             AnimalId = request.AnimalId,
             ProdutoId = request.ProdutoId,
             Justificativa = request.Justificativa,
-            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.Today),
+            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Ativo = request.Ativo
         };
 

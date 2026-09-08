@@ -104,7 +104,7 @@ public class SugestaoProdutoServiceTests
         var result = await _service.CreateAsync(request);
 
         // Assert
-        Assert.Equal(DateOnly.FromDateTime(DateTime.Today), result.DataSugestao);
+        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), result.DataSugestao);
     }
 
     [Fact]
