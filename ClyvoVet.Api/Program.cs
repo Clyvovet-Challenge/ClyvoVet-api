@@ -346,7 +346,7 @@ app.MapControllers();
 
 // /health           → todos os checks (visão geral, uso no README/monitoramento manual)
 // /health/live       → apenas "self" — o processo está de pé (liveness probe)
-// /health/ready      → "oracle-database" — o banco Oracle (externo) está acessível (readiness probe)
+// /health/ready      → "mysql-database" — o banco está acessível (readiness probe)
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = HealthCheckJsonWriter.WriteResponse

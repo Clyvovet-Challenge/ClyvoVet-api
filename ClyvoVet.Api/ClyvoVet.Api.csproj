@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- O laco de notificacao de lembretes so e testavel de forma deterministica
+         chamando-o direto; passar pelo BackgroundService exigiria esperar um
+         Task.Delay e o teste ficaria dependente de tempo. -->
+    <InternalsVisibleTo Include="ClyvoVet.Api.Tests.Unit" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="ClyvoVet.Api.Tests.Unit\**" />
     <Content Remove="ClyvoVet.Api.Tests.Unit\**" />
     <EmbeddedResource Remove="ClyvoVet.Api.Tests.Unit\**" />

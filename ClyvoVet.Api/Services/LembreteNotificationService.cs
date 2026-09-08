@@ -1,4 +1,5 @@
 using ClyvoVet.Api.Enums;
+using ClyvoVet.Api.Models;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services.Interfaces;
 
@@ -47,7 +48,7 @@ public class LembreteNotificationService : BackgroundService
         }
     }
 
-    private async Task VerificarLembretesAsync(CancellationToken cancellationToken)
+    internal async Task VerificarLembretesAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
         var lembreteRepository = scope.ServiceProvider.GetRequiredService<ILembreteRepository>();
@@ -59,49 +60,91 @@ public class LembreteNotificationService : BackgroundService
 
         foreach (var lembrete in lembretes)
         {
-            var tutor = lembrete.Animal.Tutor;
-            var mensagem = $"Lembrete: {lembrete.Titulo} agendado para {lembrete.AgendadoEm:dd/MM/yyyy HH:mm} ({lembrete.Animal.Nome}).";
-            var notificado = false;
-
-            var chatId = await tutorTelegramRepository.GetChatIdByTutorIdAsync(tutor.Id);
-            if (chatId.HasValue)
+            // UM LEMBRETE RUIM NAO PODE LEVAR O LOTE INTEIRO.
+            //
+            // Os envios ja tinham try/catch, mas o resto do corpo nao: a leitura do
+            // vinculo do Telegram, a montagem da mensagem e a gravacao do status
+            // corriam soltos. Qualquer excecao ali -- uma queda momentanea do banco,
+            // um registro inconsistente -- subia ate o catch do ExecuteAsync e
+            // abortava o FOREACH. Todos os lembretes seguintes daquele ciclo eram
+            // pulados, e como nenhum deles chega a virar Enviado, o mesmo lembrete
+            // ruim reaparece no ciclo seguinte e derruba tudo de novo. Um unico
+            // registro problematico parava a notificacao da plataforma inteira, e o
+            // unico sinal era um LogWarning generico a cada minuto.
+            try
             {
-                try
-                {
-                    await telegramService.EnviarMensagemAsync(chatId.Value, mensagem);
-                    notificado = true;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Falha ao notificar lembrete {LembreteId} via Telegram.", lembrete.Id);
-                }
+                await NotificarAsync(lembrete, lembreteRepository, tutorTelegramRepository,
+                                     whatsAppService, telegramService);
             }
-
-            if (!notificado && !string.IsNullOrWhiteSpace(tutor.Telefone))
+            catch (Exception ex)
             {
-                try
-                {
-                    await whatsAppService.EnviarMensagemAsync(tutor.Telefone, mensagem);
-                    notificado = true;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Falha ao notificar lembrete {LembreteId} via WhatsApp.", lembrete.Id);
-                }
+                _logger.LogWarning(ex,
+                    "Falha ao processar o lembrete {LembreteId}. Os demais do ciclo seguem.",
+                    lembrete.Id);
             }
+        }
+    }
 
-            if (notificado)
+    private async Task NotificarAsync(
+        Lembrete lembrete,
+        ILembreteRepository lembreteRepository,
+        ITutorTelegramRepository tutorTelegramRepository,
+        IWhatsAppService whatsAppService,
+        ITelegramService telegramService)
+    {
+        var tutor = lembrete.Animal.Tutor;
+        var mensagem = $"Lembrete: {lembrete.Titulo} agendado para {lembrete.AgendadoEm:dd/MM/yyyy HH:mm} ({lembrete.Animal.Nome}).";
+        var notificado = false;
+
+        var chatId = await tutorTelegramRepository.GetChatIdByTutorIdAsync(tutor.Id);
+        if (chatId.HasValue)
+        {
+            try
             {
-                try
-                {
-                    lembrete.Status = StatusLembreteEnum.Enviado;
-                    await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);
-                    _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lembrete {LembreteId} foi notificado, mas falhou ao marcar como Enviado — será notificado de novo no próximo ciclo.", lembrete.Id);
-                }
+                await telegramService.EnviarMensagemAsync(chatId.Value, mensagem);
+                notificado = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falha ao notificar lembrete {LembreteId} via Telegram.", lembrete.Id);
+            }
+        }
+
+        if (!notificado && !string.IsNullOrWhiteSpace(tutor.Telefone))
+        {
+            try
+            {
+                await whatsAppService.EnviarMensagemAsync(tutor.Telefone, mensagem);
+                notificado = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Falha ao notificar lembrete {LembreteId} via WhatsApp.", lembrete.Id);
+            }
+        }
+
+        if (!notificado)
+        {
+            // Sem Telegram vinculado e sem telefone no cadastro nao ha por onde
+            // avisar. O lembrete fica Pendente e volta a ser varrido a cada
+            // minuto, para sempre, sem nenhum registro do porque -- e o operador
+            // so ve "a notificacao nao chegou". Ao menos agora ele ve o motivo.
+            _logger.LogWarning(
+                "Lembrete {LembreteId} sem canal de notificacao: o tutor {TutorId} nao tem Telegram vinculado nem telefone cadastrado.",
+                lembrete.Id, tutor.Id);
+        }
+
+        if (notificado)
+        {
+            try
+            {
+                lembrete.Status = StatusLembreteEnum.Enviado;
+                await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);
+                _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lembrete {LembreteId} foi notificado, mas falhou ao marcar como Enviado — será notificado de novo no próximo ciclo.", lembrete.Id);
             }
         }
     }
