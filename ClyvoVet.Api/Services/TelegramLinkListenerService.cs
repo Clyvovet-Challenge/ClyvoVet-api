@@ -1,4 +1,5 @@
 using ClyvoVet.Api.Repositories.Interfaces;
+using ClyvoVet.Api.Security;
 using Telegram.Bot;
 
 namespace ClyvoVet.Api.Services;
@@ -17,16 +18,19 @@ public class TelegramLinkListenerService : BackgroundService
 
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly VinculosPendentesDeTelegram _convites;
     private readonly ILogger<TelegramLinkListenerService> _logger;
     private int _offset;
 
     public TelegramLinkListenerService(
         ITelegramBotClient botClient,
         IServiceScopeFactory scopeFactory,
+        VinculosPendentesDeTelegram convites,
         ILogger<TelegramLinkListenerService> logger)
     {
         _botClient = botClient;
         _scopeFactory = scopeFactory;
+        _convites = convites;
         _logger = logger;
     }
 
@@ -80,11 +84,31 @@ public class TelegramLinkListenerService : BackgroundService
 
         var chatId = update.Message!.Chat.Id;
 
-        if (texto.StartsWith("/start "))
+        // O que chega depois do /start e um CONVITE, nao o tutorId.
+        //
+        // Enquanto era o tutorId, este bloco gravava o vinculo para qualquer id que
+        // chegasse, sem verificar que quem mandou e o dono dele. O bot e publico:
+        // bastava digitar `/start <uuid alheio>` para passar a receber os lembretes
+        // daquele tutor, ler os pets dele por /meusanimais, e -- como VincularAsync
+        // sobrescreve o vinculo existente -- deixar o dono de verdade sem notificacao
+        // nenhuma, nem pelo WhatsApp, porque o envio ao Telegram "dava certo". E o
+        // tutorId nunca foi segredo: ele viaja em /auth/me e no corpo de cada animal.
+        if (texto.StartsWith("/start ", StringComparison.Ordinal))
         {
-            var tutorId = texto["/start ".Length..].Trim();
-            if (string.IsNullOrWhiteSpace(tutorId))
+            var tutorId = _convites.Consumir(texto["/start ".Length..].Trim());
+
+            if (tutorId is null)
+            {
+                // Convite desconhecido, ja usado ou vencido: os tres dao na mesma
+                // resposta. Distinguir contaria a quem esta tentando adivinhar se
+                // acertou o formato -- e um convite de uso unico responde assim tanto
+                // ao tutor que demorou quanto a quem chutou.
+                await _botClient.SendMessage(
+                    chatId,
+                    "Esse link de vínculo não vale mais. Peça um novo no app da ClyvoVet — cada link serve uma vez só e expira em 15 minutos.",
+                    cancellationToken: cancellationToken);
                 return;
+            }
 
             using var scope = _scopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
@@ -116,6 +140,18 @@ public class TelegramLinkListenerService : BackgroundService
         if (comando.Equals("/desvincular", StringComparison.OrdinalIgnoreCase))
         {
             await ResponderDesvincularAsync(chatId, cancellationToken);
+            return;
+        }
+
+        if (comando.Equals("/start", StringComparison.OrdinalIgnoreCase))
+        {
+            // O botao INICIAR do Telegram manda /start pelado. Quem chega por ali
+            // esta justamente tentando vincular, e a mensagem generica de "esse bot
+            // nao conversa" seria a pior resposta possivel.
+            await _botClient.SendMessage(
+                chatId,
+                $"Olá! Para receber os lembretes do seu pet por aqui, peça o link de vínculo no app da ClyvoVet.\n\nComandos disponíveis: {ComandosDisponiveis}",
+                cancellationToken: cancellationToken);
             return;
         }
 

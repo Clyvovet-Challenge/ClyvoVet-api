@@ -229,6 +229,11 @@ builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
+
+// Singleton, e nao Scoped: quem GERA o convite e uma requisicao HTTP, quem o CONSOME
+// e o BackgroundService do Telegram. Se cada um recebesse a sua instancia, todo link
+// nasceria ja invalido.
+builder.Services.AddSingleton<VinculosPendentesDeTelegram>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<TelegramLinkListenerService>();

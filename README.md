@@ -1089,7 +1089,7 @@ Alternativa ao WhatsApp, com bot próprio no [Telegram](https://core.telegram.or
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
 | POST | `/api/v1/telegram/enviar` | Envia uma mensagem de Telegram para o `chatId` informado | 204 |
-| GET | `/api/v1/telegram/link/{tutorId}` | Gera o deep link (`t.me/<bot>?start=<tutorId>`) para o tutor vincular sua conta ao bot | 200 |
+| GET | `/api/v1/telegram/link/{tutorId}` | Gera o deep link (`t.me/<bot>?start=<convite>`) para o tutor vincular sua conta ao bot | 200 |
 
 **Request — POST**
 
@@ -1117,8 +1117,16 @@ dotnet user-secrets set "Telegram:BotUsername" "seu_bot_username"
 Como `Tutor` é uma tabela da API Java, não dá para adicionar uma coluna `chatId` nela. O vínculo `TutorId → ChatId` fica então numa tabela própria (`T_CLYVO_TUTOR_TELEGRAM`), preenchida assim:
 
 1. O frontend chama `GET /api/v1/telegram/link/{tutorId}` (com o `tutorId` do tutor já logado) e recebe o deep link de volta.
-2. Ao clicar no link, o tutor abre o Telegram, que manda `/start {tutorId}` ao bot automaticamente.
-3. Um serviço em background na API .NET consulta o Telegram (`getUpdates`) e, ao detectar esse `/start`, grava o vínculo `TutorId → ChatId` na tabela.
+2. Ao clicar no link, o tutor abre o Telegram, que manda `/start {convite}` ao bot automaticamente.
+3. Um serviço em background na API .NET consulta o Telegram (`getUpdates`) e, ao detectar esse `/start`, troca o convite pelo tutor e grava o vínculo `TutorId → ChatId` na tabela.
+
+**O que vai no `start=` é um convite, e não o `tutorId`**
+
+O parâmetro carregava o próprio `tutorId`, e o ouvinte gravava o vínculo para qualquer id que chegasse — sem verificar que quem mandou é o dono dele. O bot é público por natureza, e o `tutorId` nunca foi segredo: ele viaja em `/auth/me` e no corpo de cada animal. Bastava digitar `/start <uuid alheio>` para passar a receber, no próprio celular, os lembretes daquele tutor; `/meusanimais` e `/meuslembretes` devolviam os pets e os lembretes dele; e como o vínculo é sobrescrito, o dono de verdade parava de receber qualquer notificação — inclusive pelo WhatsApp, porque o envio ao Telegram tinha "sucesso" e a alternativa nem chegava a ser tentada.
+
+Hoje o `start=` leva um convite de **256 bits**, sorteado por `RandomNumberGenerator`, que só existe porque alguém autenticado pediu um link para aquele tutor. Ele vale **uma vez** e por **15 minutos** (`VinculosPendentesDeTelegram`). Saber o `tutorId` deixou de servir para alguma coisa.
+
+O convite fica em memória, e não no banco: a vida inteira dele são os segundos entre o app mostrar o link e o tutor tocar nele, e o processo que gera é o mesmo que consome, porque o ouvinte roda dentro da API. Em troca vale uma limitação explícita — com mais de uma instância, ou depois de um restart, um convite ainda não usado deixa de valer e o tutor pede outro.
 
 O endpoint também exige o header `X-Api-Key` (o mesmo mecanismo do WhatsApp, com chave própria):
 

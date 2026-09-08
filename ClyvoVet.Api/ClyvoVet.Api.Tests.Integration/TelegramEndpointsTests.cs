@@ -168,8 +168,14 @@ public class TelegramEndpointsTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    /// <summary>
+    /// Este teste afirmava o contrario: que o link CONTINHA o tutorId. Ele passava,
+    /// e o que ele protegia era o buraco -- o bot e publico, e enquanto o parametro
+    /// era o id do tutor, qualquer pessoa digitava /start com o id alheio e assumia
+    /// as notificacoes daquele tutor. Agora ele afirma que o id NAO aparece.
+    /// </summary>
     [Fact]
-    public async Task GerarLink_TutorIdValido_RetornaLinkComTutorId()
+    public async Task GerarLink_NaoVazaOTutorIdNaUrl()
     {
         // Arrange
         using var factory = new TelegramTestFixture();
@@ -183,8 +189,51 @@ public class TelegramEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<TelegramLinkResponse>();
         Assert.NotNull(result);
-        Assert.Contains("start=tutor-abc-123", result!.Link);
-        Assert.StartsWith("https://t.me/", result.Link);
+        Assert.StartsWith("https://t.me/", result!.Link);
+        Assert.DoesNotContain("tutor-abc-123", result.Link);
+        Assert.Contains("?start=", result.Link);
+    }
+
+    /// <summary>
+    /// O parametro start do Telegram aceita somente A-Z a-z 0-9 _ - e no maximo 64
+    /// caracteres. Um token fora disso faz o Telegram recusar o link inteiro no
+    /// cliente, onde nenhum log desta API enxergaria.
+    /// </summary>
+    [Fact]
+    public async Task GerarLink_TokenCabeNoAlfabetoQueOTelegramAceita()
+    {
+        // Arrange
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+
+        // Act
+        var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
+        var result = await response.Content.ReadFromJsonAsync<TelegramLinkResponse>();
+
+        // Assert
+        var token = result!.Link.Split("?start=")[1];
+        Assert.InRange(token.Length, 1, 64);
+        Assert.Matches("^[A-Za-z0-9_-]+$", token);
+    }
+
+    /// <summary>Dois pedidos nunca devolvem o mesmo convite.</summary>
+    [Fact]
+    public async Task GerarLink_DoisPedidos_DevolvemTokensDiferentes()
+    {
+        // Arrange
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+
+        // Act
+        var primeiro = await (await client.GetAsync("/api/v1/telegram/link/tutor-abc-123"))
+            .Content.ReadFromJsonAsync<TelegramLinkResponse>();
+        var segundo = await (await client.GetAsync("/api/v1/telegram/link/tutor-abc-123"))
+            .Content.ReadFromJsonAsync<TelegramLinkResponse>();
+
+        // Assert
+        Assert.NotEqual(primeiro!.Link, segundo!.Link);
     }
 
     [Fact]
