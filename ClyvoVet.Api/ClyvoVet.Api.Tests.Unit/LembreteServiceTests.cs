@@ -116,7 +116,10 @@ public class LembreteServiceTests
             new() { Id = "1", AnimalId = "animal-1", Titulo = "Vacina Antirrábica", Tipo = TipoLembreteEnum.Vacina, Status = StatusLembreteEnum.Pendente }
         };
         _repositoryMock
-            .Setup(r => r.GetAllAsync(1, 10, "animal-1", TipoLembreteEnum.Vacina, StatusLembreteEnum.Pendente))
+            // O ultimo argumento e o recorte por tutor. Arvore de expressao nao
+            // aceita argumento opcional, entao ele vai explicito: null = sem recorte,
+            // que e o comportamento com Api:EscopoPorTutor desligado.
+            .Setup(r => r.GetAllAsync(1, 10, "animal-1", TipoLembreteEnum.Vacina, StatusLembreteEnum.Pendente, null))
             .ReturnsAsync(lembretes);
 
         // Act

@@ -20,6 +20,7 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
     private readonly string _databaseName = $"ClyvoVetTestDb-{Guid.NewGuid()}";
 
     public string AnimalId { get; private set; } = null!;
+    public string TutorId { get; private set; } = null!;
     public string ProdutoId { get; private set; } = null!;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -83,6 +84,7 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
         db.SaveChanges();
 
         AnimalId = animal.Id;
+        TutorId = tutor.Id;
         ProdutoId = produto.Id;
     }
 }

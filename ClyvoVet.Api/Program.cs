@@ -219,6 +219,12 @@ builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaSer
 // mesmo com valor invalido — ver o comentario da classe.
 builder.Services.AddSingleton<ValidadorDeTokenJwt>();
 
+// O EscopoDoTutor le a identidade da requisicao corrente, entao precisa do
+// acessor -- que NAO vinha registrado. Sem ele a resolucao falha no primeiro
+// request, e nao no startup: o app sobe verde e so quebra quando alguem chama.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<EscopoDoTutor>();
+
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
@@ -290,21 +296,25 @@ app.UseExceptionHandler(errorApp =>
 
         context.Response.StatusCode = exception switch
         {
-            NotFoundException   => StatusCodes.Status404NotFound,
-            BadRequestException => StatusCodes.Status400BadRequest,
-            _                   => StatusCodes.Status500InternalServerError
+            NotFoundException        => StatusCodes.Status404NotFound,
+            BadRequestException      => StatusCodes.Status400BadRequest,
+            // O recorte esta ligado e a requisicao nao identifica um tutor.
+            // 403 e nao 401: a X-Api-Key foi aceita, o que falta e IDENTIDADE.
+            SemTutorNoTokenException => StatusCodes.Status403Forbidden,
+            _                        => StatusCodes.Status500InternalServerError
         };
 
         var message = exception switch
         {
-            NotFoundException   e => e.Message,
-            BadRequestException e => e.Message,
-            _                     => "Erro interno no servidor."
+            NotFoundException        e => e.Message,
+            BadRequestException      e => e.Message,
+            SemTutorNoTokenException e => e.Message,
+            _                          => "Erro interno no servidor."
         };
 
         switch (exception)
         {
-            case NotFoundException or BadRequestException:
+            case NotFoundException or BadRequestException or SemTutorNoTokenException:
                 Log.Warning("Requisição inválida em {Path}: {Message}", context.Request.Path, message);
                 break;
             default:

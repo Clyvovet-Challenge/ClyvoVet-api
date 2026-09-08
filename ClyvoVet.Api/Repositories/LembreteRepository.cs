@@ -15,11 +15,18 @@ public class LembreteRepository : ILembreteRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Lembrete>> GetAllAsync(int page, int pageSize, string? animalId, TipoLembreteEnum? tipo, StatusLembreteEnum? status)
+    public async Task<IEnumerable<Lembrete>> GetAllAsync(int page, int pageSize, string? animalId, TipoLembreteEnum? tipo, StatusLembreteEnum? status, string? tutorId = null)
     {
         var query = _context.Lembretes
             .Include(l => l.Animal)
             .AsQueryable();
+
+        // O recorte por dono entra ANTES do filtro por animal, e os dois se
+        // somam. Se o animalId substituisse o recorte, `?animalId=<de outro
+        // tutor>` seria o proprio bypass -- o parametro de conveniencia viraria
+        // o furo.
+        if (!string.IsNullOrWhiteSpace(tutorId))
+            query = query.Where(l => l.Animal.TutorId == tutorId);
 
         if (!string.IsNullOrWhiteSpace(animalId))
             query = query.Where(l => l.AnimalId == animalId);
