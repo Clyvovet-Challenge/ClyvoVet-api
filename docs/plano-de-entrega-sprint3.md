@@ -130,9 +130,22 @@ Em ordem.
    conferidos um por um.
 5. **`Castrado` declarado como `TINYINT(1)`** (achado §2.11) — a coluna real é
    `INT`. Não quebra, mas documenta o tipo errado. Alinhar com quem escreveu.
-6. **Se sobrar tempo:** validar o JWT que a Java emite, e recortar `GET /lembretes`
-   pelo tutor autenticado (§2.1 da auditoria — o furo mais grave). Entra **depois**
-   do deploy verificado, para que uma quebra tenha causa óbvia.
+6. ✅ **JWT compartilhado com a API Java** (§2.1 da auditoria — era o furo mais
+   grave). Feito **antes** do deploy, e não depois, porque saiu inteiramente
+   desligado: as três camadas de servidor existem, e o comportamento com as flags
+   em `false` é byte a byte o de antes — provado pelos 69 testes de integração
+   antigos, que não mandam `Authorization` e seguem passando sem alteração.
+
+   Cobre `lembretes`, `sugestoes-produto` e `widget-saude-preditiva`. Os dois
+   interruptores são app settings, então reverter na Azure é um comando, sem
+   redeploy — **na ordem `Api__EscopoPorTutor=false` primeiro**, e só depois o
+   segredo; o inverso deixa a API exigindo identidade sem conseguir lê-la, que é o
+   pior estado possível.
+
+   **Falta o lado do app**, e essa parte não é aditiva: o cliente `.NET` dele não
+   tem refresh, então mandar o `Bearer` sem mais nada faria as chamadas falharem 15
+   minutos após o login — e o 401 é traduzido para "Serviço de lembretes
+   indisponível" em vez de renovar a sessão.
 7. **Fora de escopo nesta sprint:** pipeline de CI. O documento oficial coloca
    CI/CD como requisito da **Sprint 4**, não desta.
 

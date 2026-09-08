@@ -45,7 +45,7 @@ mudou é onde a **definição** vive. O provisionamento passa a ter um caminho s
 
 Ordenados por gravidade. Cada um cita o arquivo que justifica a conclusão.
 
-### 2.1 🔴 Não há autorização por usuário
+### 2.1 ✅ Não havia autorização por usuário — CORRIGIDO, e desligável
 
 `Filters/ApiKeyFilterAttribute.cs` compara o header `X-Api-Key` com `Api:ApiKey`.
 Não existe usuário, papel, claim ou token em nenhum ponto da API.
@@ -60,14 +60,54 @@ query** (`[FromQuery] string? animalId = null`), não escopo de autorização.
 Variáveis `EXPO_PUBLIC_*` são embutidas no bundle JavaScript em tempo de build e
 são extraíveis de qualquer APK. Na prática, **a chave é pública**.
 
-**Correção:** validar o mesmo JWT que a API Java emite. O segredo é simétrico
-(HS256 via JJWT), então basta compartilhar a chave por Key Vault e adicionar
-`AddAuthentication().AddJwtBearer()` com o mesmo issuer. `GET /lembretes` passa a
-recortar pelos animais do tutor autenticado, e a chave estática vira defesa em
-profundidade em vez de ser a única.
+**Corrigido em três camadas, todas desligáveis por app setting.** A chave estática
+virou defesa em profundidade em vez de ser a única barreira.
 
-**Impacto fora daqui:** o app passa a mandar `Authorization` também para esta API,
-e a Java precisa expor a chave. É a correção mais valiosa e a mais invasiva.
+| Camada | Onde | Padrão | Interruptor |
+|---|---|---|---|
+| claim `tutorId` no access token | API Java | ligada, aditiva | — |
+| validar o token e identificar | aqui | **inerte** | `Jwt__Secret` ausente |
+| recortar por dono | aqui | **desligada** | `Api__EscopoPorTutor=false` |
+
+Cobre `lembretes`, `sugestoes-produto` e `widget-saude-preditiva`: listagem
+recortada pelo tutor, 404 em recurso de outro tutor, e escrita bloqueada em animal
+alheio — inclusive o `POST`, que é o único endpoint que **agenda uma notificação**.
+
+**A correção proposta acima estava certa no destino e errada em quatro detalhes**,
+todos levantados por um painel de revisão antes de virar código. Vale o registro
+porque nenhum deles daria erro de compilação:
+
+1. **`AddJwtBearer()` não foi usado.** Ele traria o modelo de `[Authorize]` e
+   `FallbackPolicy` junto, e uma policy global derrubaria `/health`, `/metrics`,
+   `/swagger` e os webhooks de uma vez — health check quebrado tira a aplicação de
+   rotação no App Service. Em vez dele, `System.IdentityModel.Tokens.Jwt`, que
+   **já estava no grafo** (o Twilio o traz em 8.3.1) e só lê o token. Há três
+   testes provando que as rotas de infraestrutura seguem respondendo 200 sem token
+   com o recorte ligado.
+
+2. **A chave sai do base64 decodificado, não dos bytes da string.** A Java faz
+   `Keys.hmacShaKeyFor(Decoders.BASE64.decode(segredo))`. O idioma de todo tutorial
+   ASP.NET é `Encoding.UTF8.GetBytes(segredo)` — com o **mesmo valor** de
+   configuração, a chave é **outra**, e o sintoma seria 401 em cem por cento das
+   chamadas, sem nada no log. Os dois lados travam o contrato por teste.
+
+3. **Só access token.** A Java gera access e refresh pelo mesmo método — mesma
+   chave, mesmo formato, muda a claim `tipo` e a validade. Sem checá-la, o refresh
+   de **sete dias**, que fica em disco no aparelho, viraria credencial válida aqui.
+
+4. **`tutorId` nulo nega, nunca "passa sem filtro".** ADMIN e VETERINARIO não têm
+   tutor. O `if (tutorId != null) query.Where(...)` devolveria a base inteira
+   justamente para os perfis mais poderosos.
+
+**Key Vault não entrou.** O segredo chega como App Setting, que já o mantém fora do
+código-fonte; Key Vault não é exigido por nenhuma das duas disciplinas e cada
+recurso a mais é um recurso a explicar na avaliação oral.
+
+**Impacto fora daqui, ainda em aberto:** o app precisa passar a mandar
+`Authorization` para esta API. Não é aditivo — o cliente `.NET` dele não tem
+refresh, então mandar o Bearer sem mais nada faria as chamadas falharem 15 minutos
+depois do login. Enquanto isso não estiver pronto, `Api__EscopoPorTutor` fica em
+`false` e nada muda.
 
 ### 2.2 ✅ `schema/script_bd.sql` diverge do schema real — CORRIGIDO
 
@@ -306,7 +346,7 @@ porque desconhece a tabela.
 | 6 | Manter App Service em **instância única** (§2.3) | **decisão de configuração**, não código — resolve o achado inteiro |
 | 7 | Subir `Microsoft.OpenApi` (§2.10) | ✅ feito — 2.4.1 → 2.12.2, e `Microsoft.Bcl.Memory` fixado em 9.0.19. `dotnet list package --vulnerable --include-transitive` volta limpo nos três projetos |
 | 8 | Pipeline de CI (§2.8) | fora de escopo — o documento oficial coloca CI/CD na **Sprint 4** |
-| 9 | JWT compartilhado (§2.1) | pendente — **o furo mais grave**, e o mais invasivo: depende do Key Vault do deploy |
+| 9 | JWT compartilhado (§2.1) | ✅ feito nas três camadas de servidor, todas desligáveis por app setting. Falta só o app mandar o `Bearer` — ver §2.1 |
 | 10 | Tempo constante na chave (§2.9) | ✅ feito — `CryptographicOperations.FixedTimeEquals`, mais falha fechada quando `Api__ApiKey` não está configurada. Coberto por `ApiKeyFilterAttributeTests` |
 
 **O que sobrou é de dois tipos.** O 6 se resolve provisionando certo. O 9 é o único
