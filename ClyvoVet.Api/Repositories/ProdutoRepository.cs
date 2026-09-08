@@ -25,11 +25,10 @@ public class ProdutoRepository : IProdutoRepository
         if (especieIndicada.HasValue)
             query = query.Where(p => p.EspecieIndicada == especieIndicada.Value);
 
-        return await query
-            .OrderBy(p => p.Nome)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var consulta = query
+            .OrderBy(p => p.Nome);
+
+        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
     }
 
     public async Task<Produto?> GetByIdAsync(string id)

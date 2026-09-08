@@ -37,11 +37,10 @@ public class LembreteRepository : ILembreteRepository
         if (status.HasValue)
             query = query.Where(l => l.Status == status.Value);
 
-        return await query
-            .OrderBy(l => l.AgendadoEm)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var consulta = query
+            .OrderBy(l => l.AgendadoEm);
+
+        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
     }
 
     public async Task<Lembrete?> GetByIdAsync(string id)

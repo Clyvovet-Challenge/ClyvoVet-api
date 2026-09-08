@@ -29,11 +29,10 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
         if (!string.IsNullOrWhiteSpace(animalId))
             query = query.Where(s => s.AnimalId == animalId);
 
-        return await query
-            .OrderByDescending(s => s.DataSugestao)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var consulta = query
+            .OrderByDescending(s => s.DataSugestao);
+
+        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
     }
 
     public async Task<SugestaoProduto?> GetByIdAsync(string id)

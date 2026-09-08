@@ -28,11 +28,10 @@ public class EventoPetRepository : IEventoPetRepository
         if (especieAlvo.HasValue)
             query = query.Where(e => e.EspecieAlvo == especieAlvo.Value);
 
-        return await query
-            .OrderBy(e => e.DataInicio)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var consulta = query
+            .OrderBy(e => e.DataInicio);
+
+        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
     }
 
     public async Task<EventoPet?> GetByIdAsync(string id)
