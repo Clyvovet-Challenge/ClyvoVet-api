@@ -58,7 +58,8 @@ public class EventoPetController : ControllerBase
 
     /// <summary>
     /// Cadastra um novo evento pet.
-    /// O <c>id</c> é gerado pelo Oracle (<c>fn_uuid()</c>).
+    /// O <c>id</c> é gerado pela API, e não pelo banco: o MySQL não tem RETURNING,
+    /// então depender de um DEFAULT exigiria ler a linha de volta.
     /// <c>dataInicio</c> não pode ser no passado.
     /// </summary>
     [HttpPost]

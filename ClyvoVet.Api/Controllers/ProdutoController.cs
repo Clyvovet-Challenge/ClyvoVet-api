@@ -56,7 +56,8 @@ public class ProdutoController : ControllerBase
 
     /// <summary>
     /// Cadastra um novo produto.
-    /// O campo <c>id</c> é gerado automaticamente pelo Oracle (<c>fn_uuid()</c>).
+    /// O <c>id</c> é gerado pela API, e não pelo banco: o MySQL não tem RETURNING,
+    /// então depender de um DEFAULT exigiria ler a linha de volta.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
