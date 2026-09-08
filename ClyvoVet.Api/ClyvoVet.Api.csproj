@@ -45,6 +45,21 @@
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+
+    <!-- Valida o access token que a API Java emite (ValidadorDeTokenJwt).
+         JA ESTAVA NO GRAFO, so nao declarado: Twilio 8.0.0 traz
+         System.IdentityModel.Tokens.Jwt 8.3.1 transitivamente. A referencia
+         direta e a MESMA versao, entao a resolucao nao muda em nada — ela
+         apenas para de depender de um pacote que chega por acaso.
+
+         Escolhido em vez de Microsoft.AspNetCore.Authentication.JwtBearer de
+         proposito. O JwtBearer traria uma cadeia nova de Microsoft.IdentityModel
+         para um grafo ja unificado em 8.3.1, e junto com ela o modelo de
+         autenticacao do ASP.NET — [Authorize], FallbackPolicy, esquemas. Nada
+         disso e necessario aqui: esta API so precisa LER a identidade, e quem
+         decide negar e a camada de escopo. Usando so o handler, a validacao
+         nao tem como interferir em /health, /metrics, /swagger ou nos webhooks. -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
     <PackageReference Include="Telegram.Bot" Version="22.10.3" />
     <PackageReference Include="Twilio" Version="8.0.0" />
 

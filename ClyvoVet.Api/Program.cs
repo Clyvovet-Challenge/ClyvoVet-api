@@ -8,6 +8,7 @@ using ClyvoVet.Api.Repositories;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services;
 using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Api.Security;
 using ClyvoVet.Api.Swagger;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -213,6 +214,11 @@ builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
 builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
+// Validacao do token emitido pela API Java. Singleton porque a chave e montada
+// uma vez; INERTE enquanto Jwt:Secret nao existir, e incapaz de lancar no boot
+// mesmo com valor invalido — ver o comentario da classe.
+builder.Services.AddSingleton<ValidadorDeTokenJwt>();
+
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
@@ -311,6 +317,12 @@ app.UseExceptionHandler(errorApp =>
 });
 
 app.UseHttpsRedirection();
+// Le o Bearer, quando houver, e guarda a identidade em HttpContext.Items.
+// NAO rejeita nada — atravessa /health, /metrics, /swagger e os webhooks sem
+// tocar neles. Fica depois do CORS para que o preflight OPTIONS nao passe por
+// aqui, e antes dos controllers, que sao quem consome a identidade.
+app.UseMiddleware<IdentidadeMiddleware>();
+
 // Antes de UseAuthorization: o preflight OPTIONS chega sem credencial nenhuma e
 // precisa ser respondido pelo CORS, nao recusado pela autorizacao.
 app.UseCors(PoliticaCors);
