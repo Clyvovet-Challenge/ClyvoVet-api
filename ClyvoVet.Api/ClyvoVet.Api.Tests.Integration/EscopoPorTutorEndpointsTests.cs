@@ -65,11 +65,48 @@ public class EscopoLigadoFixture : WebApplicationFactory<Program>
         });
     }
 
+    public string ProdutoId { get; private set; } = null!;
+    public string SugestaoA { get; private set; } = null!;
+    public string SugestaoB { get; private set; } = null!;
+
     private void Semear(AppDbContext db)
     {
+        var produto = new Produto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Nome = "Ração de Teste",
+            Categoria = CategoriaEnum.Racao,
+            EspecieIndicada = EspecieEnum.Cachorro,
+            Preco = 50m,
+            Ativo = true,
+            CriadoEm = DateTime.UtcNow,
+        };
+        db.Produtos.Add(produto);
+        ProdutoId = produto.Id;
+
         (TutorA, AnimalA, LembreteA) = Criar(db, "Tutor A", "11111111111", "Rex");
         (TutorB, AnimalB, LembreteB) = Criar(db, "Tutor B", "22222222222", "Mel");
+
+        SugestaoA = Sugerir(db, AnimalA, produto.Id);
+        SugestaoB = Sugerir(db, AnimalB, produto.Id);
+
         db.SaveChanges();
+    }
+
+    private static string Sugerir(AppDbContext db, string animalId, string produtoId)
+    {
+        var sugestao = new SugestaoProduto
+        {
+            Id = Guid.NewGuid().ToString(),
+            AnimalId = animalId,
+            ProdutoId = produtoId,
+            Justificativa = "Indicado para o porte",
+            DataSugestao = DateOnly.FromDateTime(DateTime.UtcNow),
+            Ativo = true,
+            CriadoEm = DateTime.UtcNow,
+        };
+        db.SugestoesProduto.Add(sugestao);
+        return sugestao.Id;
     }
 
     private static (string, string, string) Criar(AppDbContext db, string nome, string cpf, string pet)
@@ -304,6 +341,105 @@ public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+    }
+
+    // ================================================================
+    // Sugestões de produto — mesmo recorte, mesmas regras
+    // ================================================================
+
+    [Fact]
+    public async Task GetAllSugestoes_ComTokenDoTutor_RetornaApenasAsDele()
+    {
+        // Arrange
+        var cliente = ClienteDe(_fixture.TutorA);
+
+        // Act
+        var resposta = await cliente.GetAsync("/api/v1/sugestoes-produto");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        var itens = await ItensAsync(resposta);
+        Assert.Single(itens);
+        Assert.Equal(_fixture.AnimalA, itens[0].GetProperty("animalId").GetString());
+    }
+
+    [Fact]
+    public async Task GetAllSugestoes_SemToken_RetornaForbidden()
+    {
+        // Arrange
+        var cliente = _fixture.CreateClient();
+
+        // Act
+        var resposta = await cliente.GetAsync("/api/v1/sugestoes-produto");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSugestaoById_DeOutroTutor_RetornaNotFound()
+    {
+        // Arrange
+        var cliente = ClienteDe(_fixture.TutorA);
+
+        // Act
+        var resposta = await cliente.GetAsync($"/api/v1/sugestoes-produto/{_fixture.SugestaoB}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSugestao_NoAnimalDeOutroTutor_RetornaNotFound()
+    {
+        // Arrange
+        var cliente = ClienteDe(_fixture.TutorA);
+        var corpo = new
+        {
+            animalId = _fixture.AnimalB,
+            produtoId = _fixture.ProdutoId,
+            justificativa = "Sugestão intrusa",
+            dataSugestao = DateOnly.FromDateTime(DateTime.UtcNow),
+            ativo = true,
+        };
+
+        // Act
+        var resposta = await cliente.PostAsJsonAsync("/api/v1/sugestoes-produto", corpo);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+    }
+
+    // ================================================================
+    // Widget de saúde preditiva — dado clínico, não catálogo público
+    // ================================================================
+
+    [Fact]
+    public async Task GetWidget_DeAnimalDeOutroTutor_RetornaNotFound()
+    {
+        // Arrange
+        // O que este endpoint devolve é um retrato de saúde por raça e idade: dado
+        // do animal de alguém, e não catálogo aberto.
+        var cliente = ClienteDe(_fixture.TutorA);
+
+        // Act
+        var resposta = await cliente.GetAsync($"/api/v1/widget-saude-preditiva/{_fixture.AnimalB}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetWidget_DoProprioAnimal_RetornaOk()
+    {
+        // Arrange
+        var cliente = ClienteDe(_fixture.TutorA);
+
+        // Act
+        var resposta = await cliente.GetAsync($"/api/v1/widget-saude-preditiva/{_fixture.AnimalA}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
     }
 
     // ================================================================

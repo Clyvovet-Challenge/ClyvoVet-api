@@ -31,7 +31,10 @@ public class SugestaoProdutoServiceTests
             new() { Id = "1", AnimalId = "animal-1", ProdutoId = "produto-1", Justificativa = "Recomendado pelo veterinário", Ativo = true }
         };
         _repositoryMock
-            .Setup(r => r.GetAllAsync(1, 10, "animal-1"))
+            // null no fim e o recorte por tutor ausente, que e o comportamento com
+            // Api:EscopoPorTutor desligado. Arvore de expressao nao aceita
+            // argumento opcional, entao ele vai explicito.
+            .Setup(r => r.GetAllAsync(1, 10, "animal-1", null))
             .ReturnsAsync(sugestoes);
 
         // Act

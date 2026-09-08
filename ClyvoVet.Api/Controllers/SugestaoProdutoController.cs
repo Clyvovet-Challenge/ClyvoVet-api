@@ -1,5 +1,7 @@
 using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Api.Exceptions;
 using ClyvoVet.Api.Filters;
+using ClyvoVet.Api.Security;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,8 +20,23 @@ namespace ClyvoVet.Api.Controllers;
 public class SugestaoProdutoController : ControllerBase
 {
     private readonly ISugestaoProdutoService _service;
+    private readonly EscopoDoTutor _escopo;
 
-    public SugestaoProdutoController(ISugestaoProdutoService service) => _service = service;
+    public SugestaoProdutoController(ISugestaoProdutoService service, EscopoDoTutor escopo)
+    {
+        _service = service;
+        _escopo = escopo;
+    }
+
+    /// <summary>404 se a sugestao existente nao for de um animal do tutor.</summary>
+    private async Task ExigirPropriedadeAsync(string id)
+    {
+        if (!_escopo.Ativo) return;
+
+        var sugestao = await _service.GetByIdAsync(id);   // ja lanca 404 se nao existe
+        if (!await _escopo.AnimalEDoTutorAsync(sugestao.AnimalId))
+            throw new NotFoundException($"Sugestao {id} nao encontrada.");
+    }
 
     /// <summary>Lista sugestões com paginação e filtro opcional por animal.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
@@ -38,7 +55,7 @@ public class SugestaoProdutoController : ControllerBase
         if (pageSize < 1 || pageSize > 100)
             return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
 
-        var result = await _service.GetAllAsync(page, pageSize, animalId);
+        var result = await _service.GetAllAsync(page, pageSize, animalId, _escopo.FiltroDeListagem());
         return Ok(result);
     }
 
@@ -50,12 +67,16 @@ public class SugestaoProdutoController : ControllerBase
     public async Task<IActionResult> GetById(string id)
     {
         var result = await _service.GetByIdAsync(id);
+
+        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(result.AnimalId))
+            throw new NotFoundException($"Sugestao {id} nao encontrada.");
+
         return Ok(result);
     }
 
     /// <summary>
     /// Cria uma nova sugestão de produto.
-    /// O <c>id</c> é gerado pelo Oracle (<c>fn_uuid()</c>).
+    /// O <c>id</c> é gerado pela própria API (<c>Guid.NewGuid()</c> no repositório).
     /// Valida a existência de <c>animalId</c> e <c>produtoId</c> antes de salvar.
     /// </summary>
     [HttpPost]
@@ -64,6 +85,9 @@ public class SugestaoProdutoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] SugestaoProdutoRequest request)
     {
+        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
+            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+
         var result = await _service.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
@@ -76,6 +100,13 @@ public class SugestaoProdutoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(string id, [FromBody] SugestaoProdutoRequest request)
     {
+        // Os DOIS animais: o da sugestao atual e o do corpo. Checar so um permitiria
+        // transferir a sugestao para fora, ou sequestrar a alheia.
+        await ExigirPropriedadeAsync(id);
+
+        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
+            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+
         var result = await _service.UpdateAsync(id, request);
         return Ok(result);
     }
@@ -87,6 +118,8 @@ public class SugestaoProdutoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id)
     {
+        await ExigirPropriedadeAsync(id);
+
         await _service.DeleteAsync(id);
         return NoContent();
     }

@@ -14,12 +14,17 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<SugestaoProduto>> GetAllAsync(int page, int pageSize, string? animalId)
+    public async Task<IEnumerable<SugestaoProduto>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null)
     {
         var query = _context.SugestoesProduto
             .Include(s => s.Animal)
             .Include(s => s.Produto)
             .AsQueryable();
+
+        // O recorte por dono SOMA com o filtro por animal, nunca e substituido
+        // por ele -- senao `?animalId=<de outro tutor>` seria o proprio bypass.
+        if (!string.IsNullOrWhiteSpace(tutorId))
+            query = query.Where(s => s.Animal.TutorId == tutorId);
 
         if (!string.IsNullOrWhiteSpace(animalId))
             query = query.Where(s => s.AnimalId == animalId);
