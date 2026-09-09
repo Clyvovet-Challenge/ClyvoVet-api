@@ -198,8 +198,25 @@ if (!string.IsNullOrWhiteSpace(mysqlConnectionString))
     }.ConnectionString;
 }
 
+// VERSAO FIXA, E NAO AutoDetect.
+//
+// ServerVersion.AutoDetect ABRE UMA CONEXAO com o banco durante a construcao do
+// host -- antes de a aplicacao existir. No App Service isso e uma dependencia de
+// BOOT: se o MySQL nao estiver alcancavel naquele instante (banco reiniciando,
+// regra de firewall ainda propagando, manutencao do Flexible Server), o processo
+// morre na inicializacao e o container entra em ciclo de restart. O sintoma no
+// portal e "Application Error", sem nada util no log da aplicacao -- porque a
+// aplicacao nunca chegou a subir para logar.
+//
+// Com a versao declarada, a app sobe mesmo com o banco fora e falha so na
+// requisicao que precisa dele -- que e onde o health check /health/ready ja sabe
+// reportar o problema.
+//
+// 8.0 e o que o azure/02-banco-mysql.sh provisiona (MYSQL_VERSION="8.0") e o que
+// o docker-compose local usa (mysql:8.0). Se um dia o servidor subir de versao,
+// esta linha muda junto -- e essa e a intencao: virar decisao explicita.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString)));
+    options.UseMySql(mysqlConnectionString, new MySqlServerVersion(new Version(8, 0))));
 
 builder.Services.AddScoped<IProdutoRepository,         ProdutoRepository>();
 builder.Services.AddScoped<ISugestaoProdutoRepository, SugestaoProdutoRepository>();
