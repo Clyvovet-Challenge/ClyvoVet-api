@@ -258,19 +258,31 @@ if (!builder.Environment.IsEnvironment("Testing"))
 }
 
 // Health Checks — "self" cobre liveness (processo respondendo), "mysql-database" cobre
-// readiness (Database.CanConnectAsync() contra o MySQL). "telegram-bot" e
-// "whatsapp-twilio" verificam os demais serviços externos integrados pela API, mas ficam
-// fora da tag "ready": uma instabilidade neles não deveria tirar a API inteira de rotação,
-// já que os outros recursos (Produto, Lembrete, EventoPet, SugestaoProduto) continuam
-// funcionando normalmente sem Telegram/WhatsApp.
+// readiness (Database.CanConnectAsync() contra o MySQL). "telegram-bot" verifica o
+// serviço externo integrado pela API, mas fica fora da tag "ready": uma instabilidade
+// nele não deveria tirar a API inteira de rotação, já que os outros recursos (Produto,
+// Lembrete, EventoPet, SugestaoProduto) continuam funcionando normalmente sem Telegram.
+//
+// O CHECK DO TWILIO SAIU DAQUI, E NÃO FOI POR SER RUIM.
+//
+// O endpoint /health agrega TODOS os checks (é o único mapeado sem Predicate), e o
+// Twilio não tem credencial configurada em nenhum ambiente de entrega — o deploy em
+// azure/06-configuracoes.sh define Telegram__BotToken e não define nada de Twilio.
+// Resultado medido em ensaio na Azure: /health respondia HTTP 503 com
+// "Authentication Error - invalid username", mesmo com a API 100% funcional e o
+// mysql-database Healthy. Quem abrisse /health veria a aplicação vermelha.
+//
+// A funcionalidade de WhatsApp continua inteira (WhatsAppController, WhatsAppService,
+// endpoints e testes). O que saiu foi apenas a sonda. A classe WhatsAppHealthCheck
+// segue no repositório: para religar, basta devolver a linha do AddCheck abaixo —
+// mas só depois de existir credencial Twilio de verdade no ambiente.
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(
         name: "mysql-database",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready", "database", "external"])
-    .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"])
-    .AddCheck<WhatsAppHealthCheck>("whatsapp-twilio", tags: ["external"]);
+    .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"]);
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(
