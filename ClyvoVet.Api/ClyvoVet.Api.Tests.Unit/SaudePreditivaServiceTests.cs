@@ -247,4 +247,113 @@ public class SaudePreditivaServiceTests
     {
         Assert.Null(SaudePreditivaService.TentarLerRespostaDaIa(texto));
     }
+
+    // ------------------------------------------------------------------
+    // A frase de abertura do card
+    //
+    // Ela é o que o tutor lê primeiro e o que o convence (ou não) a tocar no
+    // botão. Por isso é testada como comportamento, e não como texto solto: o
+    // que importa é que ela cite o pet, acerte o pronome e — o principal — NÃO
+    // afirme se basear em dado que o animal não tem.
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Convite_CitaOPetPeloNome_EConvidaAAgendar()
+    {
+        var frase = SaudePreditivaService.MontarConvite(Bolinha(), "Mastocitoma");
+
+        Assert.Contains("Bolinha", frase);
+        Assert.Contains("mastocitoma", frase);
+        Assert.Contains("checkup preventivo", frase);
+        Assert.EndsWith("?", frase);
+    }
+
+    [Fact]
+    public void Convite_UsaOPronomeDoSexoCadastrado()
+    {
+        var macho = Bolinha();
+        macho.Sexo = "MACHO";
+        var femea = Bolinha();
+        femea.Sexo = "FEMEA";
+
+        Assert.Contains("ele tem mais chance", SaudePreditivaService.MontarConvite(macho, "Linfoma"));
+        Assert.Contains("ela tem mais chance", SaudePreditivaService.MontarConvite(femea, "Linfoma"));
+    }
+
+    /// <summary>
+    /// O ponto que mais importa: um animal sem data de nascimento não pode
+    /// ouvir "pela idade do seu pet". Seria inventar o fundamento da própria
+    /// recomendação — e é exatamente o tipo de detalhe que derruba a confiança
+    /// do tutor no resto do card.
+    /// </summary>
+    [Fact]
+    public void Convite_SemDataDeNascimento_NaoAfirmaSeBasearNaIdade()
+    {
+        var semIdade = Bolinha();
+        semIdade.DataNascimento = null;
+
+        var frase = SaudePreditivaService.MontarConvite(semIdade, "Mastocitoma");
+
+        Assert.DoesNotContain("idade", frase);
+        Assert.Contains("Pela raça de Bolinha", frase);
+    }
+
+    [Fact]
+    public void Convite_SemRacaNemIdade_NaoAfirmaBaseNenhuma()
+    {
+        var semNada = Bolinha();
+        semNada.DataNascimento = null;
+        semNada.Raca = null;
+        semNada.RacaCatalogo = null;
+
+        var frase = SaudePreditivaService.MontarConvite(semNada, "Mastocitoma");
+
+        Assert.DoesNotContain("idade", frase);
+        Assert.DoesNotContain("raça", frase);
+        Assert.Contains("No perfil de Bolinha", frase);
+    }
+
+    /// <summary>Sem risco mapeado o convite continua existindo — o checkup vale de todo jeito.</summary>
+    [Fact]
+    public void Convite_SemDoenca_AindaConvidaAoCheckup()
+    {
+        var frase = SaudePreditivaService.MontarConvite(Bolinha(), null);
+
+        Assert.Contains("Bolinha", frase);
+        Assert.Contains("checkup preventivo", frase);
+    }
+
+    /// <summary>O parecer das regras entrega a frase pronta, não um rótulo clínico.</summary>
+    [Fact]
+    public async Task ParecerPelasRegras_TrazOConviteNoResumo()
+    {
+        ArmarBasePadrao();
+        _ia.SetupGet(i => i.Configurado).Returns(false);
+
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        Assert.NotNull(parecer.Resumo);
+        Assert.Contains("Bolinha", parecer.Resumo!);
+        Assert.Contains("checkup preventivo", parecer.Resumo!);
+    }
+
+    /// <summary>
+    /// A IA pode devolver riscos e esquecer o resumo. O card abre por essa
+    /// frase: sem ela, sobraria um cabeçalho solto e um botão sem contexto.
+    /// </summary>
+    [Fact]
+    public async Task IaSemResumo_OConviteEntraPelasRegras()
+    {
+        ArmarBasePadrao();
+        _ia.SetupGet(i => i.Configurado).Returns(true);
+        _ia.SetupGet(i => i.ModelId).Returns("meta.llama-3.3-70b-instruct");
+        _ia.Setup(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("""{"riscos":[{"doenca":"Mastocitoma","nivel":"ALTO"}],"recomendacoes":["Checkup."]}""");
+
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        Assert.Equal("IA", parecer.Origem);
+        Assert.Contains("Bolinha", parecer.Resumo!);
+        Assert.Contains("checkup preventivo", parecer.Resumo!);
+    }
 }

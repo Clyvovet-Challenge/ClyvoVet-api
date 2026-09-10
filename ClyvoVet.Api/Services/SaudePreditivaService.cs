@@ -113,6 +113,11 @@ public class SaudePreditivaService : ISaudePreditivaService
                 {
                     conteudo.BaseLimitada = baseLimitada;
                     modelo = _ia.ModelId;
+
+                    // O modelo pode devolver riscos e esquecer o resumo. O card
+                    // abre por essa frase: sem ela, sobra um cabeçalho solto.
+                    if (string.IsNullOrWhiteSpace(conteudo.Resumo))
+                        conteudo.Resumo = MontarConvite(animal, conteudo.Riscos.FirstOrDefault()?.Doenca);
                 }
                 else
                 {
@@ -182,12 +187,48 @@ public class SaudePreditivaService : ISaudePreditivaService
         if (conteudo.Recomendacoes.Count == 0)
             conteudo.Recomendacoes.Add("Manter o checkup veterinário anual e as vacinas em dia.");
 
-        conteudo.Resumo = top.Count > 0
-            ? $"Atenção preventiva a {top[0].Nome.ToLowerInvariant()}" +
-              (top.Count > 1 ? $" e {top[1].Nome.ToLowerInvariant()}" : "") + "."
-            : "Sem predisposições mapeadas na base de referência para este perfil.";
+        conteudo.Resumo = MontarConvite(animal, top.Count > 0 ? top[0].Nome : null);
 
         return conteudo;
+    }
+
+    /// <summary>
+    /// A frase que abre o card. Ela é dirigida ao tutor, cita o pet pelo nome e
+    /// termina num convite — porque o card não existe para informar, existe para
+    /// que alguém marque uma consulta.
+    ///
+    /// <para><b>Ela só afirma o que sabemos.</b> "Pela raça e pela idade" só
+    /// aparece quando o animal tem raça no catálogo E data de nascimento; com um
+    /// dos dois, a frase cita só esse; sem nenhum, não inventa base nenhuma. O
+    /// pronome sai do sexo cadastrado. Dizer "com base na idade" de um animal sem
+    /// data de nascimento seria inventar o fundamento da própria recomendação —
+    /// e é o tipo de detalhe que o tutor percebe.</para>
+    /// </summary>
+    internal static string MontarConvite(Animal animal, string? doencaPrincipal)
+    {
+        var pronome = animal.Sexo?.Trim().ToUpperInvariant() == "FEMEA" ? "ela" : "ele";
+        var temRaca = animal.RacaCatalogo is not null || !string.IsNullOrWhiteSpace(animal.Raca);
+        var temIdade = animal.DataNascimento is not null;
+
+        var base_ = (temRaca, temIdade) switch
+        {
+            (true, true) => $"Pela raça e pela idade de {animal.Nome}",
+            (true, false) => $"Pela raça de {animal.Nome}",
+            (false, true) => $"Pela idade de {animal.Nome}",
+            _ => $"No perfil de {animal.Nome}",
+        };
+
+        if (string.IsNullOrWhiteSpace(doencaPrincipal))
+            return $"{base_} não encontramos predisposição mapeada na nossa base de referência. " +
+                   "Que tal aproveitar e agendar o checkup preventivo?";
+
+        var doenca = doencaPrincipal.Trim();
+        // Nome de doença em caixa alta no meio da frase soaria como grito; a
+        // primeira letra fica maiúscula só quando ela abre a oração.
+        doenca = char.ToLowerInvariant(doenca[0]) + doenca[1..];
+
+        return $"{base_}, {pronome} tem mais chance de desenvolver {doenca}. " +
+               "Que tal agendar um checkup preventivo?";
     }
 
     private static string RecomendacaoPorCategoria(string? categoria) => categoria switch
@@ -216,10 +257,22 @@ public class SaudePreditivaService : ISaudePreditivaService
         var idade = CalcularIdadeAnos(animal.DataNascimento);
         var sb = new StringBuilder();
 
-        sb.AppendLine("Você é um assistente veterinário PREVENTIVO. Escreva em português do Brasil.");
+        var pronome = animal.Sexo?.Trim().ToUpperInvariant() == "FEMEA" ? "ela" : "ele";
+
+        sb.AppendLine("Você é um assistente veterinário PREVENTIVO falando DIRETAMENTE com o tutor.");
+        sb.AppendLine("Escreva em português do Brasil, em tom acolhedor e simples — nada de jargão clínico.");
         sb.AppendLine("Baseie-se EXCLUSIVAMENTE nos dados fornecidos abaixo — não invente doenças nem estatísticas.");
         sb.AppendLine("Responda SOMENTE com um JSON válido, sem markdown, neste formato exato:");
         sb.AppendLine("""{"riscos":[{"doenca":"...","categoria":"...","nivel":"ALTO|MEDIO|BAIXO","justificativa":"..."}],"recomendacoes":["..."],"resumo":"uma frase"}""");
+        sb.AppendLine();
+        sb.AppendLine("O campo \"resumo\" é o mais importante: é a frase que o tutor lê primeiro.");
+        sb.AppendLine($"Ela DEVE citar o animal pelo nome ({animal.Nome}), usar o pronome \"{pronome}\",");
+        sb.AppendLine("dizer no que a observação se baseia (raça e/ou idade), mencionar a principal");
+        sb.AppendLine("condição e TERMINAR convidando a agendar um checkup preventivo. Exemplo do tom:");
+        sb.AppendLine($"\"Pela raça e pela idade de {animal.Nome}, {pronome} tem mais chance de desenvolver");
+        sb.AppendLine("<condição>. Que tal agendar um checkup preventivo?\"");
+        sb.AppendLine("NÃO afirme basear-se na idade se a idade não foi informada abaixo.");
+        sb.AppendLine();
         sb.AppendLine("No máximo 4 riscos e 3 recomendações. Justificativas de uma frase, citando os números da base.");
         sb.AppendLine("Não dê diagnóstico nem dose de medicamento; recomende sempre acompanhamento veterinário.");
         sb.AppendLine();
