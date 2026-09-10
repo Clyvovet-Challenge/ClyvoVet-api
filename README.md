@@ -933,17 +933,47 @@ Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 ```json
 {
   "animalId": "<uuid-do-animal>",
-  "titulo": "Vacina Antirrábica — Reforço Anual",
-  "descricao": "Aplicar a vacina antirrábica no pet shop da rua central.",
-  "tipo": 0,
+  "titulo": "Antibiótico — 10 dias",
+  "descricao": "Uma dose por dia, sempre no mesmo horário.",
+  "tipo": 1,
   "agendadoEm": "2026-09-15T10:00:00",
-  "recorrente": true,
+  "intervaloDias": 1,
+  "repetirAte": "2026-09-25T23:59:00",
   "status": 0
 }
 ```
 
 > **Atenção:** na criação, o `status` é **sempre forçado para `Pendente` (0)**, seja qual for o valor enviado.  
 > `agendadoEm` precisa ser uma data/hora **futura**.
+
+**A repetição (V18)**
+
+`intervaloDias` é quem decide se o lembrete volta: nulo ou ausente = dispara uma
+vez. `repetirAte` fecha a série — é o "de x dia até y dia", com `agendadoEm` no
+começo. Nulo = repete sem fim previsto, que é o caso do antipulgas mensal.
+
+| Campo | Regra |
+|---|---|
+| `intervaloDias` | 1 a 365. Fora disso, **400** |
+| `repetirAte` | exige `intervaloDias`; sem ele, **400** |
+| `repetirAte` | não pode ser anterior a `agendadoEm`; se for, **400** |
+| `recorrente` | **derivado** de `intervaloDias`. Aceito no corpo e ignorado |
+
+> **`recorrente` não é fonte de verdade.** Ele existia antes da V18, era gravado,
+> lido e mapeado em oito lugares — e **nada no sistema agia sobre ele**: um
+> lembrete "recorrente" disparava uma vez e virava `Enviado`. A coluna ficou por
+> compatibilidade (o app a lê), e agora a API a calcula a partir do intervalo. Um
+> corpo com `"recorrente": true` e sem `intervaloDias` grava `false`.
+
+**Como a série anda:** ao notificar um lembrete com intervalo, a API **não cria
+linha nova** — ela empurra `agendadoEm` para frente e mantém o status `Pendente`.
+Quando a próxima data passa de `repetirAte`, aí marca `Enviado`: a série
+terminou. Clonar a cada disparo custaria 36 linhas por ano num lembrete mensal, e
+uma lista em que o tutor veria trinta e seis vezes o mesmo antipulgas.
+
+O avanço pula de uma vez para a próxima data **futura**. Se a API ficou fora do ar
+por um mês, um lembrete diário está trinta dias atrasado; avançar um intervalo por
+ciclo faria o tutor receber trinta mensagens iguais para se atualizar.
 
 **Response — GET / POST / PUT**
 
@@ -957,6 +987,8 @@ Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
   "tipo": 0,
   "agendadoEm": "2026-09-15T10:00:00",
   "recorrente": true,
+  "intervaloDias": 1,
+  "repetirAte": "2026-09-25T23:59:00",
   "status": 0,
   "criadoEm": "2026-05-24T10:30:00"
 }

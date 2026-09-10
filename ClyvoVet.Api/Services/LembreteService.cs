@@ -33,6 +33,32 @@ public class LembreteService : ILembreteService
         return MapToResponse(lembrete);
     }
 
+    /// <summary>
+    /// A serie precisa fazer sentido antes de ser gravada.
+    /// </summary>
+    /// <remarks>
+    /// Duas recusas, e as duas evitam um lembrete que nunca dispararia como o
+    /// usuario espera:
+    ///
+    /// <para>1. <c>RepetirAte</c> antes de <c>AgendadoEm</c> descreve uma serie
+    /// que termina antes de comecar. O motor a encerraria no primeiro disparo, e
+    /// o tutor teria pedido "de 10/09 ate 05/09" sem ouvir que isso e vazio.</para>
+    ///
+    /// <para>2. <c>RepetirAte</c> sem <c>IntervaloDias</c> e um fim para uma
+    /// serie que nao existe. Aceitar em silencio gravaria uma data que nada le —
+    /// e o usuario acharia que configurou uma repeticao.</para>
+    /// </remarks>
+    private static void ValidarSerie(LembreteRequest request)
+    {
+        if (request.RepetirAte.HasValue && !request.IntervaloDias.HasValue)
+            throw new BadRequestException(
+                "Para repetir até uma data, escolha de quantos em quantos dias o lembrete volta.");
+
+        if (request.RepetirAte.HasValue && request.RepetirAte.Value < request.AgendadoEm)
+            throw new BadRequestException(
+                "A data final da repetição não pode ser anterior à data do lembrete.");
+    }
+
     public async Task<LembreteResponse> CreateAsync(LembreteRequest request)
     {
         var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
@@ -42,6 +68,8 @@ public class LembreteService : ILembreteService
         if (DataValidationHelper.EhDataNoPassado(request.AgendadoEm))
             throw new BadRequestException("A data do lembrete não pode ser no passado.");
 
+        ValidarSerie(request);
+
         var lembrete = new Lembrete
         {
             AnimalId = request.AnimalId,
@@ -49,7 +77,13 @@ public class LembreteService : ILembreteService
             Descricao = request.Descricao,
             Tipo = request.Tipo,
             AgendadoEm = request.AgendadoEm,
-            Recorrente = request.Recorrente,
+            // DERIVADO, e nao copiado do request: com duas fontes para a mesma
+            // verdade, um corpo com {"recorrente": true} sem intervalo gravaria
+            // um lembrete que se diz recorrente e nao repete -- exatamente o
+            // defeito que a V18 veio consertar.
+            Recorrente = request.IntervaloDias.HasValue,
+            IntervaloDias = request.IntervaloDias,
+            RepetirAte = request.RepetirAte,
             Status = StatusLembreteEnum.Pendente
         };
 
@@ -71,6 +105,8 @@ public class LembreteService : ILembreteService
         if (DataValidationHelper.EhDataNoPassado(request.AgendadoEm))
             throw new BadRequestException("A data do lembrete não pode ser no passado.");
 
+        ValidarSerie(request);
+
         var lembrete = new Lembrete
         {
             AnimalId = request.AnimalId,
@@ -78,7 +114,9 @@ public class LembreteService : ILembreteService
             Descricao = request.Descricao,
             Tipo = request.Tipo,
             AgendadoEm = request.AgendadoEm,
-            Recorrente = request.Recorrente,
+            Recorrente = request.IntervaloDias.HasValue,   // derivado; ver CreateAsync
+            IntervaloDias = request.IntervaloDias,
+            RepetirAte = request.RepetirAte,
             Status = existing.Status
         };
 
@@ -104,6 +142,8 @@ public class LembreteService : ILembreteService
         Tipo = lembrete.Tipo,
         AgendadoEm = lembrete.AgendadoEm,
         Recorrente = lembrete.Recorrente,
+        IntervaloDias = lembrete.IntervaloDias,
+        RepetirAte = lembrete.RepetirAte,
         Status = lembrete.Status,
         CriadoEm = lembrete.CriadoEm
     };

@@ -278,4 +278,84 @@ public class LembreteServiceTests
         // Assert
         Assert.Null(exception);
     }
+
+    // ================================================================
+    // A serie (V18)
+    // ================================================================
+
+    /// <summary>
+    /// Fim sem intervalo e um fim para uma serie que nao existe. Aceitar em
+    /// silencio gravaria uma data que nada le, e o usuario sairia da tela
+    /// acreditando ter configurado uma repeticao.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_RepetirAteSemIntervalo_LancaBadRequestException()
+    {
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        var request = new LembreteRequest
+        {
+            AnimalId = "animal-1",
+            Titulo = "Antibiótico",
+            Tipo = TipoLembreteEnum.Medicamento,
+            AgendadoEm = DateTime.UtcNow.AddDays(1),
+            RepetirAte = DateTime.UtcNow.AddDays(10)
+        };
+
+        await Assert.ThrowsAsync<BadRequestException>(() => _service.CreateAsync(request));
+        _repositoryMock.Verify(r => r.CreateAsync(It.IsAny<Lembrete>()), Times.Never);
+    }
+
+    /// <summary>
+    /// "De 10/09 até 05/09" descreve uma serie que termina antes de comecar. O
+    /// motor a encerraria no primeiro disparo, sem o usuario nunca ouvir que o
+    /// que ele pediu e vazio.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_FimAntesDoComeco_LancaBadRequestException()
+    {
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        var request = new LembreteRequest
+        {
+            AnimalId = "animal-1",
+            Titulo = "Antibiótico",
+            Tipo = TipoLembreteEnum.Medicamento,
+            AgendadoEm = DateTime.UtcNow.AddDays(10),
+            IntervaloDias = 1,
+            RepetirAte = DateTime.UtcNow.AddDays(5)
+        };
+
+        await Assert.ThrowsAsync<BadRequestException>(() => _service.CreateAsync(request));
+    }
+
+    /// <summary>
+    /// <c>Recorrente</c> e DERIVADO do intervalo, nunca copiado do corpo. Com
+    /// duas fontes para a mesma verdade, um corpo com <c>recorrente: true</c> e
+    /// sem intervalo gravaria um lembrete que se diz recorrente e nao repete —
+    /// que e exatamente o defeito que a V18 veio consertar.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_RecorrenteDoCorpoEIgnorado_ODerivadoEOIntervalo()
+    {
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        Lembrete? gravado = null;
+        _repositoryMock.Setup(r => r.CreateAsync(It.IsAny<Lembrete>()))
+            .Callback<Lembrete>(l => gravado = l)
+            .ReturnsAsync((Lembrete l) => l);
+        _repositoryMock.Setup(r => r.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(() => gravado);
+
+        await _service.CreateAsync(new LembreteRequest
+        {
+            AnimalId = "animal-1",
+            Titulo = "Antipulgas",
+            Tipo = TipoLembreteEnum.Medicamento,
+            AgendadoEm = DateTime.UtcNow.AddDays(1),
+            Recorrente = true,          // mentira do cliente
+            IntervaloDias = null        // a verdade
+        });
+
+        Assert.NotNull(gravado);
+        Assert.False(gravado!.Recorrente);
+        Assert.Null(gravado.IntervaloDias);
+    }
 }

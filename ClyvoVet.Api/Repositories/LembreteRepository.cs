@@ -90,6 +90,8 @@ public class LembreteRepository : ILembreteRepository
         existing.Tipo = lembrete.Tipo;
         existing.AgendadoEm = lembrete.AgendadoEm;
         existing.Recorrente = lembrete.Recorrente;
+        existing.IntervaloDias = lembrete.IntervaloDias;
+        existing.RepetirAte = lembrete.RepetirAte;
         existing.Status = lembrete.Status;
 
         await _context.SaveChangesAsync();

@@ -22,7 +22,25 @@ public class LembreteRequest
     [Required]
     public DateTime AgendadoEm { get; set; }
 
+    /// <summary>
+    /// Aceito por compatibilidade e IGNORADO no calculo: quem manda e
+    /// <see cref="IntervaloDias"/>. O service deriva este valor.
+    /// </summary>
     public bool Recorrente { get; set; } = false;
+
+    /// <summary>
+    /// "A cada quantos dias". NULO = nao repete.
+    /// </summary>
+    /// <remarks>
+    /// O teto de 365 nao e capricho: acima de um ano, "a cada N dias" deixa de
+    /// ser lembrete e passa a ser agendamento — e o intervalo em dias erraria a
+    /// data por causa do ano bissexto.
+    /// </remarks>
+    [Range(1, 365, ErrorMessage = "O intervalo deve ficar entre 1 e 365 dias.")]
+    public int? IntervaloDias { get; set; }
+
+    /// <summary>Fim da serie. NULO = repete sem fim previsto.</summary>
+    public DateTime? RepetirAte { get; set; }
 
     public StatusLembreteEnum Status { get; set; } = StatusLembreteEnum.Pendente;
 }

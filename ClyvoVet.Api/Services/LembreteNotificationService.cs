@@ -126,14 +126,88 @@ public class LembreteNotificationService : BackgroundService
         {
             try
             {
-                lembrete.Status = StatusLembreteEnum.Enviado;
+                if (lembrete.IntervaloDias is > 0)
+                {
+                    var (proxima, terminou) = AvancarSerie(
+                        lembrete.AgendadoEm, lembrete.IntervaloDias.Value,
+                        lembrete.RepetirAte, DateTime.UtcNow);
+
+                    if (terminou)
+                    {
+                        lembrete.Status = StatusLembreteEnum.Enviado;
+                        _logger.LogInformation(
+                            "Lembrete {LembreteId} notificado; a série terminou em {RepetirAte:d}.",
+                            lembrete.Id, lembrete.RepetirAte);
+                    }
+                    else
+                    {
+                        // Continua Pendente DE PROPOSITO: e a mesma linha que
+                        // volta, com a data empurrada para a frente.
+                        lembrete.AgendadoEm = proxima;
+                        _logger.LogInformation(
+                            "Lembrete {LembreteId} notificado; volta em {Proxima:g} (a cada {Dias} dias).",
+                            lembrete.Id, proxima, lembrete.IntervaloDias);
+                    }
+                }
+                else
+                {
+                    lembrete.Status = StatusLembreteEnum.Enviado;
+                    _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
+                }
+
                 await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);
-                _logger.LogInformation("Lembrete {LembreteId} notificado e marcado como Enviado.", lembrete.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lembrete {LembreteId} foi notificado, mas falhou ao marcar como Enviado — será notificado de novo no próximo ciclo.", lembrete.Id);
+                _logger.LogError(ex, "Lembrete {LembreteId} foi notificado, mas falhou ao gravar o novo estado — será notificado de novo no próximo ciclo.", lembrete.Id);
             }
         }
+    }
+
+    /// <summary>
+    /// Onde a serie cai depois de um disparo, e se ela acabou.
+    /// </summary>
+    /// <remarks>
+    /// <para>Extraido como metodo estatico de proposito: os testes de integracao
+    /// desta API rodam em <c>UseInMemoryDatabase</c> e nao exercitam o
+    /// BackgroundService, entao a aritmetica da serie so tem cobertura se ela
+    /// puder ser chamada direto. E o mesmo motivo que levou o MapaDeErro a sair
+    /// do lambda do UseExceptionHandler.</para>
+    ///
+    /// <para><b>O laco existe por causa do tempo parado.</b> Se a API ficou fora do
+    /// ar por um mes, um lembrete diario esta trinta dias atrasado. Avancar UM
+    /// intervalo o deixaria ainda no passado, ele seria varrido no minuto
+    /// seguinte, notificado outra vez, e o tutor receberia trinta mensagens
+    /// iguais para se atualizar. O laco pula de uma vez para a proxima data
+    /// futura: uma notificacao, e a serie volta ao ritmo.</para>
+    ///
+    /// <para>O teto de iteracoes e cinto de seguranca. O CHECK do banco e o
+    /// <c>[Range(1,365)]</c> do request ja impedem intervalo zero ou negativo;
+    /// se algum dia um deles falhar, o que acontece e um limite atingido e nao
+    /// um BackgroundService girando para sempre.</para>
+    /// </remarks>
+    internal static (DateTime proxima, bool serieTerminou) AvancarSerie(
+        DateTime agendadoEm, int intervaloDias, DateTime? repetirAte, DateTime agora)
+    {
+        if (intervaloDias <= 0)
+            return (agendadoEm, true);
+
+        const int TetoDeIteracoes = 1000;
+        var proxima = agendadoEm;
+
+        for (var i = 0; i < TetoDeIteracoes; i++)
+        {
+            proxima = proxima.AddDays(intervaloDias);
+
+            // O fim da serie manda, mesmo que a data ainda esteja no passado:
+            // uma serie que acabou nao volta so porque houve atraso.
+            if (repetirAte.HasValue && proxima > repetirAte.Value)
+                return (proxima, true);
+
+            if (proxima > agora)
+                return (proxima, false);
+        }
+
+        return (proxima, false);
     }
 }

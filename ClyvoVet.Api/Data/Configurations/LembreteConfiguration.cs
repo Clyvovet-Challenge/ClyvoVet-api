@@ -41,6 +41,12 @@ public class LembreteConfiguration : IEntityTypeConfiguration<Lembrete>
         builder.Property(l => l.Recorrente)
             .HasColumnName("recorrente");
 
+        builder.Property(l => l.IntervaloDias)
+            .HasColumnName("intervalo_dias");
+
+        builder.Property(l => l.RepetirAte)
+            .HasColumnName("repetir_ate");
+
         builder.Property(l => l.Status)
             .HasColumnName("status");
 

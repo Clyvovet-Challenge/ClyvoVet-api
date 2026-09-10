@@ -12,6 +12,12 @@ public class LembreteResponse
     public TipoLembreteEnum Tipo { get; set; }
     public DateTime AgendadoEm { get; set; }
     public bool Recorrente { get; set; }
+
+    /// <summary>"A cada quantos dias". NULO quando o lembrete nao repete.</summary>
+    public int? IntervaloDias { get; set; }
+
+    /// <summary>Fim da serie. NULO quando repete sem fim previsto.</summary>
+    public DateTime? RepetirAte { get; set; }
     public StatusLembreteEnum Status { get; set; }
     public DateTime CriadoEm { get; set; }
 }
