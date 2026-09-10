@@ -348,4 +348,40 @@ public class ProdutoEndpointsTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(PorteEnum.Todos, criado!.PorteIndicado);
     }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Paridade de regra com a API Java
+    //
+    // As duas APIs sao do mesmo produto e respondiam diferente a mesma
+    // pergunta. Estes testes fixam as respostas equivalentes.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // O 409 de "registro em uso" NAO e testado aqui, de proposito: estes testes
+    // rodam em EF Core InMemory, que nao aplica chave estrangeira, e o mesmo
+    // delete responde 204 la dentro. Um teste escrito aqui passaria pelo motivo
+    // errado. A regra e coberta em MapaDeErroTests (unidade) e foi verificada
+    // contra o MySQL do compose, onde o DELETE responde 409.
+
+    /// <summary>
+    /// Nome com menos de 3 caracteres e recusado, como do lado Java.
+    ///
+    /// O <c>[Required]</c> sozinho barra vazio e nulo, mas aceitava "X" -- e a
+    /// API Java devolve 400 com "size must be between 3 and 100" para o mesmo
+    /// nome. Mesma pergunta, mesma resposta.
+    /// </summary>
+    [Fact]
+    public async Task Create_NomeComUmaLetra_Responde400()
+    {
+        var request = new ProdutoRequest
+        {
+            Nome = "X",
+            Categoria = CategoriaEnum.Outro,
+            Preco = 10m,
+            EspecieIndicada = EspecieEnum.Todos,
+            Ativo = true
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/produtos", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

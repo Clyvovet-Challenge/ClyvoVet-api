@@ -103,11 +103,23 @@ porque nenhum deles daria erro de compilação:
 código-fonte; Key Vault não é exigido por nenhuma das duas disciplinas e cada
 recurso a mais é um recurso a explicar na avaliação oral.
 
-**Impacto fora daqui, ainda em aberto:** o app precisa passar a mandar
-`Authorization` para esta API. Não é aditivo — o cliente `.NET` dele não tem
-refresh, então mandar o Bearer sem mais nada faria as chamadas falharem 15 minutos
-depois do login. Enquanto isso não estiver pronto, `Api__EscopoPorTutor` fica em
-`false` e nada muda.
+**~~Impacto fora daqui, ainda em aberto~~ — RESOLVIDO em 10/09/2026.** O app
+precisava passar a mandar `Authorization` para esta API, e passou:
+`ENVIAR_BEARER_DOTNET` é `true` por padrão e o cliente `.NET` dele reusa
+`tokenValido()`/`renovarSessao()` do cliente Java, então há refresh e as chamadas
+não morrem 15 minutos depois do login.
+
+A condição foi cumprida e **a chave continuou desligada** — a flag ficou em
+`false` por mais tempo do que o motivo dela durou. Faltava também uma peça que
+ninguém tinha notado: o container `.NET` não recebia **nenhum** `Jwt__Secret`,
+então mesmo ligando a flag o Bearer não seria validado e todo tutor cairia em
+403. As duas variáveis vão juntas, e o segredo é o mesmo do Java (o token é
+assinado lá e lido aqui).
+
+Ligadas as duas e verificado contra o compose: o tutor vê as sugestões do
+próprio pet e recebe lista **vazia** para o pet de outro; a saúde preditiva
+alheia responde 404. Sem elas, a mesma chamada devolvia o dado do outro — o que
+a API Java sempre recusou com 403.
 
 ### 2.2 ✅ `schema/script_bd.sql` diverge do schema real — CORRIGIDO
 

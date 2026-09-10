@@ -6,6 +6,7 @@ namespace ClyvoVet.Api.DTOs.Request;
 public class ProdutoRequest
 {
     [Required]
+    [MinLength(3)]
     [MaxLength(200)]
     public string Nome { get; set; } = null!;
 

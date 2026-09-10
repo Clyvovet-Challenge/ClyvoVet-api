@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Errors;
 using System.Reflection;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.Exceptions;
@@ -333,23 +334,12 @@ app.UseExceptionHandler(errorApp =>
 
         context.Response.ContentType = "application/json";
 
-        context.Response.StatusCode = exception switch
-        {
-            NotFoundException        => StatusCodes.Status404NotFound,
-            BadRequestException      => StatusCodes.Status400BadRequest,
-            // O recorte esta ligado e a requisicao nao identifica um tutor.
-            // 403 e nao 401: a X-Api-Key foi aceita, o que falta e IDENTIDADE.
-            SemTutorNoTokenException => StatusCodes.Status403Forbidden,
-            _                        => StatusCodes.Status500InternalServerError
-        };
+        // A decisao vive em MapaDeErro, fora deste lambda, para poder ser
+        // testada: o caso do 409 depende de chave estrangeira real, e os testes
+        // de integracao rodam em InMemory, que nao aplica FK.
+        context.Response.StatusCode = MapaDeErro.Status(exception);
 
-        var message = exception switch
-        {
-            NotFoundException        e => e.Message,
-            BadRequestException      e => e.Message,
-            SemTutorNoTokenException e => e.Message,
-            _                          => "Erro interno no servidor."
-        };
+        var message = MapaDeErro.Mensagem(exception);
 
         switch (exception)
         {

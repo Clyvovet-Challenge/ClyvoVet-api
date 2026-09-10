@@ -9,6 +9,7 @@ public class LembreteRequest
     public string AnimalId { get; set; } = null!;
 
     [Required]
+    [MinLength(3)]
     [MaxLength(200)]
     public string Titulo { get; set; } = null!;
 

@@ -6,6 +6,7 @@ namespace ClyvoVet.Api.DTOs.Request;
 public class EventoPetRequest
 {
     [Required]
+    [MinLength(3)]
     [MaxLength(300)]
     public string Titulo { get; set; } = null!;
 
