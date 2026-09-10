@@ -11,6 +11,26 @@ namespace ClyvoVet.Api.Controllers;
 /// relevantes para a espécie, raça e idade atual de um animal, sugerindo
 /// agendar consulta quando alguma condição relevante for encontrada.
 /// </summary>
+/// <remarks>
+/// <para><b>Existem dois endpoints de saude preditiva, e este NAO e o que o app usa</b></para>
+///
+/// <para>
+/// Este le <c>t_clyvo_predisposicao_saude</c> e devolve a lista crua de
+/// predisposicoes da especie/raca/idade. Foi a primeira geracao da ideia, e
+/// continua entregue, testada e documentada no README.
+/// </para>
+///
+/// <para>
+/// O que a home do aplicativo consome e o
+/// <see cref="SaudePreditivaController"/> (<c>/api/v1/saude-preditiva/{animalId}</c>),
+/// que le <c>t_clyvo_base_doencas</c>, passa pela OCI Generative AI para
+/// redigir e prioriza, e guarda o resultado em cache por sete dias.
+/// </para>
+///
+/// <para>
+/// Mexeu na saude preditiva que o tutor ve? E o outro arquivo.
+/// </para>
+/// </remarks>
 [ApiController]
 [Route("api/v1/widget-saude-preditiva")]
 [Produces("application/json")]

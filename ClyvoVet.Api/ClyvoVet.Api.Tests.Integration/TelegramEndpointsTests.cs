@@ -180,7 +180,7 @@ public class TelegramEndpointsTests
         // Arrange
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
 
         // Act
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
@@ -205,7 +205,7 @@ public class TelegramEndpointsTests
         // Arrange
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
 
         // Act
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
@@ -224,7 +224,7 @@ public class TelegramEndpointsTests
         // Arrange
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_TELEGRAM_API_KEY");
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
 
         // Act
         var primeiro = await (await client.GetAsync("/api/v1/telegram/link/tutor-abc-123"))
@@ -247,6 +247,97 @@ public class TelegramEndpointsTests
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
 
         // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // A separacao das duas chaves
+    //
+    // E a razao de o filtro ter saido da classe. Se um dia alguem devolver o
+    // TypeFilter para o topo do controller, um destes dois testes cai -- e o
+    // motivo fica escrito aqui, em vez de virar uma decisao perdida no diff.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A chave do app abre o vinculo, que e do proprio tutor.
+    /// </summary>
+    [Fact]
+    public async Task Vinculo_ComAChaveDoApp_Responde200()
+    {
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        var response = await client.GetAsync("/api/v1/telegram/vinculo/tutor-abc-123");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>
+    /// E NAO abre o envio. Este e o teste que justifica a mudanca: a chave que
+    /// viaja dentro do aplicativo nao pode escrever para chat nenhum, senao quem
+    /// extrair o bundle passa a falar como se fosse a clinica.
+    /// </summary>
+    [Fact]
+    public async Task Enviar_ComAChaveDoApp_ContinuaRecusando()
+    {
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/telegram/enviar",
+            new TelegramRequest { ChatId = 123456789, Mensagem = "oi" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Null(factory.FakeService.UltimaMensagem);
+    }
+
+    /// <summary>
+    /// Tutor sem vinculo responde 200 com <c>vinculado: false</c>, e nao 404.
+    ///
+    /// Nao ter vinculo e o estado em que TODO tutor comeca; trata-lo como erro
+    /// obrigaria o app a desenhar a tela normal a partir de uma excecao.
+    /// </summary>
+    [Fact]
+    public async Task Vinculo_SemVinculo_Responde200ComVinculadoFalso()
+    {
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        var response = await client.GetAsync("/api/v1/telegram/vinculo/tutor-sem-vinculo");
+        var corpo = await response.Content.ReadFromJsonAsync<TelegramVinculoResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(corpo);
+        Assert.False(corpo!.Vinculado);
+        Assert.Null(corpo.Desde);
+    }
+
+    /// <summary>
+    /// Desvincular sem vinculo tambem da 204: o pedido e "que este tutor nao
+    /// receba mais", e esse estado passa a valer nos dois casos.
+    /// </summary>
+    [Fact]
+    public async Task Desvincular_SemVinculo_Responde204()
+    {
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        var response = await client.DeleteAsync("/api/v1/telegram/vinculo/tutor-sem-vinculo");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vinculo_SemApiKey_RetornaUnauthorized()
+    {
+        using var factory = new TelegramTestFixture();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/v1/telegram/vinculo/tutor-abc-123");
+
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

@@ -11,6 +11,18 @@ namespace ClyvoVet.Api.Controllers;
 /// recomendações que a home do app mostra por animal. Substitui o widget por
 /// regras como recurso principal; o endpoint antigo continua no ar.
 /// </summary>
+/// <remarks>
+/// <para><b>Este e o endpoint que a home do aplicativo consome.</b></para>
+///
+/// <para>
+/// Nao confundir com <see cref="WidgetSaudePreditivaController"/>
+/// (<c>/api/v1/widget-saude-preditiva/{animalId}</c>), que e a geracao anterior
+/// e le outra tabela: aquele devolve a lista crua de
+/// <c>t_clyvo_predisposicao_saude</c>; este parte de
+/// <c>t_clyvo_base_doencas</c>, usa a OCI para redigir e priorizar, e mantem o
+/// parecer em cache por sete dias.
+/// </para>
+/// </remarks>
 [ApiController]
 [Route("api/v1/saude-preditiva")]
 [Produces("application/json")]

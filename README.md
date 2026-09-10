@@ -752,7 +752,7 @@ curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
 
 No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a chave uma única vez — a partir daí ela é aplicada automaticamente em toda chamada feita por ali.
 
-> O endpoint extra do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`) — detalhes na seção correspondente, mais abaixo.
+> O **envio** do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`), porque manda mensagem para qualquer `chatId`. As ações de **vínculo** do tutor (`link`, `vinculo`) usam esta `Api:ApiKey` — detalhes na seção correspondente, mais abaixo.
 
 #### Esta API não tem usuário nem perfil
 
@@ -1103,10 +1103,30 @@ O modelo default é `meta.llama-3.3-70b-instruct` (`Oci:GenAi:ModelId` muda; `Oc
 
 O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. Desde esta sprint é o ÚNICO canal: o WhatsApp/Twilio saiu do escopo, e a marcação de consultas acontece apenas no app.
 
-| Método | Rota | Descrição | Status |
-|--------|------|-----------|--------|
-| POST | `/api/v1/telegram/enviar` | Envia uma mensagem de Telegram para o `chatId` informado | 204 |
-| GET | `/api/v1/telegram/link/{tutorId}` | Gera o deep link (`t.me/<bot>?start=<convite>`) para o tutor vincular sua conta ao bot | 200 |
+| Método | Rota | Descrição | Chave | Status |
+|--------|------|-----------|-------|--------|
+| POST | `/api/v1/telegram/enviar` | Envia uma mensagem de Telegram para o `chatId` informado | `Telegram:ApiKey` | 204 |
+| GET | `/api/v1/telegram/link/{tutorId}` | Gera o deep link (`t.me/<bot>?start=<convite>`) para o tutor vincular sua conta ao bot | `Api:ApiKey` | 200 |
+| GET | `/api/v1/telegram/vinculo/{tutorId}` | Diz se o tutor já tem conversa ligada, e desde quando | `Api:ApiKey` | 200 |
+| DELETE | `/api/v1/telegram/vinculo/{tutorId}` | Desliga as notificações deste tutor | `Api:ApiKey` | 204 |
+
+#### Duas chaves, e o motivo
+
+O filtro de chave deixou de ser do controller e passou a ser **por ação**, porque as ações aqui têm risco muito diferente.
+
+`enviar` manda **qualquer mensagem para qualquer `chatId`**. Uma chave que abre isso não pode viajar dentro de um aplicativo distribuído: quem extraísse o bundle passaria a escrever, como se fosse a clínica, para todo tutor cujo `chatId` descobrisse. Ela continua sendo a `Telegram:ApiKey`, de serviço para serviço.
+
+As outras três são do próprio tutor sobre o próprio vínculo, e o app precisa delas para a tela existir. Usam a `Api:ApiKey` — a mesma que o app já carrega para os lembretes — com o `EscopoDoTutor` impedindo que um tutor mexa no vínculo de outro. Exigir a chave de envio nelas obrigaria a embarcar a chave de envio, que é exatamente o que o parágrafo acima proíbe.
+
+**Response — GET `/vinculo/{tutorId}`**
+
+```json
+{ "vinculado": true, "desde": "2026-09-10T14:32:11Z" }
+```
+
+O `chatId` **não** entra na resposta: o app não faz nada com ele — quem envia é esta API —, e devolvê-lo só ampliaria o estrago de um token vazado.
+
+Tutor sem vínculo responde **200 com `vinculado: false`**, não 404: não ter vínculo é o estado em que todo tutor começa, e tratá-lo como erro obrigaria o app a desenhar a tela normal a partir de uma exceção. Pelo mesmo motivo, `DELETE` responde 204 mesmo quando não havia vínculo — o pedido é "que este tutor não receba mais", e esse estado passa a valer nos dois casos.
 
 **Request — POST**
 

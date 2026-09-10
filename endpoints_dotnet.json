@@ -1,0 +1,132 @@
+[
+ {
+  "metodo": "GET",
+  "caminho": "/eventos-pet",
+  "arquivo": "ClyvoVet.Api/Controllers/EventoPetController.cs"
+ },
+ {
+  "metodo": "POST",
+  "caminho": "/eventos-pet",
+  "arquivo": "ClyvoVet.Api/Controllers/EventoPetController.cs"
+ },
+ {
+  "metodo": "DELETE",
+  "caminho": "/eventos-pet/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/EventoPetController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/eventos-pet/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/EventoPetController.cs"
+ },
+ {
+  "metodo": "PUT",
+  "caminho": "/eventos-pet/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/EventoPetController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/lembretes",
+  "arquivo": "ClyvoVet.Api/Controllers/LembreteController.cs"
+ },
+ {
+  "metodo": "POST",
+  "caminho": "/lembretes",
+  "arquivo": "ClyvoVet.Api/Controllers/LembreteController.cs"
+ },
+ {
+  "metodo": "DELETE",
+  "caminho": "/lembretes/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/LembreteController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/lembretes/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/LembreteController.cs"
+ },
+ {
+  "metodo": "PUT",
+  "caminho": "/lembretes/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/LembreteController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/produtos",
+  "arquivo": "ClyvoVet.Api/Controllers/ProdutoController.cs"
+ },
+ {
+  "metodo": "POST",
+  "caminho": "/produtos",
+  "arquivo": "ClyvoVet.Api/Controllers/ProdutoController.cs"
+ },
+ {
+  "metodo": "DELETE",
+  "caminho": "/produtos/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/ProdutoController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/produtos/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/ProdutoController.cs"
+ },
+ {
+  "metodo": "PUT",
+  "caminho": "/produtos/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/ProdutoController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/saude-preditiva/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/SaudePreditivaController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/sugestoes-produto",
+  "arquivo": "ClyvoVet.Api/Controllers/SugestaoProdutoController.cs"
+ },
+ {
+  "metodo": "POST",
+  "caminho": "/sugestoes-produto",
+  "arquivo": "ClyvoVet.Api/Controllers/SugestaoProdutoController.cs"
+ },
+ {
+  "metodo": "DELETE",
+  "caminho": "/sugestoes-produto/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/SugestaoProdutoController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/sugestoes-produto/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/SugestaoProdutoController.cs"
+ },
+ {
+  "metodo": "PUT",
+  "caminho": "/sugestoes-produto/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/SugestaoProdutoController.cs"
+ },
+ {
+  "metodo": "POST",
+  "caminho": "/telegram/enviar",
+  "arquivo": "ClyvoVet.Api/Controllers/TelegramController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/telegram/link/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/TelegramController.cs"
+ },
+ {
+  "metodo": "DELETE",
+  "caminho": "/telegram/vinculo/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/TelegramController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/telegram/vinculo/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/TelegramController.cs"
+ },
+ {
+  "metodo": "GET",
+  "caminho": "/widget-saude-preditiva/{}",
+  "arquivo": "ClyvoVet.Api/Controllers/WidgetSaudePreditivaController.cs"
+ }
+]
