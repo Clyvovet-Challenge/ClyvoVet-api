@@ -143,7 +143,7 @@ builder.Services.AddSwaggerGen(options =>
             "EventoPet"       => ["Eventos Pet"],
             "SugestaoProduto" => ["Sugestões de Produto"],
             "WidgetSaudePreditiva" => ["Widget de Saúde Preditiva"],
-            "WhatsApp"        => ["WhatsApp"],
+            "SaudePreditiva"  => ["Saúde Preditiva (IA)"],
             "Telegram"        => ["Telegram"],
             var other         => [other ?? "Outros"]
         });
@@ -225,12 +225,22 @@ builder.Services.AddScoped<IEventoPetRepository,       EventoPetRepository>();
 builder.Services.AddScoped<IAnimalRepository,          AnimalRepository>();
 builder.Services.AddScoped<IPredisposicaoSaudeRepository, PredisposicaoSaudeRepository>();
 builder.Services.AddScoped<ITutorTelegramRepository, TutorTelegramRepository>();
+builder.Services.AddScoped<IBaseDoencaRepository, BaseDoencaRepository>();
+builder.Services.AddScoped<IParecerIaRepository, ParecerIaRepository>();
 
 builder.Services.AddScoped<IProdutoService,         ProdutoService>();
 builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
 builder.Services.AddScoped<ILembreteService,        LembreteService>();
 builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
 builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
+builder.Services.AddScoped<ISaudePreditivaService, SaudePreditivaService>();
+
+// OCI Generative AI via HttpClient tipado. Sem credencial no ambiente o
+// cliente nasce com Configurado=false e a saude preditiva responde pelas
+// regras -- a home nunca depende da nuvem para abrir. Timeout curto pelo
+// mesmo motivo: melhor um fallback em 20s do que um card pendurado.
+builder.Services.AddHttpClient<IOciGenerativeAiClient, OciGenerativeAiClient>(client =>
+    client.Timeout = TimeSpan.FromSeconds(20));
 // Validacao do token emitido pela API Java. Singleton porque a chave e montada
 // uma vez; INERTE enquanto Jwt:Secret nao existir, e incapaz de lancar no boot
 // mesmo com valor invalido — ver o comentario da classe.
@@ -242,7 +252,6 @@ builder.Services.AddSingleton<ValidadorDeTokenJwt>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<EscopoDoTutor>();
 
-builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
@@ -263,19 +272,15 @@ if (!builder.Environment.IsEnvironment("Testing"))
 // nele não deveria tirar a API inteira de rotação, já que os outros recursos (Produto,
 // Lembrete, EventoPet, SugestaoProduto) continuam funcionando normalmente sem Telegram.
 //
-// O CHECK DO TWILIO SAIU DAQUI, E NÃO FOI POR SER RUIM.
+// O WHATSAPP SAIU DA API INTEIRA — decisão de escopo da Sprint 3, não detalhe
+// de sonda. O Telegram passou a ser o único canal de mensagem (lembretes e
+// saúde preditiva), e com ele saiu o Twilio do grafo de dependências. A sonda
+// do Twilio já tinha sido removida antes por outro motivo, documentado no
+// histórico: sem credencial no ambiente, o /health agregado respondia 503 com
+// a API 100% funcional.
 //
-// O endpoint /health agrega TODOS os checks (é o único mapeado sem Predicate), e o
-// Twilio não tem credencial configurada em nenhum ambiente de entrega — o deploy em
-// azure/06-configuracoes.sh define Telegram__BotToken e não define nada de Twilio.
-// Resultado medido em ensaio na Azure: /health respondia HTTP 503 com
-// "Authentication Error - invalid username", mesmo com a API 100% funcional e o
-// mysql-database Healthy. Quem abrisse /health veria a aplicação vermelha.
-//
-// A funcionalidade de WhatsApp continua inteira (WhatsAppController, WhatsAppService,
-// endpoints e testes). O que saiu foi apenas a sonda. A classe WhatsAppHealthCheck
-// segue no repositório: para religar, basta devolver a linha do AddCheck abaixo —
-// mas só depois de existir credencial Twilio de verdade no ambiente.
+// A OCI Generative AI NÃO tem sonda de propósito: ela é opcional por design
+// (fallback determinístico) e uma sonda a transformaria em dependência.
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"])
     .AddDbContextCheck<AppDbContext>(

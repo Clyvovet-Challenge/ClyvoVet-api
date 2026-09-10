@@ -16,6 +16,9 @@ public class AppDbContext : DbContext
     public DbSet<SugestaoProduto> SugestoesProduto => Set<SugestaoProduto>();
     public DbSet<PredisposicaoSaude> PredisposicoesSaude => Set<PredisposicaoSaude>();
     public DbSet<TutorTelegram> TutoresTelegram => Set<TutorTelegram>();
+    public DbSet<Raca> Racas => Set<Raca>();
+    public DbSet<BaseDoenca> BaseDoencas => Set<BaseDoenca>();
+    public DbSet<ParecerIa> PareceresIa => Set<ParecerIa>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

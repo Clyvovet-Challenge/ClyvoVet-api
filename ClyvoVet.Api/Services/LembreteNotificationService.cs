@@ -6,10 +6,13 @@ using ClyvoVet.Api.Services.Interfaces;
 namespace ClyvoVet.Api.Services;
 
 // Fica de olho nos lembretes pendentes que estão vencendo (próxima 1h) e manda
-// uma notificação pro tutor — por Telegram, se ele tiver vinculado a conta
-// (T_CLYVO_TUTOR_TELEGRAM), ou por WhatsApp, usando o telefone já cadastrado
-// (Tutor.Telefone, dado da API Java). Depois de notificar, marca o lembrete
-// como Enviado para não notificar de novo.
+// uma notificação pro tutor pelo Telegram, se ele tiver vinculado a conta
+// (T_CLYVO_TUTOR_TELEGRAM). Depois de notificar, marca o lembrete como Enviado
+// para não notificar de novo.
+//
+// O TELEGRAM E O UNICO CANAL, POR DECISAO — o WhatsApp saiu do escopo na
+// Sprint 3 (e com ele o Twilio). Sem vínculo de Telegram o lembrete fica
+// Pendente e o motivo vai para o log; marcá-lo Enviado seria mentir.
 public class LembreteNotificationService : BackgroundService
 {
     private static readonly TimeSpan IntervaloVerificacao = TimeSpan.FromMinutes(1);
@@ -53,7 +56,6 @@ public class LembreteNotificationService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var lembreteRepository = scope.ServiceProvider.GetRequiredService<ILembreteRepository>();
         var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
         var telegramService = scope.ServiceProvider.GetRequiredService<ITelegramService>();
 
         var lembretes = await lembreteRepository.GetPendentesVencendoAsync(DateTime.UtcNow.Add(JanelaDeAntecedencia));
@@ -74,7 +76,7 @@ public class LembreteNotificationService : BackgroundService
             try
             {
                 await NotificarAsync(lembrete, lembreteRepository, tutorTelegramRepository,
-                                     whatsAppService, telegramService);
+                                     telegramService);
             }
             catch (Exception ex)
             {
@@ -89,7 +91,6 @@ public class LembreteNotificationService : BackgroundService
         Lembrete lembrete,
         ILembreteRepository lembreteRepository,
         ITutorTelegramRepository tutorTelegramRepository,
-        IWhatsAppService whatsAppService,
         ITelegramService telegramService)
     {
         var tutor = lembrete.Animal.Tutor;
@@ -110,27 +111,14 @@ public class LembreteNotificationService : BackgroundService
             }
         }
 
-        if (!notificado && !string.IsNullOrWhiteSpace(tutor.Telefone))
-        {
-            try
-            {
-                await whatsAppService.EnviarMensagemAsync(tutor.Telefone, mensagem);
-                notificado = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Falha ao notificar lembrete {LembreteId} via WhatsApp.", lembrete.Id);
-            }
-        }
-
         if (!notificado)
         {
-            // Sem Telegram vinculado e sem telefone no cadastro nao ha por onde
-            // avisar. O lembrete fica Pendente e volta a ser varrido a cada
-            // minuto, para sempre, sem nenhum registro do porque -- e o operador
-            // so ve "a notificacao nao chegou". Ao menos agora ele ve o motivo.
+            // Sem Telegram vinculado nao ha por onde avisar — o WhatsApp saiu
+            // do escopo. O lembrete fica Pendente e volta a ser varrido a cada
+            // minuto; o log diz o motivo para o operador nao ver so "a
+            // notificacao nao chegou".
             _logger.LogWarning(
-                "Lembrete {LembreteId} sem canal de notificacao: o tutor {TutorId} nao tem Telegram vinculado nem telefone cadastrado.",
+                "Lembrete {LembreteId} sem canal de notificacao: o tutor {TutorId} nao tem Telegram vinculado.",
                 lembrete.Id, tutor.Id);
         }
 

@@ -25,7 +25,6 @@ public class LembreteNotificationServiceTests
 {
     private readonly Mock<ILembreteRepository> _lembretes = new();
     private readonly Mock<ITutorTelegramRepository> _telegramRepo = new();
-    private readonly Mock<IWhatsAppService> _whatsApp = new();
     private readonly Mock<ITelegramService> _telegram = new();
 
     private static Lembrete Lembrete(string id, string tutorId, string? telefone) => new()
@@ -49,7 +48,6 @@ public class LembreteNotificationServiceTests
         var servicos = new ServiceCollection();
         servicos.AddScoped(_ => _lembretes.Object);
         servicos.AddScoped(_ => _telegramRepo.Object);
-        servicos.AddScoped(_ => _whatsApp.Object);
         servicos.AddScoped(_ => _telegram.Object);
 
         return new LembreteNotificationService(
@@ -71,11 +69,11 @@ public class LembreteNotificationServiceTests
         _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1"))
             .ThrowsAsync(new InvalidOperationException("banco indisponivel"));
         _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync("tutor-2"))
-            .ReturnsAsync((long?)null);
+            .ReturnsAsync(2424L);
 
         await Servico().VerificarLembretesAsync(CancellationToken.None);
 
-        _whatsApp.Verify(w => w.EnviarMensagemAsync("11988880000", It.IsAny<string>()), Times.Once);
+        _telegram.Verify(t => t.EnviarMensagemAsync(2424L, It.IsAny<string>()), Times.Once);
         _lembretes.Verify(r => r.UpdateAsync("bom", It.IsAny<Lembrete>()), Times.Once);
     }
 
@@ -86,7 +84,7 @@ public class LembreteNotificationServiceTests
         _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>()))
             .ReturnsAsync([lembrete]);
         _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((long?)null);
+            .ReturnsAsync(4242L);
 
         await Servico().VerificarLembretesAsync(CancellationToken.None);
 
@@ -94,26 +92,11 @@ public class LembreteNotificationServiceTests
     }
 
     /// <summary>
-    /// Telegram vinculado ganha do WhatsApp, e o WhatsApp não é tentado depois —
-    /// senão o tutor receberia a mesma mensagem por dois canais.
+    /// Telegram falhando, o lembrete fica Pendente e volta no próximo ciclo —
+    /// não há mais segundo canal desde que o WhatsApp saiu do escopo.
     /// </summary>
     [Fact]
-    public async Task ComTelegramVinculado_NaoUsaOWhatsApp()
-    {
-        var lembrete = Lembrete("um", "tutor-1", "11999990000");
-        _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>()))
-            .ReturnsAsync([lembrete]);
-        _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1")).ReturnsAsync(4242L);
-
-        await Servico().VerificarLembretesAsync(CancellationToken.None);
-
-        _telegram.Verify(t => t.EnviarMensagemAsync(4242L, It.IsAny<string>()), Times.Once);
-        _whatsApp.Verify(w => w.EnviarMensagemAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-    }
-
-    /// <summary>Telegram falhando, o WhatsApp assume — é para isso que a alternativa existe.</summary>
-    [Fact]
-    public async Task TelegramFalhando_CaiNoWhatsApp()
+    public async Task TelegramFalhando_LembreteContinuaPendente()
     {
         var lembrete = Lembrete("um", "tutor-1", "11999990000");
         _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>()))
@@ -124,18 +107,18 @@ public class LembreteNotificationServiceTests
 
         await Servico().VerificarLembretesAsync(CancellationToken.None);
 
-        _whatsApp.Verify(w => w.EnviarMensagemAsync("11999990000", It.IsAny<string>()), Times.Once);
-        Assert.Equal(StatusLembreteEnum.Enviado, lembrete.Status);
+        Assert.Equal(StatusLembreteEnum.Pendente, lembrete.Status);
+        _lembretes.Verify(r => r.UpdateAsync(It.IsAny<string>(), It.IsAny<Lembrete>()), Times.Never);
     }
 
     /// <summary>
-    /// Sem canal nenhum o lembrete continua Pendente. Marcá-lo como Enviado seria
-    /// mentir: ninguém foi avisado.
+    /// Sem Telegram vinculado o lembrete continua Pendente — telefone cadastrado
+    /// não é mais canal. Marcá-lo como Enviado seria mentir: ninguém foi avisado.
     /// </summary>
     [Fact]
-    public async Task SemCanalNenhum_ContinuaPendente()
+    public async Task SemTelegramVinculado_ContinuaPendente()
     {
-        var lembrete = Lembrete("um", "tutor-1", telefone: null);
+        var lembrete = Lembrete("um", "tutor-1", telefone: "11999990000");
         _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>()))
             .ReturnsAsync([lembrete]);
         _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1")).ReturnsAsync((long?)null);

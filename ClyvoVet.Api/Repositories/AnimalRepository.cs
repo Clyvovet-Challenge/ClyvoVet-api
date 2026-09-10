@@ -18,6 +18,7 @@ public class AnimalRepository : IAnimalRepository
     {
         return await _context.Animais
             .Include(a => a.Tutor)
+            .Include(a => a.RacaCatalogo)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 

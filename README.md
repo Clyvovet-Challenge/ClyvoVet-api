@@ -135,7 +135,11 @@ mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u clyvovetadmin -p$MYSQL_PASSW
 ```bash
 export API_KEY='GereUmaChaveAleatoria'
 export TELEGRAM_BOT_TOKEN='...' TELEGRAM_API_KEY='...' TELEGRAM_BOT_USERNAME='...'
-export TWILIO_ACCOUNT_SID='...' TWILIO_AUTH_TOKEN='...' WHATSAPP_API_KEY='...'
+# OCI Generative AI (saude preditiva). Opcional: sem estas variaveis a API
+# responde pelo fallback deterministico.
+export OCI_TENANCY_OCID='...' OCI_USER_OCID='...' OCI_FINGERPRINT='...'
+export OCI_PRIVATE_KEY_PEM="$(cat ~/.oci/clyvovet_api_key.pem)"
+export OCI_REGION='us-chicago-1' OCI_COMPARTMENT_OCID='...'
 bash azure/02-criar-app-service.sh
 ```
 
@@ -221,9 +225,9 @@ A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro
 - Sugestões personalizadas de produtos por animal
 - Lembretes de saúde e cuidados para tutores
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
-- **Widget de Saúde Preditiva** — aponta condições de saúde relevantes para a espécie/raça/idade de cada animal
-- **Envio de mensagens no WhatsApp** — via Twilio, avisando os tutores
-- **Envio de mensagens no Telegram** — caminho alternativo, com bot próprio, para avisar os tutores
+- **Saúde Preditiva com IA generativa** — parecer de riscos e recomendações por animal, redigido pela **OCI Generative AI** sobre uma base agregada de doenças por espécie/raça (datasets Dryad com DOI), com fallback determinístico e cache por animal
+- **Widget de Saúde Preditiva** (por regras) — o antecessor, mantido no ar: aponta condições relevantes para a espécie/raça/idade
+- **Envio de mensagens no Telegram** — bot próprio; é o canal único de mensagem (lembretes e saúde preditiva). O WhatsApp/Twilio saiu do escopo na Sprint 3
 
 A **Sprint 3** somou à API uma camada completa de observabilidade e testes automatizados:
 
@@ -269,7 +273,6 @@ desenvolvimento local; ele não produz o artefato publicado.)
 | xUnit + Moq | 2.9.3 / 4.20.72 | Testes unitários (padrão AAA) |
 | Microsoft.AspNetCore.Mvc.Testing | 8.0.11 | Testes de integração via `WebApplicationFactory` |
 | Microsoft.EntityFrameworkCore.InMemory | 8.0.11 | Banco em memória usado nos testes de integração |
-| Twilio | 8.0.0 | Envio de mensagens no WhatsApp (Sandbox) |
 | Telegram.Bot | 22.10.3 | Envio de mensagens no Telegram (bot próprio) |
 
 ---
@@ -589,7 +592,7 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
 | `GET /health/ready` | Conectividade real com o MySQL (`Database.CanConnectAsync()`) | Readiness probe |
 
-Além do MySQL, `GET /health` também confere os demais serviços externos integrados à API — a Telegram Bot API (`telegram-bot`, via `GetMe`) e o Twilio/WhatsApp (`whatsapp-twilio`, consultando os dados da conta). Os dois ficam fora da tag `ready` de propósito: uma instabilidade neles não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram/WhatsApp.
+Além do MySQL, `GET /health` também confere a Telegram Bot API (`telegram-bot`, via `GetMe`), fora da tag `ready` de propósito: uma instabilidade nela não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram. A OCI Generative AI **não** tem sonda: ela é opcional por design (fallback determinístico), e uma sonda a transformaria em dependência.
 
 Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
@@ -604,8 +607,7 @@ curl http://localhost:5191/health
   "checks": [
     { "name": "self", "status": "Healthy", "durationMs": 0.31, "tags": ["live"] },
     { "name": "oracle-database", "status": "Healthy", "durationMs": 16.52, "tags": ["ready", "database", "external"] },
-    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] },
-    { "name": "whatsapp-twilio", "status": "Healthy", "durationMs": 876.12, "description": "Conta Twilio active respondendo.", "tags": ["external"] }
+    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] }
   ]
 }
 ```
@@ -750,7 +752,7 @@ curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
 
 No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a chave uma única vez — a partir daí ela é aplicada automaticamente em toda chamada feita por ali.
 
-> Os endpoints extras (WhatsApp, Telegram) seguem o mesmo mecanismo, só que com chaves próprias (`WhatsApp:ApiKey`, `Telegram:ApiKey`) — detalhes nas seções correspondentes, mais abaixo.
+> O endpoint extra do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`) — detalhes na seção correspondente, mais abaixo.
 
 ---
 
@@ -1030,53 +1032,52 @@ Esse card compara os dados do animal (espécie, raça e idade) com um catálogo 
 
 ---
 
-### 📱 WhatsApp — `/api/v1/whatsapp`
+### 🤖 Saúde Preditiva com IA — `/api/v1/saude-preditiva`
 
-> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
-
-É o único ponto de disparo de mensagens no WhatsApp, via [Twilio](https://www.twilio.com/whatsapp) (WhatsApp Sandbox). Outras partes do sistema — lembretes, sugestões etc. — se apoiam nele para notificar o tutor sem duplicar a lógica de envio.
+O parecer de riscos e recomendações que a home do app mostra por animal. O desenho, em uma frase: os **fatos** vêm da base agregada de doenças (`t_clyvo_base_doencas`, contagens de casos por espécie/raça extraídas de datasets [Dryad](https://datadryad.org) com DOI); a **OCI Generative AI** apenas redige e prioriza em cima deles; o resultado fica em **cache por animal** (`t_clyvo_parecer_ia`, 7 dias); e quando a OCI está indisponível ou sem credencial, as mesmas linhas geram um **parecer determinístico**. A home nunca depende da nuvem para abrir.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
-| POST | `/api/v1/whatsapp/enviar` | Envia uma mensagem de WhatsApp para o número informado | 204 |
+| GET | `/api/v1/saude-preditiva/{animalId}` | Parecer de riscos e recomendações do animal | 200 |
 
-**Request — POST**
+**Response — GET** (campos principais)
 
 ```json
 {
-  "telefone": "+5511999999999",
-  "mensagem": "Seu pet tem um lembrete de vacina agendado para amanhã."
+  "animalId": "d88454bc-53b4-4da0-89e8-570f14e95c02",
+  "nomeAnimal": "Bolinha",
+  "origem": "IA",
+  "modelo": "meta.llama-3.3-70b-instruct",
+  "resumo": "Atenção preventiva a mastocitoma e displasia coxofemoral.",
+  "baseLimitada": false,
+  "riscos": [
+    { "doenca": "Mastocitoma", "categoria": "ONCOLOGICA", "nivel": "ALTO", "justificativa": "306 casos na raça na base de referência." }
+  ],
+  "recomendacoes": ["Checkup anual com palpação de pele e linfonodos."],
+  "disclaimer": "Orientação preventiva gerada a partir de bases de referência. Não é diagnóstico e não substitui consulta veterinária."
 }
 ```
 
-**Configuração**
+- `origem` diz quem redigiu: `IA` (OCI) ou `REGRAS` (fallback determinístico). O app mostra a diferença ao tutor.
+- `baseLimitada` avisa quando a base cobre pouco a espécie (aves/répteis dos datasets são fauna selvagem; roedores não têm dados).
+- Se o tutor tem o Telegram vinculado, um parecer **novo** também dispara o resumo por mensagem.
+- Exige o `X-Api-Key` principal e respeita o escopo por tutor (animal alheio responde 404).
 
-Requer três chaves em `Twilio` (via `dotnet user-secrets`, nunca no `appsettings.json` versionado):
-
-```bash
-dotnet user-secrets set "Twilio:AccountSid" "SEU_ACCOUNT_SID"
-dotnet user-secrets set "Twilio:AuthToken" "SEU_AUTH_TOKEN"
-dotnet user-secrets set "Twilio:NumeroSandbox" "whatsapp:+1XXXXXXXXXX"
-```
-
-O Account SID, o Auth Token e o número do sandbox ficam disponíveis no [Console do Twilio](https://console.twilio.com), em **Messaging → Try out WhatsApp**. Antes de receber qualquer mensagem, o destinatário precisa dar o "join" no sandbox, pelo próprio WhatsApp.
-
-O endpoint também pede uma **API key própria** no header `X-Api-Key` — faltando ela, devolve `401`:
+**Configuração da OCI** (tudo por variável de ambiente ou `user-secrets` — nunca no código):
 
 ```bash
-dotnet user-secrets set "WhatsApp:ApiKey" "SUA_CHAVE_AQUI"
+dotnet user-secrets set "Oci:TenancyOcid" "ocid1.tenancy.oc1..."
+dotnet user-secrets set "Oci:UserOcid" "ocid1.user.oc1..."
+dotnet user-secrets set "Oci:Fingerprint" "aa:bb:cc:..."
+dotnet user-secrets set "Oci:PrivateKeyPath" "C:/chaves/clyvovet_api_key.pem"
+dotnet user-secrets set "Oci:Region" "us-chicago-1"
+dotnet user-secrets set "Oci:GenAi:CompartmentOcid" "ocid1.compartment.oc1..."
 ```
 
-```bash
-curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
-  -H "Content-Type: application/json" \
-  -H "X-Api-Key: SUA_CHAVE_AQUI" \
-  -d '{"telefone":"+5511999999999","mensagem":"Teste"}'
-```
+O modelo default é `meta.llama-3.3-70b-instruct` (`Oci:GenAi:ModelId` muda; `Oci:GenAi:ApiFormat` aceita `GENERIC`/`COHERE`). A chave de API se cria na console da OCI em **Identity → My profile → API keys**; a região precisa oferecer o serviço Generative AI. **Sem nada disso configurado a rota continua funcionando** — o parecer sai com `origem: "REGRAS"`.
 
-> ⚠️ **Limitação conhecida:** numa conta **trial** do Twilio, toda mensagem via API precisa de um `ContentSid` (template pré-aprovado); texto livre (`Body`) é recusado com o erro `21654 ContentSid Required`, mesmo dentro de uma janela de sessão ativa. Criar ou consultar templates pela Content API também esbarra num `403` em conta trial (`This feature is not available on a Trial account`). Ou seja: **o endpoint funciona normalmente numa conta Twilio paga/produção**, mas validá-lo de ponta a ponta não foi possível com uma conta trial gratuita. O código já está pronto — falta apenas uma conta Twilio com upgrade para confirmar na prática.
->
-> Por isso o teste de integração do endpoint (`WhatsAppEndpointsTests`) troca o `IWhatsAppService` real por um fake: ele confirma que o controller recebe a requisição, aciona o serviço com os dados certos e devolve `204`, sem depender do Twilio de verdade.
+> O WhatsApp (Twilio) saiu do escopo nesta sprint: o Telegram é o canal único de mensagens, e a marcação de consultas acontece apenas no app — o bot só dispara lembretes e os resumos de saúde preditiva.
+
 
 ---
 
@@ -1084,7 +1085,7 @@ curl -X POST http://localhost:5191/api/v1/whatsapp/enviar \
 
 > ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
 
-Alternativa ao WhatsApp, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — mesmo propósito (ponto único de disparo de mensagens), mas livre das limitações de conta trial do Twilio: dispensa template pré-aprovado e permite testar de ponta a ponta de graça.
+O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. Desde esta sprint é o ÚNICO canal: o WhatsApp/Twilio saiu do escopo, e a marcação de consultas acontece apenas no app.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -1103,7 +1104,7 @@ Alternativa ao WhatsApp, com bot próprio no [Telegram](https://core.telegram.or
 **Configuração**
 
 1. Crie um bot falando com **[@BotFather](https://t.me/BotFather)** no Telegram: mande `/newbot` e siga as instruções — ele devolve um **token** no formato `123456:ABC-DEF...`.
-2. Para receber mensagens, o destinatário precisa mandar `/start` ao bot pelo menos uma vez (a mesma lógica do "join" do WhatsApp Sandbox).
+2. Para receber mensagens, o destinatário precisa mandar `/start` ao bot pelo menos uma vez.
 3. O `chatId` de cada destinatário sai de `https://api.telegram.org/bot<TOKEN>/getUpdates`, consultado depois do `/start`.
 
 ```bash
@@ -1128,7 +1129,7 @@ Hoje o `start=` leva um convite de **256 bits**, sorteado por `RandomNumberGener
 
 O convite fica em memória, e não no banco: a vida inteira dele são os segundos entre o app mostrar o link e o tutor tocar nele, e o processo que gera é o mesmo que consome, porque o ouvinte roda dentro da API. Em troca vale uma limitação explícita — com mais de uma instância, ou depois de um restart, um convite ainda não usado deixa de valer e o tutor pede outro.
 
-O endpoint também exige o header `X-Api-Key` (o mesmo mecanismo do WhatsApp, com chave própria):
+O endpoint também exige o header `X-Api-Key` (chave própria, diferente da principal):
 
 ```bash
 curl -X POST http://localhost:5191/api/v1/telegram/enviar \
@@ -1137,11 +1138,11 @@ curl -X POST http://localhost:5191/api/v1/telegram/enviar \
   -d '{"chatId": 123456789, "mensagem": "Teste"}'
 ```
 
-> ✅ Ao contrário do WhatsApp, esse endpoint (e o fluxo completo de vínculo, `TelegramLinkListenerService` incluído) foi validado de ponta a ponta com um bot real, sem travar em trial/template. Mesmo assim, os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) usam fakes/banco em memória, para permanecerem determinísticos e livres de rede externa — pelo mesmo motivo, o `TelegramLinkListenerService` fica desativado no ambiente de `Testing`.
+> ✅ Esse endpoint (e o fluxo completo de vínculo, `TelegramLinkListenerService` incluído) foi validado de ponta a ponta com um bot real, sem travar em trial/template. Mesmo assim, os testes automatizados (`TelegramEndpointsTests`, `TutorTelegramRepositoryTests`) usam fakes/banco em memória, para permanecerem determinísticos e livres de rede externa — pelo mesmo motivo, o `TelegramLinkListenerService` fica desativado no ambiente de `Testing`.
 
 **Notificação automática de lembretes**
 
-O `LembreteNotificationService` (também um `BackgroundService`, desativado em `Testing`) checa a cada 1 minuto se algum lembrete `Pendente` está vencendo na próxima hora. Encontrando um, dispara a notificação — via Telegram, se o tutor já tiver vinculado a conta (`T_CLYVO_TUTOR_TELEGRAM`), ou via WhatsApp, usando o `Tutor.Telefone` já cadastrado (dado da API Java) — e marca o lembrete como `Enviado`, para não notificar de novo.
+O `LembreteNotificationService` (também um `BackgroundService`, desativado em `Testing`) checa a cada 1 minuto se algum lembrete `Pendente` está vencendo na próxima hora. Encontrando um, dispara a notificação via Telegram, se o tutor já tiver vinculado a conta (`T_CLYVO_TUTOR_TELEGRAM`), e marca o lembrete como `Enviado`, para não notificar de novo. Sem vínculo, o lembrete permanece `Pendente` e o motivo vai para o log — desde a saída do WhatsApp não há segundo canal.
 
 ---
 

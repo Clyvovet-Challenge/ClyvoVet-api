@@ -60,5 +60,14 @@ public class AnimalConfiguration : IEntityTypeConfiguration<Animal>
             .WithMany(t => t.Animais)
             .HasForeignKey(a => a.TutorId)
             .HasConstraintName("fk_animal_tutor");
+
+        builder.Property(a => a.RacaId)
+            .HasColumnName("raca_id")
+            .HasColumnType("VARCHAR(36)");
+
+        builder.HasOne(a => a.RacaCatalogo)
+            .WithMany()
+            .HasForeignKey(a => a.RacaId)
+            .HasConstraintName("fk_animal_raca");
     }
 }

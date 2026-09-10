@@ -54,11 +54,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 
     <!-- Valida o access token que a API Java emite (ValidadorDeTokenJwt).
-         JA ESTAVA NO GRAFO, so nao declarado: Twilio 8.0.0 traz
-         System.IdentityModel.Tokens.Jwt 8.3.1 transitivamente. A referencia
-         direta e a MESMA versao, entao a resolucao nao muda em nada — ela
-         apenas para de depender de um pacote que chega por acaso.
-
          Escolhido em vez de Microsoft.AspNetCore.Authentication.JwtBearer de
          proposito. O JwtBearer traria uma cadeia nova de Microsoft.IdentityModel
          para um grafo ja unificado em 8.3.1, e junto com ela o modelo de
@@ -68,17 +63,6 @@
          nao tem como interferir em /health, /metrics, /swagger ou nos webhooks. -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
     <PackageReference Include="Telegram.Bot" Version="22.10.3" />
-    <PackageReference Include="Twilio" Version="8.0.0" />
-
-    <!-- PIN DE PACOTE TRANSITIVO, NAO E DEPENDENCIA DO CODIGO
-         Nada aqui usa Microsoft.Bcl.Memory diretamente. Ele chega como
-         Twilio 8.0.0 -> Microsoft.IdentityModel.Tokens 8.3.1 -> Bcl.Memory 9.0.0,
-         e a 9.0.0 tem GHSA-73j8-2gch-69rq (negacao de servico, alta), corrigida na
-         9.0.14. Nao havia como subir pela raiz: 8.0.0 ja e a ultima do Twilio.
-         Declarar a versao aqui e o mecanismo do NuGet para elevar uma transitiva
-         — a referencia direta sempre vence a resolucao. Some quando o Twilio
-         atualizar a cadeia dele. -->
-    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.19" />
   </ItemGroup>
 
 </Project>

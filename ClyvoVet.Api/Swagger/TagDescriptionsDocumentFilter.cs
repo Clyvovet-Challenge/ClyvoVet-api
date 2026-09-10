@@ -53,8 +53,10 @@ public sealed class TagDescriptionsDocumentFilter : IDocumentFilter
             },
             new()
             {
-                Name        = "WhatsApp",
-                Description = "Ponto único de disparo de mensagens no WhatsApp, via Twilio Sandbox."
+                Name        = "Saúde Preditiva (IA)",
+                Description = "Parecer de riscos e recomendações por animal, redigido pela OCI Generative AI " +
+                              "sobre a base agregada **`t_clyvo_base_doencas`**, com fallback determinístico e " +
+                              "cache em **`t_clyvo_parecer_ia`**."
             },
             new()
             {
