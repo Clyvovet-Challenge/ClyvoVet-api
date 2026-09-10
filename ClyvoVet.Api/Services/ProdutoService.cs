@@ -17,9 +17,9 @@ public class ProdutoService : IProdutoService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<ProdutoResponse>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada)
+    public async Task<IEnumerable<ProdutoResponse>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null)
     {
-        var produtos = await _repository.GetAllAsync(page, pageSize, categoria, especieIndicada);
+        var produtos = await _repository.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo);
         return produtos.Select(MapToResponse);
     }
 

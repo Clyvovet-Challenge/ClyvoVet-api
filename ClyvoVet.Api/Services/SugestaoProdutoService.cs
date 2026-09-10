@@ -20,9 +20,9 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         _produtoRepository = produtoRepository;
     }
 
-    public async Task<IEnumerable<SugestaoProdutoResponse>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null)
+    public async Task<IEnumerable<SugestaoProdutoResponse>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null, bool? ativo = null)
     {
-        var sugestoes = await _repository.GetAllAsync(page, pageSize, animalId, tutorId);
+        var sugestoes = await _repository.GetAllAsync(page, pageSize, animalId, tutorId, ativo);
         return sugestoes.Select(MapToResponse);
     }
 

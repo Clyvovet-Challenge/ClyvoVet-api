@@ -14,7 +14,12 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<SugestaoProduto>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null)
+    public async Task<IEnumerable<SugestaoProduto>> GetAllAsync(
+        int page,
+        int pageSize,
+        string? animalId,
+        string? tutorId = null,
+        bool? ativo = null)
     {
         var query = _context.SugestoesProduto
             .Include(s => s.Animal)
@@ -28,6 +33,11 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
 
         if (!string.IsNullOrWhiteSpace(animalId))
             query = query.Where(s => s.AnimalId == animalId);
+
+        // Mesma historia do produto: a sugestao tinha `Ativo` e ninguem o lia.
+        // Uma indicacao retirada pela clinica continuava aparecendo para o tutor.
+        if (ativo.HasValue)
+            query = query.Where(s => s.Ativo == ativo.Value);
 
         var consulta = query
             .OrderByDescending(s => s.DataSugestao);

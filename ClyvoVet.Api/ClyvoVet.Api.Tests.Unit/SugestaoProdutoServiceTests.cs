@@ -34,7 +34,7 @@ public class SugestaoProdutoServiceTests
             // null no fim e o recorte por tutor ausente, que e o comportamento com
             // Api:EscopoPorTutor desligado. Arvore de expressao nao aceita
             // argumento opcional, entao ele vai explicito.
-            .Setup(r => r.GetAllAsync(1, 10, "animal-1", null))
+            .Setup(r => r.GetAllAsync(1, 10, "animal-1", null, null))
             .ReturnsAsync(sugestoes);
 
         // Act

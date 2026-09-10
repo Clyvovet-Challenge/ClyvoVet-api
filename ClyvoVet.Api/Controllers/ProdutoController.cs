@@ -24,7 +24,18 @@ public class ProdutoController : ControllerBase
     /// <param name="page">Número da página (padrão: 1).</param>
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="categoria">Filtro por categoria: <c>Racao | Medicamento | Acessorio | Servico | Outro</c></param>
-    /// <param name="especieIndicada">Filtro por espécie: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino</c></param>
+    /// <param name="especieIndicada">
+    /// Filtro por espécie: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino</c>.
+    /// Pedir uma espécie traz também os produtos marcados <c>Todos</c> — sem isso,
+    /// perguntar "o que serve para um cachorro" esconderia justamente o que serve
+    /// para qualquer animal.
+    /// </param>
+    /// <param name="ativo">
+    /// Filtra por produto ativo. Omitido, traz ativos e inativos — é o
+    /// comportamento de sempre, mantido para não quebrar quem já chamava. A
+    /// vitrine do tutor pede <c>true</c>; a gestão da clínica omite, porque
+    /// precisa ver o que desativou para poder reativar.
+    /// </param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -32,14 +43,15 @@ public class ProdutoController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] CategoriaEnum? categoria = null,
-        [FromQuery] EspecieEnum? especieIndicada = null)
+        [FromQuery] EspecieEnum? especieIndicada = null,
+        [FromQuery] bool? ativo = null)
     {
         if (page < 1)
             return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
         if (pageSize < 1 || pageSize > 100)
             return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
 
-        var result = await _service.GetAllAsync(page, pageSize, categoria, especieIndicada);
+        var result = await _service.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo);
         return Ok(result);
     }
 

@@ -48,14 +48,15 @@ public class SugestaoProdutoController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] string? animalId = null)
+        [FromQuery] string? animalId = null,
+        [FromQuery] bool? ativo = null)
     {
         if (page < 1)
             return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
         if (pageSize < 1 || pageSize > 100)
             return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
 
-        var result = await _service.GetAllAsync(page, pageSize, animalId, _escopo.FiltroDeListagem());
+        var result = await _service.GetAllAsync(page, pageSize, animalId, _escopo.FiltroDeListagem(), ativo);
         return Ok(result);
     }
 

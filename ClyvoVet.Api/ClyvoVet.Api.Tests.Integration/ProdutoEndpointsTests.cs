@@ -197,4 +197,78 @@ public class ProdutoEndpointsTests
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getAfterDeleteResponse.StatusCode);
     }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Os dois filtros que a vitrine por animal exigiu
+    //
+    // Ambos falhariam antes da correcao, e e por isso que existem: o primeiro
+    // escondia produto universal de quem perguntava por especie, e o segundo
+    // deixava produto desativado na prateleira do tutor.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Perguntar "o que serve para um cachorro" precisa trazer tambem o que
+    /// serve para qualquer animal -- consulta de rotina, banho, coleira neutra.
+    /// Com igualdade exata esses sumiam justamente da tela feita para mostra-los.
+    /// </summary>
+    [Fact]
+    public async Task GetAll_PorEspecie_TrazTambemOsMarcadosComoTodos()
+    {
+        var universal = new ProdutoRequest
+        {
+            Nome = $"Banho e Tosa Universal {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Servico,
+            Preco = 70m,
+            EspecieIndicada = EspecieEnum.Todos,
+            Ativo = true
+        };
+        var soDeCachorro = new ProdutoRequest
+        {
+            Nome = $"Racao Canina {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Racao,
+            Preco = 150m,
+            EspecieIndicada = EspecieEnum.Cachorro,
+            Ativo = true
+        };
+        await _client.PostAsJsonAsync("/api/v1/produtos", universal);
+        await _client.PostAsJsonAsync("/api/v1/produtos", soDeCachorro);
+
+        var response = await _client.GetAsync(
+            "/api/v1/produtos?especieIndicada=Cachorro&pageSize=100");
+        var result = await response.Content.ReadFromJsonAsync<List<ProdutoResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(result);
+        Assert.Contains(result!, p => p.Nome == universal.Nome);
+        Assert.Contains(result!, p => p.Nome == soDeCachorro.Nome);
+        // E continua sendo um recorte: gato nao entra.
+        Assert.DoesNotContain(result!, p => p.EspecieIndicada == EspecieEnum.Gato);
+    }
+
+    /// <summary>
+    /// O `Ativo` existia no modelo, no banco e no update, e nenhuma consulta o
+    /// lia: desativar um produto nao o tirava de lugar nenhum.
+    /// </summary>
+    [Fact]
+    public async Task GetAll_ComAtivoTrue_NaoTrazOsDesativados()
+    {
+        var desativado = new ProdutoRequest
+        {
+            Nome = $"Produto Fora de Linha {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Outro,
+            Preco = 10m,
+            EspecieIndicada = EspecieEnum.Todos,
+            Ativo = false
+        };
+        await _client.PostAsJsonAsync("/api/v1/produtos", desativado);
+
+        var soAtivos = await (await _client.GetAsync("/api/v1/produtos?ativo=true&pageSize=100"))
+            .Content.ReadFromJsonAsync<List<ProdutoResponse>>();
+        var todos = await (await _client.GetAsync("/api/v1/produtos?pageSize=100"))
+            .Content.ReadFromJsonAsync<List<ProdutoResponse>>();
+
+        Assert.DoesNotContain(soAtivos!, p => p.Nome == desativado.Nome);
+        // Sem o filtro o comportamento e o de sempre -- a gestao da clinica
+        // precisa enxergar o que desativou para poder reativar.
+        Assert.Contains(todos!, p => p.Nome == desativado.Nome);
+    }
 }

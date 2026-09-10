@@ -15,15 +15,34 @@ public class ProdutoRepository : IProdutoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Produto>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada)
+    public async Task<IEnumerable<Produto>> GetAllAsync(
+        int page,
+        int pageSize,
+        CategoriaEnum? categoria,
+        EspecieEnum? especieIndicada,
+        bool? ativo = null)
     {
         var query = _context.Produtos.AsQueryable();
 
         if (categoria.HasValue)
             query = query.Where(p => p.Categoria == categoria.Value);
 
-        if (especieIndicada.HasValue)
-            query = query.Where(p => p.EspecieIndicada == especieIndicada.Value);
+        // `Todos` entra junto com a especie pedida, e nao e detalhe: e a unica
+        // forma de um produto universal aparecer numa lista recortada por
+        // animal. Com igualdade exata, perguntar "o que serve para um cachorro"
+        // escondia justamente o que serve para todos -- consulta de rotina,
+        // servico de banho, o que nao e especifico de especie nenhuma.
+        if (especieIndicada.HasValue && especieIndicada.Value != EspecieEnum.Todos)
+            query = query.Where(p => p.EspecieIndicada == especieIndicada.Value
+                                  || p.EspecieIndicada == EspecieEnum.Todos);
+        else if (especieIndicada.HasValue)
+            query = query.Where(p => p.EspecieIndicada == EspecieEnum.Todos);
+
+        // O `Ativo` existia no modelo, no banco e no update, e nenhuma consulta
+        // o lia -- desativar um produto nao o tirava de lugar nenhum. Opcional
+        // para nao mudar quem ja chamava sem ele; a vitrine do tutor pede true.
+        if (ativo.HasValue)
+            query = query.Where(p => p.Ativo == ativo.Value);
 
         var consulta = query
             .OrderBy(p => p.Nome);

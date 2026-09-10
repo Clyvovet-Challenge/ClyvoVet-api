@@ -27,7 +27,8 @@ public class ProdutoServiceTests
             new() { Id = "1", Nome = "Ração", Categoria = CategoriaEnum.Racao, EspecieIndicada = EspecieEnum.Cachorro, Ativo = true }
         };
         _repositoryMock
-            .Setup(r => r.GetAllAsync(1, 10, null, null))
+            // Arvore de expressao nao aceita argumento opcional: o `ativo` vai explicito.
+            .Setup(r => r.GetAllAsync(1, 10, null, null, null))
             .ReturnsAsync(produtos);
 
         // Act

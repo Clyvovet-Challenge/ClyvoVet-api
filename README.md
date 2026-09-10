@@ -791,7 +791,14 @@ Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 | `page` | int | 1 | Número da página |
 | `pageSize` | int | 10 | Itens por página (máx. 100) |
 | `categoria` | enum | — | `Racao` \| `Medicamento` \| `Acessorio` \| `Servico` \| `Outro` |
-| `especieIndicada` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` \| `Bovino` \| `Equino` |
+| `especieIndicada` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` \| `Bovino` \| `Equino`. **Traz junto os marcados `Todos`** |
+| `ativo` | bool | — | `true` só ativos, `false` só inativos. Omitido, traz os dois |
+
+> **`especieIndicada` inclui os universais.** Pedir `Cachorro` devolve os produtos de cachorro **e** os marcados `Todos` — consulta de rotina, banho, o que não é específico de espécie. Antes o filtro usava igualdade exata, e perguntar "o que serve para um cachorro" escondia justamente o que serve para qualquer animal. Para ver só os universais, peça `especieIndicada=Todos`.
+
+> **`ativo` passou a ser lido.** O campo existia no modelo, no banco e no `PUT`, e nenhuma consulta o consultava: desativar um produto não o tirava de lugar nenhum. O parâmetro é opcional para não mudar o comportamento de quem já chamava sem ele — a vitrine do app pede `ativo=true`, e a gestão da clínica omite, porque precisa enxergar o que desativou para poder reativar. O mesmo vale para `GET /api/v1/sugestoes-produto`.
+
+> ⚠️ **Enum por nome vale no query param, não no corpo.** `?categoria=Racao` funciona; no JSON do `POST`/`PUT` o valor precisa ser o **ordinal** (`"categoria": 0`), porque a API não registra `JsonStringEnumConverter`. Mandar o nome no corpo devolve 400 com `The JSON value could not be converted`.
 
 **Request — POST / PUT**
 
