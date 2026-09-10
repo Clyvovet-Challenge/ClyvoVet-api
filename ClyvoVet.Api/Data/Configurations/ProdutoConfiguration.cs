@@ -36,6 +36,8 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
         builder.Property(p => p.EspecieIndicada)
             .HasColumnName("especie_indicada");
 
+        builder.Property(p => p.PorteIndicado)
+            .HasColumnName("porte_indicado");
         builder.Property(p => p.Ativo)
             .HasColumnName("ativo");
 

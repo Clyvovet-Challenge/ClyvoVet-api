@@ -17,9 +17,9 @@ public class ProdutoService : IProdutoService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<ProdutoResponse>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null)
+    public async Task<IEnumerable<ProdutoResponse>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null, PorteEnum? porteIndicado = null)
     {
-        var produtos = await _repository.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo);
+        var produtos = await _repository.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo, porteIndicado);
         return produtos.Select(MapToResponse);
     }
 
@@ -63,6 +63,7 @@ public class ProdutoService : IProdutoService
         Categoria = request.Categoria,
         Preco = request.Preco,
         EspecieIndicada = request.EspecieIndicada,
+        PorteIndicado = request.PorteIndicado,
         Ativo = request.Ativo
     };
 
@@ -74,6 +75,7 @@ public class ProdutoService : IProdutoService
         Categoria = produto.Categoria,
         Preco = produto.Preco,
         EspecieIndicada = produto.EspecieIndicada,
+        PorteIndicado = produto.PorteIndicado,
         Ativo = produto.Ativo,
         CriadoEm = produto.CriadoEm
     };

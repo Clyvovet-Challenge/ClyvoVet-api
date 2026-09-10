@@ -10,6 +10,13 @@ public class Produto
     public CategoriaEnum Categoria { get; set; }
     public decimal? Preco { get; set; }
     public EspecieEnum EspecieIndicada { get; set; }
+
+    /// <summary>
+    /// O porte que o produto atende. <c>Todos</c> por padrao -- e o que
+    /// preserva o comportamento de antes da coluna existir, quando nenhum
+    /// produto declarava porte e todos apareciam para qualquer animal.
+    /// </summary>
+    public PorteEnum PorteIndicado { get; set; } = PorteEnum.Todos;
     public bool Ativo { get; set; }
     public DateTime CriadoEm { get; set; }
 

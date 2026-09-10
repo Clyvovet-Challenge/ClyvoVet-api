@@ -38,6 +38,13 @@ public class AppDbContext : DbContext
                 v => v.ToString().ToUpper(),
                 v => (EspecieEnum)Enum.Parse(typeof(EspecieEnum), v, true));
 
+        modelBuilder.Entity<Produto>()
+            .Property(p => p.PorteIndicado)
+            .HasColumnType("VARCHAR(30)")
+            .HasConversion(
+                v => v.ToString().ToUpper(),
+                v => (PorteEnum)Enum.Parse(typeof(PorteEnum), v, true));
+
         modelBuilder.Entity<Lembrete>()
             .Property(l => l.Tipo)
             .HasColumnType("VARCHAR(30)")

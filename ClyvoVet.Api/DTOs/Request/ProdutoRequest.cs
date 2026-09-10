@@ -21,5 +21,12 @@ public class ProdutoRequest
     [Required]
     public EspecieEnum EspecieIndicada { get; set; }
 
+    /// <summary>
+    /// Porte atendido: <c>Pequeno | Medio | Grande | Todos</c>. Omitido, vale
+    /// <c>Todos</c> -- o produto passa a servir a qualquer porte, que era o
+    /// comportamento antes desta coluna existir.
+    /// </summary>
+    public PorteEnum PorteIndicado { get; set; } = PorteEnum.Todos;
+
     public bool Ativo { get; set; } = true;
 }

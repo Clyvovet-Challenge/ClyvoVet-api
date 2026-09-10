@@ -271,4 +271,81 @@ public class ProdutoEndpointsTests
         // precisa enxergar o que desativou para poder reativar.
         Assert.Contains(todos!, p => p.Nome == desativado.Nome);
     }
+    /// <summary>
+    /// Porte segue a mesma regra da especie: pedir um porte traz junto o que
+    /// serve a qualquer porte.
+    ///
+    /// Sem isso, filtrar por PEQUENO esconderia consulta, shampoo neutro e
+    /// vermifugo em gotas -- a maior parte do catalogo, que nao tem porte. O
+    /// tutor de um cachorro pequeno veria uma loja quase vazia.
+    /// </summary>
+    [Fact]
+    public async Task GetAll_PorPorte_TrazOEspecificoEOsSemPorte()
+    {
+        var soPequeno = new ProdutoRequest
+        {
+            Nome = $"Racao Racas Pequenas {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Racao,
+            Preco = 120m,
+            EspecieIndicada = EspecieEnum.Cachorro,
+            PorteIndicado = PorteEnum.Pequeno,
+            Ativo = true
+        };
+        var soGrande = new ProdutoRequest
+        {
+            Nome = $"Racao Racas Grandes {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Racao,
+            Preco = 190m,
+            EspecieIndicada = EspecieEnum.Cachorro,
+            PorteIndicado = PorteEnum.Grande,
+            Ativo = true
+        };
+        var semPorte = new ProdutoRequest
+        {
+            Nome = $"Consulta Sem Porte {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Servico,
+            Preco = 150m,
+            EspecieIndicada = EspecieEnum.Todos,
+            PorteIndicado = PorteEnum.Todos,
+            Ativo = true
+        };
+        foreach (var r in new[] { soPequeno, soGrande, semPorte })
+            await _client.PostAsJsonAsync("/api/v1/produtos", r);
+
+        var response = await _client.GetAsync(
+            "/api/v1/produtos?especieIndicada=Cachorro&porteIndicado=Pequeno&pageSize=100");
+        var result = await response.Content.ReadFromJsonAsync<List<ProdutoResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(result!, p => p.Nome == soPequeno.Nome);
+        Assert.Contains(result!, p => p.Nome == semPorte.Nome);
+        // e continua sendo recorte: a racao de raca grande fica de fora
+        Assert.DoesNotContain(result!, p => p.Nome == soGrande.Nome);
+    }
+
+    /// <summary>
+    /// Produto criado sem declarar porte nasce <c>Todos</c>.
+    ///
+    /// E o que preserva o comportamento anterior a coluna: quem ja chamava o
+    /// POST sem o campo continua criando produto que aparece para qualquer
+    /// animal, em vez de um que nao aparece para nenhum.
+    /// </summary>
+    [Fact]
+    public async Task Create_SemPorte_NasceComoTodos()
+    {
+        var request = new ProdutoRequest
+        {
+            Nome = $"Produto Sem Porte Declarado {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Outro,
+            Preco = 30m,
+            EspecieIndicada = EspecieEnum.Todos,
+            Ativo = true
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/produtos", request);
+        var criado = await response.Content.ReadFromJsonAsync<ProdutoResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(PorteEnum.Todos, criado!.PorteIndicado);
+    }
 }

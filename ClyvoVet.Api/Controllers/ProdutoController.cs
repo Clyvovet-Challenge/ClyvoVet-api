@@ -30,6 +30,12 @@ public class ProdutoController : ControllerBase
     /// perguntar "o que serve para um cachorro" esconderia justamente o que serve
     /// para qualquer animal.
     /// </param>
+    /// <param name="porteIndicado">
+    /// Filtro por porte: <c>Pequeno | Medio | Grande | Todos</c>. Como a
+    /// espécie, pedir um porte traz também os marcados <c>Todos</c> — consulta,
+    /// shampoo neutro, vermífugo em gotas, que não têm porte e servem a
+    /// qualquer animal.
+    /// </param>
     /// <param name="ativo">
     /// Filtra por produto ativo. Omitido, traz ativos e inativos — é o
     /// comportamento de sempre, mantido para não quebrar quem já chamava. A
@@ -44,14 +50,15 @@ public class ProdutoController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] CategoriaEnum? categoria = null,
         [FromQuery] EspecieEnum? especieIndicada = null,
-        [FromQuery] bool? ativo = null)
+        [FromQuery] bool? ativo = null,
+        [FromQuery] PorteEnum? porteIndicado = null)
     {
         if (page < 1)
             return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
         if (pageSize < 1 || pageSize > 100)
             return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
 
-        var result = await _service.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo);
+        var result = await _service.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo, porteIndicado);
         return Ok(result);
     }
 

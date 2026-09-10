@@ -277,11 +277,15 @@ CREATE TABLE t_clyvo_produto (
     categoria        VARCHAR2(20),
     preco            NUMBER(10,2),
     especie_indicada VARCHAR2(20),
+    -- Espelha t_clyvo_animal.porte. 'TODOS' e o default porque o produto que
+    -- nao declara porte serve a qualquer um -- consulta, shampoo neutro.
+    porte_indicado   VARCHAR2(30)  DEFAULT 'TODOS' NOT NULL,
     ativo            NUMBER(1)     DEFAULT 1,
     criado_em        TIMESTAMP     DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_clyvo_produto             PRIMARY KEY (id),
     CONSTRAINT chk_clyvo_produto_categoria  CHECK (categoria         IN ('RACAO','MEDICAMENTO','ACESSORIO','SERVICO','OUTRO')),
     CONSTRAINT chk_clyvo_produto_especie    CHECK (especie_indicada  IN ('CACHORRO','GATO','PASSARO','REPTIL','ROEDOR','TODOS','OUTRO')),
+    CONSTRAINT chk_clyvo_produto_porte      CHECK (porte_indicado   IN ('PEQUENO','MEDIO','GRANDE','TODOS')),
     CONSTRAINT chk_clyvo_produto_ativo      CHECK (ativo             IN (0,1))
 );
 

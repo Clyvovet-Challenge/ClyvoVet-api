@@ -792,9 +792,12 @@ Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 | `pageSize` | int | 10 | Itens por página (máx. 100) |
 | `categoria` | enum | — | `Racao` \| `Medicamento` \| `Acessorio` \| `Servico` \| `Outro` |
 | `especieIndicada` | enum | — | `Cachorro` \| `Gato` \| `Passaro` \| `Reptil` \| `Roedor` \| `Todos` \| `Outro` \| `Bovino` \| `Equino`. **Traz junto os marcados `Todos`** |
+| `porteIndicado` | enum | — | `Pequeno` \| `Medio` \| `Grande` \| `Todos`. **Traz junto os marcados `Todos`** |
 | `ativo` | bool | — | `true` só ativos, `false` só inativos. Omitido, traz os dois |
 
 > **`especieIndicada` inclui os universais.** Pedir `Cachorro` devolve os produtos de cachorro **e** os marcados `Todos` — consulta de rotina, banho, o que não é específico de espécie. Antes o filtro usava igualdade exata, e perguntar "o que serve para um cachorro" escondia justamente o que serve para qualquer animal. Para ver só os universais, peça `especieIndicada=Todos`.
+
+> **`porteIndicado` (coluna `porte_indicado`, migration `V16`).** Espécie sozinha não resolvia o caso mais comum da categoria mais comum: ração de cachorro pequeno e de cachorro grande são produtos diferentes, com outra formulação e outra granulometria, e ambos apareciam para qualquer cachorro. Coleira, casinha e dosagem de antipulgas têm o mesmo problema. O default é `TODOS`, o que preserva o comportamento anterior à coluna — produto que não declara porte continua servindo a qualquer animal e continua aparecendo. Os valores espelham `t_clyvo_animal.porte` (`PEQUENO`/`MEDIO`/`GRANDE`), em maiúscula, porque é assim que o `AnimalMapper` do Java grava e é assim que os dois lados se comparam — no Oracle, divergir na caixa faria o casamento falhar em silêncio.
 
 > **`ativo` passou a ser lido.** O campo existia no modelo, no banco e no `PUT`, e nenhuma consulta o consultava: desativar um produto não o tirava de lugar nenhum. O parâmetro é opcional para não mudar o comportamento de quem já chamava sem ele — a vitrine do app pede `ativo=true`, e a gestão da clínica omite, porque precisa enxergar o que desativou para poder reativar. O mesmo vale para `GET /api/v1/sugestoes-produto`.
 

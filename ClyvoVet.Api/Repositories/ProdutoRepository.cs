@@ -20,7 +20,8 @@ public class ProdutoRepository : IProdutoRepository
         int pageSize,
         CategoriaEnum? categoria,
         EspecieEnum? especieIndicada,
-        bool? ativo = null)
+        bool? ativo = null,
+        PorteEnum? porteIndicado = null)
     {
         var query = _context.Produtos.AsQueryable();
 
@@ -43,6 +44,20 @@ public class ProdutoRepository : IProdutoRepository
         // para nao mudar quem ja chamava sem ele; a vitrine do tutor pede true.
         if (ativo.HasValue)
             query = query.Where(p => p.Ativo == ativo.Value);
+
+        // Mesma regra da especie, e pelo mesmo motivo: um porte especifico traz
+        // junto o que serve a qualquer porte. Sem isso, filtrar por PEQUENO
+        // esconderia a consulta de rotina, o shampoo neutro e o vermifugo em
+        // gotas -- que sao a maior parte do catalogo e servem a todo mundo.
+        //
+        // Racao de cachorro pequeno e de cachorro grande sao produtos
+        // diferentes; consulta veterinaria nao tem porte. O `Todos` e o que
+        // permite as duas coisas conviverem na mesma lista.
+        if (porteIndicado.HasValue && porteIndicado.Value != PorteEnum.Todos)
+            query = query.Where(p => p.PorteIndicado == porteIndicado.Value
+                                  || p.PorteIndicado == PorteEnum.Todos);
+        else if (porteIndicado.HasValue)
+            query = query.Where(p => p.PorteIndicado == PorteEnum.Todos);
 
         var consulta = query
             .OrderBy(p => p.Nome);

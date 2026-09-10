@@ -28,7 +28,7 @@ public class ProdutoServiceTests
         };
         _repositoryMock
             // Arvore de expressao nao aceita argumento opcional: o `ativo` vai explicito.
-            .Setup(r => r.GetAllAsync(1, 10, null, null, null))
+            .Setup(r => r.GetAllAsync(1, 10, null, null, null, null))
             .ReturnsAsync(produtos);
 
         // Act

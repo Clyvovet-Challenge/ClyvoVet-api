@@ -5,7 +5,7 @@ namespace ClyvoVet.Api.Repositories.Interfaces;
 
 public interface IProdutoRepository
 {
-    Task<IEnumerable<Produto>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null);
+    Task<IEnumerable<Produto>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null, PorteEnum? porteIndicado = null);
     Task<Produto?> GetByIdAsync(string id);
     Task<Produto> CreateAsync(Produto produto);
     Task<Produto?> UpdateAsync(string id, Produto produto);
