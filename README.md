@@ -754,6 +754,22 @@ No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e in
 
 > O endpoint extra do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`) — detalhes na seção correspondente, mais abaixo.
 
+#### Esta API não tem usuário nem perfil
+
+Procurando as **credenciais de teste do tutor, do veterinário ou do admin**? Elas não existem aqui. Esta API se autentica por **chave de serviço**, não por pessoa: quem chama é o app, e a chave é a mesma para todo mundo. Não há login, não há JWT, não há papel — e por isso também não há o que separar por perfil nas respostas.
+
+Os quatro perfis (`TUTOR`, `VETERINARIO`, `ADMIN_CLINICA`, `ADMIN`) vivem na **API Java**, que é a dona do cadastro, das sessões e das autorizações. As contas de desenvolvimento estão documentadas lá:
+
+| E-mail | Senha | Perfil |
+|---|---|---|
+| `lucas.santos@email.com` | `tutor12345` | `TUTOR` |
+| `maria.oliveira@email.com` | `tutor12345` | `TUTOR` |
+| `camila.ferreira@vetcare.com.br` | `vet12345` | `VETERINARIO` |
+| `gestor.vetcare@clyvovet.com` | `gestor12345` | `ADMIN_CLINICA` |
+| `admin@clyvovet.com` | `admin12345` | `ADMIN` |
+
+Semeadas pelo `DevDataSeeder` nos perfis Spring `dev`, `h2`, `oracle` e `local` — nunca em produção. No stack do Docker isso exige `SPRING_PROFILES_ACTIVE=mysql,local` no serviço `java-api`; com `mysql` sozinho o banco sobe sem usuário e todo login devolve 401.
+
 ---
 
 ### 🛒 Produtos — `/api/v1/produtos`
