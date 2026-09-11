@@ -341,6 +341,11 @@ app.UseExceptionHandler(errorApp =>
 
         var message = MapaDeErro.Mensagem(exception);
 
+        // O mesmo id que o CorrelationIdMiddleware já colocou no header e que o
+        // Serilog imprime em cada linha desta requisição.
+        var correlationId = context.Response.Headers["X-Correlation-Id"].ToString();
+        var referencia = MapaDeErro.Referencia(exception, correlationId);
+
         switch (exception)
         {
             case NotFoundException or BadRequestException or SemTutorNoTokenException:
@@ -351,7 +356,18 @@ app.UseExceptionHandler(errorApp =>
                 break;
         }
 
-        await context.Response.WriteAsJsonAsync(new { error = message });
+        // `error` continua onde estava: é o que o aplicativo lê hoje, e mexer
+        // nele quebraria a tela sem ganho nenhum. `referencia` entra ao lado, e
+        // só existe quando é falha de servidor — é o campo que permite ao
+        // usuário dizer QUAL erro aconteceu, com o mesmo nome que a API Java usa.
+        if (referencia is null)
+        {
+            await context.Response.WriteAsJsonAsync(new { error = message });
+        }
+        else
+        {
+            await context.Response.WriteAsJsonAsync(new { error = message, referencia });
+        }
     });
 });
 

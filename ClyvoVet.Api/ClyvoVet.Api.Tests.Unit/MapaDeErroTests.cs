@@ -96,4 +96,63 @@ public class MapaDeErroTests
         Assert.Equal(StatusCodes.Status500InternalServerError, MapaDeErro.Status(excecao));
         Assert.Equal("Erro interno no servidor.", MapaDeErro.Mensagem(excecao));
     }
+
+    /// <summary>
+    /// A falha de servidor é a única em que o usuário não tem o que corrigir.
+    /// Então é a única que precisa de referência: é como ele diz QUAL erro
+    /// aconteceu, e como quem investiga acha a linha certa no log.
+    /// </summary>
+    [Fact]
+    public void Referencia_FalhaDeServidor_DevolveOCorrelationId()
+    {
+        // Arrange
+        var excecao = new InvalidOperationException("banco fora do ar");
+        const string correlationId = "0HNOG517TI2UO-00000001";
+
+        // Act
+        var referencia = MapaDeErro.Referencia(excecao, correlationId);
+
+        // Assert
+        Assert.Equal(correlationId, referencia);
+    }
+
+    /// <summary>
+    /// No erro que o usuário resolve sozinho não há investigação a fazer: um
+    /// código ao lado de "data no passado" só polui uma frase que já diz o que
+    /// fazer.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(NotFoundException))]
+    [InlineData(typeof(BadRequestException))]
+    public void Referencia_ErroDoUsuario_NaoDevolveNada(Type tipoDaExcecao)
+    {
+        // Arrange
+        var excecao = (Exception)Activator.CreateInstance(tipoDaExcecao, "mensagem de teste")!;
+
+        // Act
+        var referencia = MapaDeErro.Referencia(excecao, "0HNOG517TI2UO-00000001");
+
+        // Assert
+        Assert.Null(referencia);
+    }
+
+    /// <summary>
+    /// Sem id, campo nenhum: referência vazia na tela é pior que nenhuma — manda
+    /// o usuário citar um código que não existe.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Referencia_SemCorrelationId_DevolveNulo(string? correlationId)
+    {
+        // Arrange
+        var excecao = new InvalidOperationException("falha qualquer");
+
+        // Act
+        var referencia = MapaDeErro.Referencia(excecao, correlationId);
+
+        // Assert
+        Assert.Null(referencia);
+    }
 }

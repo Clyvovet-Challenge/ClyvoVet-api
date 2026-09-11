@@ -44,4 +44,32 @@ public static class MapaDeErro
         DbUpdateException => "Registro em uso por outro cadastro.",
         _ => "Erro interno no servidor."
     };
+
+    /// <summary>
+    /// A referência que o corpo carrega, ou <c>null</c> quando não há o que
+    /// investigar.
+    ///
+    /// <para>
+    /// Só falha de servidor recebe referência. Nos outros casos o usuário tem o
+    /// que corrigir — o registro não existe, o campo está errado, o cadastro
+    /// está em uso — e um código ao lado da frase só acrescentaria ruído a uma
+    /// mensagem que já é acionável.
+    /// </para>
+    ///
+    /// <para>
+    /// Quando recebe, é o mesmo id que já viaja no header <c>X-Correlation-Id</c>
+    /// e que o Serilog imprime em toda linha da requisição. É isso que liga o
+    /// que o usuário viu ao que o log registrou. A API Java devolve o campo com
+    /// o mesmo nome, para o aplicativo ler um só.
+    /// </para>
+    /// </summary>
+    public static string? Referencia(Exception? excecao, string? correlationId)
+    {
+        if (Status(excecao) < StatusCodes.Status500InternalServerError)
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(correlationId) ? null : correlationId;
+    }
 }
