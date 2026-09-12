@@ -35,8 +35,10 @@ Este repositório responde por **duas** disciplinas no mesmo vídeo.
 
 | | |
 |---|---|
+| ☐ | **O repositório [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java) clonado ao lado deste** — é de lá que a infraestrutura sobe |
 | ☐ | `az login` feito e assinatura certa selecionada |
-| ☐ | `azure/00-variaveis.sh` revisado — nomes únicos em toda a Azure |
+| ☐ | `azure/00-variaveis.sh` **do repo Java** revisado — nomes únicos em toda a Azure |
+| ☐ | Os segredos exportados no ambiente, **nunca em arquivo versionado** (passo 2 do README de lá) |
 | ☐ | Terminal com fonte grande (16pt+) |
 | ☐ | Postman com as requisições montadas, ou o `test_api.sh` à mão |
 | ☐ | Cliente MySQL aberto numa segunda janela, já conectado |
@@ -46,16 +48,49 @@ Este repositório responde por **duas** disciplinas no mesmo vídeo.
 
 ## O roteiro
 
-### Parte 1 — Provisionar (≈3 min)
+### Parte 1 — Provisionar as DUAS APIs (≈5 min)
 
-| Cena | Comando | Narração |
-|---|---|---|
-| Abertura | — | "ClyvoVet API, ASP.NET Core 8, publicada em Azure App Service sobre MySQL Flexible Server" |
-| Recursos | `bash azure/01-criar-recursos.sh` | "grupo de recursos e o banco gerenciado — **PaaS, nada em container**" |
-| App Service | `bash azure/02-criar-app-service.sh` | "o app roda direto no App Service; o `Dockerfile` do repositório não participa da publicação" |
-| Deploy | `bash azure/03-deploy.sh` | "publica o build do `dotnet publish`" |
-| Portal | — | 10 segundos no portal da Azure, mostrando os recursos criados |
-| Swagger | abrir `/swagger` na URL publicada | "a API no ar, respondendo pela internet" |
+> **Os scripts `azure/01` a `04` DESTE repositório não entram no vídeo.** Eles
+> são o caminho da entrega **anterior**, e o README deste repo diz isso na
+> primeira dobra: *"este repositório não provisiona mais nada sozinho"*. Na
+> Sprint 3 existe **uma** infraestrutura, e quem a levanta são os scripts
+> `azure/00` a `09` do repositório
+> [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java)
+> — Resource Group, MySQL, o plano compartilhado e **as duas** APIs, esta
+> inclusive.
+>
+> É por isso que este vídeo mostra as duas subindo: não é escolha de roteiro, é
+> como a infraestrutura foi montada.
+
+Grave seguindo os seis passos do README de lá, nesta ordem:
+
+| # | Passo (README do repo Java) | Comando | Narração |
+|---|---|---|---|
+| — | Abertura | — | "ClyvoVet API, ASP.NET Core 8. Ela e a API Java do time dividem um plano do App Service e **o mesmo banco**" |
+| 1 | Clonar o repositório | `git clone …/clyvovet-backend-java.git` | "a infraestrutura das duas vive num repositório só" |
+| 2 | Definir os segredos **no ambiente** | `export …` | **não mostre os valores na tela.** "os segredos entram por variável de ambiente — nada disso está versionado" |
+| 3 | Conferir o que a assinatura oferece | `bash azure/00-descobrir-recursos.sh` | "a assinatura acadêmica bloqueia algumas regiões; o script diz quais estão liberadas" |
+| 4 | Criar os recursos, um por vez | `01-resource-group` → `02-banco-mysql` → `03-plano-app-service` → `04-webapp-java` → `05-webapp-dotnet` → `06-configuracoes` | "MySQL gerenciado e App Service — **PaaS, nada em container**. Dois webapps, um plano" |
+| 5 | Publicar as aplicações | `bash azure/07-deploy-java.sh` **e depois** `bash azure/08-deploy-dotnet.sh` | "a Java primeiro, e a ordem importa — ver abaixo" |
+| 6 | Verificar de ponta a ponta | `bash azure/09-verificar.sh` | "o script bate na saúde das duas e prova que o schema existe" |
+
+> ### ⚠️ A ordem do passo 5 não é preferência — é quebra
+>
+> O banco é criado **vazio**, e quem cria o schema é o **Flyway da API Java, no
+> primeiro boot dela**. Aplicar o `schema/script_bd.sql` deste repositório antes
+> disso deixa o banco com as tabelas mas **sem a `flyway_schema_history`** — e o
+> Flyway recusa migrar um schema não vazio que ele não conhece. A API Java
+> simplesmente não sobe, e não há conserto rápido no meio de uma gravação.
+>
+> **Java primeiro. Sempre.**
+
+O `09-verificar.sh` fecha o bloco sozinho: ele consulta
+`{java}/actuator/health`, `{dotnet}/health/live` e
+`{dotnet}/health/ready`, e em seguida faz um cadastro real pela API Java —
+que é a prova de que o Flyway criou o schema. Deixe a saída inteira aparecer.
+
+Depois, 10 segundos no **portal da Azure** mostrando os recursos, e o
+`/swagger` desta API aberto na URL publicada.
 
 > **A frase que vale ponto:** *"nem o app nem o banco estão em container — os
 > dois são serviços gerenciados da Azure"*. É exatamente o que a régua penaliza
@@ -96,8 +131,11 @@ O que esta API tem além do CRUD, e que só aparece se você mostrar:
 - **Não corte o meio do deploy.** Corte no meio sugere que não funcionou.
 - **Não mostre segredo**: `Api:ApiKey`, senha do MySQL, connection string. Se
   vazar no vídeo, troque a credencial antes de entregar.
-- **Não rode `azure/04-destruir-recursos.sh`** no vídeo nem depois dele —
-  recurso apagado equivale a entrega em localhost. Só **após a correção**.
+- **Não rode script de destruição** — nem o `azure/04-destruir-recursos.sh`
+  daqui, nem o `azure/99-destruir.sh` do repo Java — no vídeo nem depois dele.
+  Recurso apagado equivale a entrega em localhost. Só **após a correção**.
+- **Não aplique `schema/script_bd.sql` deste repositório.** Ver o aviso do
+  passo 5: ele impede a API Java de subir.
 - **Não reaproveite o vídeo anterior.** A infraestrutura descrita nele é outra.
 
 ---
