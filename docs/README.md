@@ -13,7 +13,7 @@ passo a passo do deploy na Azure. Esta pasta guarda o que não cabe lá.
 
 ## Onde estão as outras peças
 
-Este é um dos três repositórios do PetTrack. As specs se referenciam entre si:
+Este é um dos três repositórios do ClyvoVet. As specs se referenciam entre si:
 
 | Repositório | Documento |
 |---|---|

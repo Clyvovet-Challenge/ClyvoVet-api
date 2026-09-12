@@ -188,7 +188,7 @@ inteiro. É a decisão certa para o prazo.
 
 ### 2.4 ✅ Serilog grava em disco local — CORRIGIDO
 
-`Program.cs:38` — `.WriteTo.File("Logs/PetTrack-api-.log")`.
+`Program.cs:38` — `.WriteTo.File("Logs/clyvovet-api-.log")`.
 
 No App Service esse caminho é efêmero e por instância: cada réplica escreve seu
 próprio arquivo, ninguém os agrega, e o conteúdo some no próximo restart. O sink
@@ -213,7 +213,7 @@ escalar — o servidor é `Standard_B1ms`, tier Burstable.
 ### 2.6 ✅ CORS não configurado — CORRIGIDO
 
 Não há `AddCors` nem `UseCors` em `Program.cs`. A API Java configura por
-`PETTRACK_CORS_ORIGENS`.
+`CLYVOVET_CORS_ORIGENS`.
 
 Não afeta o app nativo, que não faz CORS. Afeta o Expo web, se ele for
 demonstrado.
