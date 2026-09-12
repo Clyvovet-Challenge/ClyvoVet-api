@@ -50,7 +50,7 @@ Este repositório responde por **duas** disciplinas no mesmo vídeo.
 
 | Cena | Comando | Narração |
 |---|---|---|
-| Abertura | — | "ClyvoVet API, ASP.NET Core 8, publicada em Azure App Service sobre MySQL Flexible Server" |
+| Abertura | — | "PetTrack API, ASP.NET Core 8, publicada em Azure App Service sobre MySQL Flexible Server" |
 | Recursos | `bash azure/01-criar-recursos.sh` | "grupo de recursos e o banco gerenciado — **PaaS, nada em container**" |
 | App Service | `bash azure/02-criar-app-service.sh` | "o app roda direto no App Service; o `Dockerfile` do repositório não participa da publicação" |
 | Deploy | `bash azure/03-deploy.sh` | "publica o build do `dotnet publish`" |

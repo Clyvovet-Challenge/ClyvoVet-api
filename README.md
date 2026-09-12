@@ -1,4 +1,4 @@
-# ClyvoVet API — .NET
+# PetTrack API — .NET
 
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-8.0-0078D4?style=flat&logo=microsoft&logoColor=white)
@@ -19,7 +19,7 @@
 > porque documenta o que o vídeo daquela entrega mostra.
 >
 > **Para provisionar a infraestrutura da Sprint 3, siga o README do repositório
-> [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java),
+> [`clyvovet-backend-java`](https://github.com/PetTrack-Challenge/clyvovet-backend-java),
 > não este.** Lá os scripts `azure/00` a `azure/09` sobem, numa região só, o
 > Resource Group, o MySQL, o plano compartilhado e **as duas** APIs — esta
 > inclusive. Este repositório não provisiona mais nada sozinho.
@@ -30,7 +30,7 @@
 > `flyway_schema_history` — e o Flyway recusa migrar um schema não vazio que ele
 > não conhece, então a API Java simplesmente não sobe. Ver o passo 5 abaixo.
 
-> Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
+> Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (PetTrack .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
 
 > 📋 **Roteiro da gravação desta Sprint:** [`docs/roteiro-do-video.md`](docs/roteiro-do-video.md).
 > O vídeo abaixo é o da entrega **anterior** e descreve outra infraestrutura.
@@ -49,7 +49,7 @@
 
 ### Descrição da Solução
 
-Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
+Construída em ASP.NET Core 8, a PetTrack API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
 
 ### Benefícios para o Negócio
 
@@ -97,7 +97,7 @@ Nenhuma parte desta entrega roda em container — nem o app, nem o banco: tudo f
 **1. Clonar o repositório**
 
 ```bash
-git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
+git clone https://github.com/PetTrack-Challenge/ClyvoVet-api.git
 cd ClyvoVet-api
 git checkout devops-sprint3-azure
 ```
@@ -119,7 +119,7 @@ export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'
 bash azure/01-criar-recursos.sh
 ```
 
-O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banco `clyvovet`, além de liberar seu IP atual no firewall.
+O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banco `PetTrack`, além de liberar seu IP atual no firewall.
 
 **5. Aplicar o schema no banco**
 
@@ -128,7 +128,7 @@ O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banc
 > impede a API Java de subir, pelo motivo explicado no início desta seção.
 
 ```bash
-mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u clyvovetadmin -p$MYSQL_PASSWORD --ssl-mode=REQUIRED clyvovet < schema/script_bd.sql
+mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u PetTrackadmin -p$MYSQL_PASSWORD --ssl-mode=REQUIRED PetTrack < schema/script_bd.sql
 ```
 
 (o script `01` já imprime esse mesmo comando, com os valores corretos, ao final da execução)
@@ -141,7 +141,7 @@ export TELEGRAM_BOT_TOKEN='...' TELEGRAM_API_KEY='...' TELEGRAM_BOT_USERNAME='..
 # OCI Generative AI (saude preditiva). Opcional: sem estas variaveis a API
 # responde pelo fallback deterministico.
 export OCI_TENANCY_OCID='...' OCI_USER_OCID='...' OCI_FINGERPRINT='...'
-export OCI_PRIVATE_KEY_PEM="$(cat ~/.oci/clyvovet_api_key.pem)"
+export OCI_PRIVATE_KEY_PEM="$(cat ~/.oci/PetTrack_api_key.pem)"
 export OCI_REGION='us-chicago-1' OCI_COMPARTMENT_OCID='...'
 bash azure/02-criar-app-service.sh
 ```
@@ -222,7 +222,7 @@ Os endereços que o deploy publica:
 
 ## Sobre o Projeto
 
-A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro do **Challenge FIAP 2026 — projeto Clyvo Vet**. Dentro da plataforma veterinária, ela cobre o **domínio de engajamento**, cuidando de:
+A **PetTrack API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro do **Challenge FIAP 2026 — projeto PetTrack**. Dentro da plataforma veterinária, ela cobre o **domínio de engajamento**, cuidando de:
 
 - Catálogo de produtos e serviços veterinários
 - Sugestões personalizadas de produtos por animal
@@ -336,7 +336,7 @@ ClyvoVet-api/
 ### Passo 1 — Clonar o repositório
 
 ```bash
-git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
+git clone https://github.com/PetTrack-Challenge/ClyvoVet-api.git
 cd ClyvoVet-api
 ```
 
@@ -394,14 +394,14 @@ dotnet user-secrets list
 |-------|---------|-----------|
 | `Server` | `localhost` | Host do MySQL |
 | `Port` | `3306` | Porta (o padrão do MySQL) |
-| `Database` | `clyvovet` | Nome do banco |
+| `Database` | `PetTrack` | Nome do banco |
 | `Uid` / `Pwd` | `root` / sua senha | Credenciais |
 | `SslMode` | `Required` | **Obrigatório na Azure**; dispensável em `localhost` |
 
 **Contra o banco da Azure** (o mesmo que a API Java usa), acrescente o TLS — o MySQL Flexible Server recusa a conexão sem ele:
 
 ```
-Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvovetadmin;Pwd=<SENHA>;SslMode=Required;
+Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=PetTrackadmin;Pwd=<SENHA>;SslMode=Required;
 ```
 
 > **Erro: `Unable to connect to any of the specified MySQL hosts`**
@@ -410,7 +410,7 @@ Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvo
 > **Erro: `Access denied for user`**
 > Usuário ou senha incorretos no `Uid`/`Pwd`.
 
-> **Erro: `Unknown database 'clyvovet'`**
+> **Erro: `Unknown database 'PetTrack'`**
 > O banco ainda não existe. É o Passo 3.
 
 > **Erro na Azure: `The SSL connection could not be established`**
@@ -429,8 +429,8 @@ Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvo
 #### 3.1 — Criar o banco e aplicar o schema
 
 ```bash
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS clyvovet CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p clyvovet < schema/script_bd.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS PetTrack CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p PetTrack < schema/script_bd.sql
 ```
 
 [`schema/script_bd.sql`](schema/script_bd.sql) é o schema completo em **MySQL**, nas duas partes:
@@ -447,9 +447,9 @@ Não há passo separado para nenhum deles.
 #### 3.2 — Conferir
 
 ```bash
-mysql -u root -p clyvovet -e "
+mysql -u root -p PetTrack -e "
 SELECT TABLE_NAME, TABLE_ROWS FROM information_schema.TABLES
- WHERE TABLE_SCHEMA = 'clyvovet' AND TABLE_NAME LIKE 't_clyvo_%'
+ WHERE TABLE_SCHEMA = 'PetTrack' AND TABLE_NAME LIKE 't_clyvo_%'
  ORDER BY TABLE_NAME;"
 ```
 
@@ -520,7 +520,7 @@ info: Microsoft.Hosting.Lifetime[0]
 > **Erro: `Unable to connect to any of the specified MySQL hosts` na primeira requisição**  
 > A connection string está errada — volte ao Passo 2. Mesmo com credenciais inválidas a aplicação sobe normalmente; o erro só se manifesta na primeira chamada ao banco.
 
-> **Erro: `Table 'clyvovet.t_clyvo_produto' doesn't exist`**  
+> **Erro: `Table 'PetTrack.t_clyvo_produto' doesn't exist`**  
 > O banco existe mas está vazio: falta aplicar `schema/script_bd.sql` (Passo 3).
 
 > **A API sobe mas retorna `500` em todos os endpoints**  
@@ -610,7 +610,7 @@ curl http://localhost:5191/health
   "checks": [
     { "name": "self", "status": "Healthy", "durationMs": 0.31, "tags": ["live"] },
     { "name": "oracle-database", "status": "Healthy", "durationMs": 16.52, "tags": ["ready", "database", "external"] },
-    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] }
+    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @PetTrack_notificacoes_bot respondendo.", "tags": ["external"] }
   ]
 }
 ```
@@ -620,7 +620,7 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
 ### Logging Estruturado (Serilog)
 
 - Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
-- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
+- O **arquivo** (`Logs/PetTrack-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
 - Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
 - São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
 - Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
@@ -688,7 +688,7 @@ dotnet test ClyvoVet-api.slnx
 | **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
 | **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
 
-> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `Table 'clyvovet.t_clyvo_tutor' doesn't exist` em qualquer endpoint de lembrete ou sugestão.
+> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `Table 'PetTrack.t_clyvo_tutor' doesn't exist` em qualquer endpoint de lembrete ou sugestão.
 
 ---
 
@@ -1130,7 +1130,7 @@ O parecer de riscos e recomendações que a home do app mostra por animal. O des
 dotnet user-secrets set "Oci:TenancyOcid" "ocid1.tenancy.oc1..."
 dotnet user-secrets set "Oci:UserOcid" "ocid1.user.oc1..."
 dotnet user-secrets set "Oci:Fingerprint" "aa:bb:cc:..."
-dotnet user-secrets set "Oci:PrivateKeyPath" "C:/chaves/clyvovet_api_key.pem"
+dotnet user-secrets set "Oci:PrivateKeyPath" "C:/chaves/PetTrack_api_key.pem"
 dotnet user-secrets set "Oci:Region" "us-chicago-1"
 dotnet user-secrets set "Oci:GenAi:CompartmentOcid" "ocid1.compartment.oc1..."
 ```
