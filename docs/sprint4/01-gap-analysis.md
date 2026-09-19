@@ -28,7 +28,7 @@ SDK 8 não lê `.slnx`, então os testes rodam apontando os dois `.csproj`.
 | Item | Estado | Evidência | Fase |
 |---|---|---|---|
 | Clean Architecture com camadas | 🔴 | `ClyvoVet-api.slnx` lista 3 projetos: a Api (com tudo dentro, só separado por pasta) e 2 de teste. Não há Domain/Application/Infrastructure. | F1 |
-| SOLID / Clean Code | 🟡 | Interface por serviço e por repositório; controllers finos. Mas o `Program.cs` tem 411 linhas e faz tudo (logging, CORS, Swagger, banco, DI, health, OTel). | F1 |
+| SOLID / Clean Code | 🟡 | Interface por serviço e por repositório; controllers finos. Mas o `Program.cs` tem 411 linhas e faz tudo (logging, CORS, Swagger, banco, DI, health, OTel). Não há revisão nem evidência documentada dos princípios. | F1, F5 |
 | Injeção de dependência | 🟢 | Tudo registrado por interface em `Program.cs:222-268`. Falta só extrair para `AddApplication`/`AddInfrastructure`. | F1 |
 | Exceções globais | 🟡 | Existe e é testado (`Errors/MapaDeErro.cs`), mas o handler é um lambda de 40 linhas em `Program.cs:329-372`, e o `MapaDeErro` conhece `DbUpdateException` (EF) — vazamento de infraestrutura. | F1, F2 |
 

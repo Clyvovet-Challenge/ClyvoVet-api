@@ -223,7 +223,11 @@ Acrescentar uma propriedade a um objeto JSON não quebra quem só lê os campos 
 | Sugestão de Produto | `self`, `atualizar`, `excluir`, `colecao`, `saudePreditiva` |
 | Saúde Preditiva `GET {animalId}` | `self`, `widget`, `lembretes`, `sugestoes` |
 | Widget `GET {animalId}` | `self`, `saudePreditiva` |
+| Telegram `GET link/{tutorId}` | `self`, `vinculo` |
+| Telegram `GET vinculo/{tutorId}` | `self`, `link`, `desvincular` |
 
+A cobertura é de **todos os `GET` de consulta**, inclusive os dois do Telegram
+(`TelegramLinkResponse` e `TelegramVinculoResponse` também herdam `RespostaHateoas`).
 Os `href` saem do `LinkGenerator` a partir do **nome da ação** — nenhuma rota escrita à mão
 em string, então renomear uma rota não deixa link morto. `GeradorDeLinks` mora na Api.
 
@@ -300,11 +304,20 @@ Só executa depois da resposta do professor. Resumo dos dois caminhos em
   gera o relatório (ReportGenerator) e **falha se a cobertura de linhas de Domain +
   Application ficar abaixo de 70%**. O 70% é escolha nossa — o rubric não fixa número. A F5
   mede a linha de base primeiro e adiciona testes até bater a meta.
+- **Qualidade de código (F5):** revisão de SOLID e Clean Code nas 4 camadas com a skill
+  `code-review` (responsabilidades misturadas, métodos longos, duplicação, dependência de
+  implementação em vez de interface). Correções em commits próprios; o que for aceito como
+  está fica anotado com o motivo. O README ganha a seção "Princípios aplicados", com um
+  exemplo **real** do código por princípio.
+- **Ensaio geral (F6):** o rubric pede as funcionalidades das Sprints 1–3 "integradas e
+  funcionando em conjunto", e os testes verdes não provam isso sozinhos. A F6 percorre, com
+  token válido, todos os endpoints contra um ambiente completo (MySQL + MongoDB) e registra
+  o resultado em `docs/sprint4/ensaio-geral.md`.
 
 ## 9. Documentação (F6)
 
 - `README.md` reorganizado: visão geral → arquitetura (diagrama de camadas em **Mermaid**,
-  que o GitHub renderiza) → tecnologias → estrutura de pastas → como executar (local, Docker,
+  que o GitHub renderiza) → tecnologias → estrutura de pastas → princípios aplicados (SOLID, com exemplos reais) → como executar (local, Docker,
   Mongo) → autenticação → endpoints (com exemplos de `ordenarPor`, `Link` e envelope) →
   observabilidade → testes e cobertura → integrantes → licença.
 - O conteúdo do deploy Azure da Sprint 3 vai para `docs/deploy-azure-sprint3.md`; o guia de

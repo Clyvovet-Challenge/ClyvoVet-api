@@ -214,7 +214,8 @@ sobe e `GET /health/live` responde 200 + `git diff --stat -M` mostra os arquivos
       **array**; cabeçalhos `X-Total-Count` e `Link` (`first`/`prev`/`next`/`last`, preservando
       filtros e ordenação).
 - [ ] **T5** `Link`, `RespostaHateoas`, `GeradorDeLinks` (`LinkGenerator` + nome da ação);
-      `_links` nos DTOs de item conforme design §6.4. Teste de regressão do contrato:
+      `_links` nos DTOs de item conforme design §6.4 — **inclusive nos dois `GET` do
+      Telegram** (`link/{tutorId}` e `vinculo/{tutorId}`). Teste de regressão do contrato:
       **sem** `Accept` especial, corpo continua array e os campos antigos intactos.
 - [ ] **T6** Envelope com `Accept: application/vnd.clyvovet.hateoas+json` (`itens`, `page`,
       `pageSize`, `total`, `_links`); `prev`/`next` só quando existem.
@@ -250,9 +251,10 @@ contra a API local.
 
 ---
 
-## F5 — Observabilidade, testes e cobertura
+## F5 — Observabilidade, testes e qualidade de código
 
-**Objetivo:** logs estruturados em produção e cobertura medida e defendida.
+**Objetivo:** logs estruturados em produção, cobertura medida e defendida, e SOLID/Clean
+Code verificados no código.
 **Spec:** design §8.
 
 - [ ] **T1** `Serilog.Formatting.Compact`; JSON no console fora de `Development`; teste de
@@ -262,10 +264,24 @@ contra a API local.
 - [ ] **T3** Escrever testes até bater a meta, priorizando o que a medição mostrar mais
       descoberto (AAA, `Metodo_Cenario_Resultado`).
 - [ ] **T4** Revisar health checks (todos com teste de integração de status e formato).
-- [ ] **T5** README: "Observabilidade" e "Testes e cobertura" com os comandos reais.
+- [ ] **T5 — Revisão de SOLID e Clean Code** (rubric 1: "Princípios SOLID e Clean Code
+      evidentes no código"). Rodar a skill `code-review` nas 4 camadas e procurar: classe ou
+      método com mais de uma responsabilidade, método longo, duplicação, dependência de
+      implementação em vez de interface, e `switch`/`if` que exigem editar código para
+      acrescentar um caso. Corrigir o que aparecer, **um commit por correção**, com os
+      testes verdes. O que for aceito como está, com o motivo, fica anotado no
+      `01-gap-analysis.md`.
+- [ ] **T6** README: seção **"Princípios aplicados"**, com **um exemplo real do código por
+      princípio** (arquivo e linha) — só entra o que existir de fato. Candidatos a
+      confirmar no código: S — um serviço por recurso; O — acrescentar um campo ordenável é
+      uma entrada na lista branca, sem alterar `Paginacao`; L — `ParecerIaMongoRepository` e
+      `ParecerIaRepository` intercambiáveis por `IParecerIaRepository`; I — interfaces
+      pequenas por recurso; D — interfaces em Application implementadas em Infrastructure
+      (o `ArquiteturaTests` prova). Mais as seções "Observabilidade" e "Testes e cobertura"
+      com os comandos reais.
 
-**Pronto quando:** DoD + `scripts/cobertura.sh` sai com código 0 e o número real está
-documentado.
+**Pronto quando:** DoD + `scripts/cobertura.sh` sai com código 0, o número real está
+documentado, e a revisão de SOLID/Clean Code está feita e registrada.
 
 ---
 
@@ -282,10 +298,21 @@ documentado.
 - [ ] **T3** `scripts/exportar-swagger.sh` → `docs/swagger/openapi-v1.json`.
 - [ ] **T4** Conferir seções exigidas pelo rubric: visão geral, arquitetura, endpoints,
       instalação, testes, **integrantes**.
-- [ ] **T5** Revisão final contra o rubric: reabrir `01-gap-analysis.md`, atualizar a coluna
+- [ ] **T5 — Ensaio geral** (enunciado: "funcionalidades das Sprints 1, 2 e 3, integradas e
+      funcionando em conjunto"). Subir a API contra um ambiente completo (MySQL + MongoDB) e
+      percorrer, **com token válido**, os endpoints das Sprints 1–3: produtos, eventos pet,
+      lembretes, sugestões, saúde preditiva, widget e Telegram. Conferir os status esperados
+      (200/201/204/4xx), `_links`, `Link`/`X-Total-Count`, ordenação, 401 sem token e
+      `/health*` e `/metrics`. Registrar o resultado (o que passou e o que não) em
+      `docs/sprint4/ensaio-geral.md`. O ambiente exato (compose local ou o serviço
+      publicado) é definido na abertura da fase. Avaliar o `test_api.sh` da raiz como ponto
+      de partida do roteiro; ele e os exemplos `curl` do README precisam passar a mandar o
+      token, se hoje só usam `X-Api-Key`.
+- [ ] **T6** Revisão final contra o rubric: reabrir `01-gap-analysis.md`, atualizar a coluna
       de estado e listar o que sobrou.
 
-**Pronto quando:** DoD + todo item do rubric mapeado para evidência no repositório.
+**Pronto quando:** DoD + todo item do rubric mapeado para evidência no repositório + ensaio
+geral registrado em `docs/sprint4/ensaio-geral.md`.
 
 ---
 

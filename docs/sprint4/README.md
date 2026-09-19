@@ -20,8 +20,8 @@ Rubric de 100 pontos. **Este diretório é a fonte única de verdade do trabalho
 | F2 | Exceções globais + JWT/`[Authorize]` | ⬜ |
 | F3 | Ordenação, paginação com total e HATEOAS | ⬜ |
 | F4 | MongoDB (cache do parecer de IA) | ⬜ |
-| F5 | Observabilidade, testes e cobertura | ⬜ |
-| F6 | README final, diagrama e Swagger exportado | ⬜ |
+| F5 | Observabilidade, testes e qualidade de código | ⬜ |
+| F6 | README final, diagrama, Swagger exportado e ensaio geral | ⬜ |
 | F7 | Migrations EF | ⛔ condicional — ADR-005 aguarda o professor |
 
 Atualize esta tabela no mesmo commit que fecha cada fase.
