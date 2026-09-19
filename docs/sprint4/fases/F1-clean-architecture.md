@@ -39,7 +39,7 @@ Verificados em 19/09/2026 lendo o código do commit `6302e7e` e com protótipos 
 
 | # | Achado | Consequência neste plano |
 |---|---|---|
-| A1 | O Swagger monta a documentação a partir do **XML da Api**. Cinco DTOs têm `summary` (ex.: `ProdutoRequest.PorteIndicado`). Movidos para a Application, **a descrição dos campos some do Swagger em silêncio** (a rota continua respondendo 200). | T1 cria um teste de regressão *antes* de mover; T4 liga `GenerateDocumentationFile` na Application e manda o Swashbuckle incluir o XML dela. Protótipo: o `.xml` de um projeto referenciado chega ao `bin` da Api, ao `bin` dos testes e ao `publish` sem configuração extra. |
+| A1 | O Swagger monta a documentação a partir do **XML da Api**. Cinco DTOs têm `summary`, mas **só os campos de `LembreteRequest` (`recorrente`, `intervaloDias`, `repetirAte`) chegam ao `swagger.json` hoje**: os DTOs de resposta não viram schema, e um campo enum (como `ProdutoRequest.PorteIndicado`) sai como `$ref`, cuja descrição o OpenAPI 3.0 descarta. Movidos para a Application, **a descrição desses campos some do Swagger em silêncio** (a rota continua respondendo 200). Descoberto na execução da T1, medindo o `swagger.json` real. | T1 cria um teste de regressão *antes* de mover; T4 liga `GenerateDocumentationFile` na Application e manda o Swashbuckle incluir o XML dela. Protótipo: o `.xml` de um projeto referenciado chega ao `bin` da Api, ao `bin` dos testes e ao `publish` sem configuração extra. |
 | A2 | Os testes usam `internal` de **duas** camadas: `SaudePreditivaService` (`MontarConvite`, `TentarLerRespostaDaIa`, `CodigoDoCatalogo`) e `LembreteNotificationService` (`VerificarLembretesAsync`, `AvancarSerie`). O design só citava a Infrastructure. | `InternalsVisibleTo("ClyvoVet.Api.Tests.Unit")` vai para a **Application (T4) e para a Infrastructure (T5)** e sai da Api. |
 | A3 | O `Microsoft.NET.Sdk.Web` traz *implicit usings* de `Microsoft.Extensions.*`/`AspNetCore`; um `classlib` não. Vários arquivos usam `ILogger`, `IConfiguration`, `BackgroundService`, `IServiceScopeFactory` **sem `using`**. | T4/T5 listam os `using` a acrescentar; o compilador é o árbitro. Protótipo: os pacotes do design bastam (`GetValue<T>` compila sem `Configuration.Binder` explícito; sem `NU1605`). |
 | A4 | Caminhos fora do código: `.gitignore` (`ClyvoVet.Api/Logs/`), `azure/03-deploy.sh` (`PROJECT_DIR`), `README.md`, e um **`ClyvoVet.Api/ClyvoVet.slnx` duplicado e velho**, versionado dentro da Api. | T2 corrige `.gitignore` e o script do Azure e **remove o `.slnx` duplicado** (dono confirma). T7 corrige o `README.md`. |
@@ -169,14 +169,16 @@ Acrescente ao **final da classe** `SwaggerEndpointsTests` (antes da `}` que fech
     public async Task GetSwaggerJson_DtoComComentarioXml_ExpoeADescricaoDoCampo()
     {
         // Arrange
-        // "Porte atendido" é o <summary> de ProdutoRequest.PorteIndicado.
+        // "repete sem fim previsto" é o <summary> de LembreteRequest.RepetirAte. Não serve
+        // um campo enum, como ProdutoRequest.PorteIndicado: ele sai como $ref para o
+        // enum, e o OpenAPI 3.0 descarta a descrição escrita ao lado de um $ref.
         var response = await _client.GetAsync("/swagger/v1/swagger.json");
 
         // Act
         var json = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Contains("Porte atendido", json);
+        Assert.Contains("repete sem fim previsto", json);
     }
 ```
 
@@ -940,6 +942,10 @@ em serviços que estavam no mesmo namespace das entidades. Avisos `CS1574` (`cre
 
 Esperado: **266** aprovados. Confira em especial: `SwaggerEndpointsTests` (o teste da T1 tem que continuar verde — é ele
 que prova que o XML da Application entrou) e `EscopoPorTutorEndpointsTests` (a rede ponta a ponta do `IUsuarioAtual`).
+
+**Efeito cosmético esperado, não é regressão:** o `<see cref="IntervaloDias"/>` do `summary` de `LembreteRequest.Recorrente` sai no Swagger com o
+nome completo do tipo — hoje `ClyvoVet.Api.DTOs.Request.LembreteRequest.IntervaloDias`, depois da T4 `ClyvoVet.Application.DTOs.Request.LembreteRequest.IntervaloDias`.
+Vem do namespace novo e não afeta contrato nem app; se incomodar, troque o `cref` por `<c>IntervaloDias</c>` no DTO, num commit à parte.
 
 - [ ] **Step 13: Commit** — peça o "sim".
 

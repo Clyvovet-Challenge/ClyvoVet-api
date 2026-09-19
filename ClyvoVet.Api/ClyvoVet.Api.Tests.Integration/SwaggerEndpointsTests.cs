@@ -76,4 +76,30 @@ public class SwaggerEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
     }
+
+    /// <summary>
+    /// Os comentários <c>///</c> dos DTOs aparecem no Swagger.
+    ///
+    /// <para>
+    /// O Swashbuckle só enxerga o XML que mandarem incluir. Enquanto os DTOs moram no
+    /// mesmo projeto dos controllers, um arquivo basta; ao movê-los para outro projeto, o
+    /// XML dele precisa entrar também — senão o Swagger continua respondendo 200 e a
+    /// descrição dos campos some em silêncio.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task GetSwaggerJson_DtoComComentarioXml_ExpoeADescricaoDoCampo()
+    {
+        // Arrange
+        // "repete sem fim previsto" é o <summary> de LembreteRequest.RepetirAte. Não serve
+        // um campo enum, como ProdutoRequest.PorteIndicado: ele sai como $ref para o
+        // enum, e o OpenAPI 3.0 descarta a descrição escrita ao lado de um $ref.
+        var response = await _client.GetAsync("/swagger/v1/swagger.json");
+
+        // Act
+        var json = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Contains("repete sem fim previsto", json);
+    }
 }
