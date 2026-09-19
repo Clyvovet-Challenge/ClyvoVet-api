@@ -4,43 +4,47 @@
 
 ## Contexto
 
-O rubric pede "HATEOAS implementado nos endpoints de consulta". A forma óbvia é embrulhar
-cada listagem num envelope `{ itens, _links }`. **Mas as listagens desta API devolvem um
-array JSON puro** (`IEnumerable<T>`, ex.: `ILembreteService.GetAllAsync`), e o app móvel — que
-é outro repositório e não muda junto — lê esse array. Um envelope quebraria o app.
+O rubric exige "HATEOAS implementado nos endpoints de consulta". A solução óbvia seria
+envolver cada listagem num envelope `{ itens, _links }`. **Só que as listagens desta API
+devolvem um array JSON puro** (`IEnumerable<T>`, ex.: `ILembreteService.GetAllAsync`), e é
+esse array que o app móvel — repositório à parte, que não muda junto — consome. Um envelope
+quebraria o aplicativo.
 
-Além disso, sem o **total** de itens não dá para montar o link `last`; hoje nenhum serviço
-devolve o total.
+Há ainda outro obstáculo: sem o **total** de itens, não é possível construir o link `last`;
+atualmente nenhum serviço devolve esse total.
 
 ## Decisão
 
-Três camadas, todas compatíveis (design §6.4):
+Adotar três camadas compatíveis entre si (design §6.4):
 
-1. **Por item, sempre ligado e aditivo:** `_links` dentro de cada objeto, indexado pela
-   relação (`self`, `atualizar`, `excluir`, `colecao`, …). Acrescentar uma propriedade não
-   quebra quem lê só os campos que conhece.
-2. **Por coleção, sem mudar o corpo:** o array permanece; a navegação vai em `Link`
-   (RFC 8288: `first`/`prev`/`next`/`last`) e `X-Total-Count`.
-3. **Envelope opcional por negociação de conteúdo:**
-   `Accept: application/vnd.clyvovet.hateoas+json` devolve `{ itens, page, pageSize, total,
-   _links }`. Quem não pedir, não recebe.
+1. **Por item, sempre presente e aditiva:** `_links` dentro de cada objeto, indexado pela
+   relação (`self`, `atualizar`, `excluir`, `colecao`, …). Adicionar uma propriedade não
+   quebra quem só lê os campos já conhecidos.
+2. **Por coleção, preservando o corpo:** o array continua como está; a navegação passa a
+   viver no cabeçalho `Link` (RFC 8288: `first`/`prev`/`next`/`last`) e em `X-Total-Count`.
+3. **Envelope opcional via negociação de conteúdo:**
+   `Accept: application/vnd.clyvovet.hateoas+json` retorna `{ itens, page, pageSize, total,
+   _links }`. Quem não pedir explicitamente, não recebe.
 
-Os `href` vêm do `LinkGenerator` pelo nome da ação; nenhuma rota é escrita à mão.
-Os serviços passam a devolver `PaginaDeResultados<T>` (com total); o controller escolhe a
-representação.
+Os `href` são gerados pelo `LinkGenerator` a partir do nome da ação — nenhuma rota é
+escrita manualmente. Os serviços passam a retornar `PaginaDeResultados<T>` (já com o
+total), cabendo ao controller escolher a representação final.
 
 ## Consequências
 
-- ➕ O app continua funcionando sem nenhuma alteração.
-- ➕ O avaliador vê HATEOAS já na resposta padrão do Swagger (`_links` por item) e pode
-  pedir o envelope completo com o `Accept` (exemplo `curl` no README).
-- ➕ Sem dependência de biblioteca de terceiros para ~100 linhas de código.
-- ➖ Uma consulta `COUNT` a mais por listagem.
-- ➖ O envelope completo só aparece com um cabeçalho — precisa estar bem documentado.
+- ➕ O aplicativo continua funcionando sem nenhuma mudança de sua parte.
+- ➕ O avaliador já enxerga HATEOAS na resposta padrão do Swagger (`_links` por item) e pode
+  solicitar o envelope completo usando o cabeçalho `Accept` (há um exemplo com `curl` no
+  README).
+- ➕ Não exige biblioteca de terceiros para o que são ~100 linhas de código.
+- ➖ Passa a existir uma consulta `COUNT` extra por listagem.
+- ➖ O envelope completo só aparece mediante um cabeçalho específico — precisa ficar bem
+  documentado.
 
 ## Alternativas descartadas
 
-- **Envelope sempre.** Cumpre o rubric ao pé da letra, mas quebra o app.
-- **Nova versão da rota (`/api/v2/…`).** Duplica controllers para um ganho que a negociação
-  de conteúdo já dá.
-- **Biblioteca HATEOAS de terceiros.** Uma dependência a mais (e a auditar) para pouco código.
+- **Envelope sempre presente.** Atende o rubric ao pé da letra, mas quebra o app.
+- **Nova versão de rota (`/api/v2/…`).** Duplicaria controllers por um ganho que a
+  negociação de conteúdo já entrega.
+- **Biblioteca HATEOAS de terceiros.** Mais uma dependência para auditar, em troca de pouco
+  código evitado.

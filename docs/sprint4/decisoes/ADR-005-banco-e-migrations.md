@@ -35,24 +35,24 @@ e a F7 fica reservada. Até a resposta, **não criar migrations** (regra registr
 
 | Resposta | O que acontece | Esforço |
 |---|---|---|
-| **MySQL aceito** | **F7-A.** Migration *baseline* só das tabelas `t_clyvo_*`; `animal` e `tutor` (da Java) ficam **fora** das migrations (`ExcludeFromMigrations`); script idempotente (`dotnet ef migrations script --idempotent`) como entregável; provar aplicando em banco **vazio**. No banco compartilhado a migration inicial é registrada como *já aplicada*, porque as tabelas existem por Flyway. Um teste detecta divergência entre modelo e migrations. | Pequeno |
-| **SQL Server ou Oracle exigido** | **F7-B — vira redesenho, não fase.** O banco compartilhado com a Java deixa de servir: `animal`/`tutor` não estariam mais no mesmo banco. É preciso decidir como o .NET obtém esses dados (réplica, consumo HTTP da Java…). **Volta ao brainstorming, com spec própria, antes de qualquer código.** | Maior que todas as outras fases somadas |
+| **MySQL aceito** | **F7-A.** Uma migration *baseline* apenas das tabelas `t_clyvo_*`; `animal` e `tutor` (pertencentes à Java) ficam **fora** das migrations (`ExcludeFromMigrations`); um script idempotente (`dotnet ef migrations script --idempotent`) vira entregável, comprovado ao ser aplicado num banco **vazio**. No banco compartilhado, a migration inicial é registrada como *já aplicada*, já que as tabelas já existem via Flyway. Um teste passa a detectar qualquer divergência entre modelo e migrations. | Pequeno |
+| **SQL Server ou Oracle exigido** | **F7-B — deixa de ser fase e vira redesenho.** O banco compartilhado com a Java deixa de fazer sentido: `animal`/`tutor` não estariam mais no mesmo banco. Seria preciso decidir como o .NET passaria a obter esses dados (réplica, consumo via HTTP da Java…). **Volta para o brainstorming, com spec própria, antes de qualquer linha de código.** | Maior que todas as outras fases somadas |
 
-Observação para a resposta "Oracle": a auditoria registra que a API Java já mantém
-migrations para MySQL **e** Oracle (`db/migration/mysql` e `db/migration/oracle`), então o
-schema das `t_clyvo_*` já existe em Oracle do lado Java.
+Uma observação para o caso de resposta "Oracle": a auditoria já registra que a API Java
+mantém migrations tanto para MySQL **quanto** para Oracle (`db/migration/mysql` e
+`db/migration/oracle`), então o schema das `t_clyvo_*` já existe em Oracle do lado da Java.
 
 ## Consequências
 
-- ➕ Nenhuma fase fica travada esperando.
-- ➕ Evita executar F7 na direção errada (uma migration no MySQL "de graça" pode ser
-  trabalho jogado fora se a exigência for outra).
-- ➖ Enquanto o professor não responder, o item "EF Core com migrações" segue 🔴 no
-  gap-analysis, e o risco de desconto parcial nesse item existe.
+- ➕ Nenhuma fase fica bloqueada à espera da resposta.
+- ➕ Evita conduzir a F7 na direção errada (uma migration "de graça" no MySQL pode virar
+  trabalho descartado se a exigência acabar sendo outra).
+- ➖ Enquanto o professor não responde, o item "EF Core com migrações" permanece 🔴 no
+  gap-analysis, mantendo o risco de desconto parcial nesse item.
 
 ## Alternativas descartadas
 
-- **Criar migrations no MySQL agora, por precaução.** Custa o problema das três fontes de
-  verdade e pode não valer nada se a exigência for Oracle/SQL Server.
-- **Trocar para SQL Server agora.** Quebra o banco compartilhado com a Java e o deploy, sem
-  confirmar que a troca é necessária.
+- **Criar migrations no MySQL desde já, por precaução.** Traz de volta o problema das três
+  fontes de verdade e pode não valer nada caso a exigência acabe sendo Oracle/SQL Server.
+- **Trocar para SQL Server agora.** Quebraria o banco compartilhado com a Java e o deploy,
+  sem confirmação de que a troca é sequer necessária.
