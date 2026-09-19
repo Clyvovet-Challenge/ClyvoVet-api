@@ -1,13 +1,13 @@
 # Design — Sprint 4
 
-> **Status:** aprovado em conversa em 19/09/2026. **Única decisão em aberto:** banco e
-> migrations ([ADR-005](decisoes/ADR-005-banco-e-migrations.md)), que espera o professor.
-> Evidências do estado atual em [`01-gap-analysis.md`](01-gap-analysis.md).
+> **Status:** aprovado em conversa, em 19/09/2026. **Única decisão pendente:** banco e
+> migrations ([ADR-005](decisoes/ADR-005-banco-e-migrations.md)), que aguarda o professor.
+> As evidências do estado atual estão em [`01-gap-analysis.md`](01-gap-analysis.md).
 
 ## 1. Objetivo e escopo
 
-Fechar os gaps do rubric **sem derrubar a produção (Render) e sem quebrar o contrato com o
-app móvel**. Cada mudança é verificável por build, teste ou requisição.
+Fechar as lacunas do rubric **sem derrubar a produção (Render) e sem quebrar o contrato com
+o app móvel**. Toda mudança precisa ser verificável por build, teste ou requisição.
 
 **Dentro do escopo:** o rubric de [`00-requisitos.md`](00-requisitos.md).
 **Fora do escopo** (ver §11): CI/CD, features novas de domínio, mudanças na API Java, deploy
@@ -41,9 +41,9 @@ ClyvoVet-api/
 ├── docs/   schema/   azure/   scripts/
 ```
 
-Hoje os dois projetos de teste moram **dentro** de `ClyvoVet.Api/` e o `csproj` da Api precisa
-de oito linhas `Remove` para não compilá-los. O `src/`+`tests/` elimina isso. A mudança usa
-`git mv`, então o histórico dos arquivos é preservado.
+Atualmente os dois projetos de teste ficam **dentro** de `ClyvoVet.Api/`, e o `csproj` da Api
+precisa de oito linhas `Remove` só para não compilá-los. A estrutura `src/`+`tests/` elimina
+essa necessidade. A migração usa `git mv`, preservando o histórico dos arquivos.
 
 ### 3.2 Dependências (só para dentro)
 
@@ -94,9 +94,10 @@ por causa do laço de notificação, passa para a Infrastructure junto com o ser
 
 ## 4. Como as regras de camada são verificadas
 
-Referência de projeto **não basta**: pacotes fluem de `Infrastructure` para `Api` por
-transitividade, então a `Api` compilaria usando tipos do EF sem reclamar. Por isso existe
-`ArquiteturaTests` (projeto de unidade, reflexão pura, sem biblioteca extra), que falha se:
+Referência de projeto **sozinha não é suficiente**: pacotes fluem de `Infrastructure` para
+`Api` por transitividade, então a `Api` compilaria usando tipos do EF sem qualquer aviso. Daí
+a existência do `ArquiteturaTests` (projeto de unidade, reflexão pura, sem biblioteca extra),
+que falha quando:
 
 | Assembly | Não pode referenciar |
 |---|---|
@@ -105,9 +106,9 @@ transitividade, então a `Api` compilaria usando tipos do EF sem reclamar. Por i
 | `ClyvoVet.Infrastructure` | `Microsoft.AspNetCore.Mvc*`, `ClyvoVet.Api` |
 | `ClyvoVet.Api` | `Microsoft.EntityFrameworkCore*`, `MongoDB*` |
 
-O compilador só grava no assembly as referências que o código realmente usa, então o teste
-enxerga uso real, não intenção. O corolário: `MapaDeErro` não pode mais citar
-`DbUpdateException` (§7.1).
+O compilador só registra no assembly as referências efetivamente usadas pelo código, então o
+teste enxerga o uso real, não a intenção. Consequência direta: `MapaDeErro` deixa de poder
+citar `DbUpdateException` (§7.1).
 
 ## 5. Composição e injeção de dependência
 
@@ -339,16 +340,16 @@ Só executa depois da resposta do professor. Resumo dos dois caminhos em
 
 ## 11. Fora de escopo
 
-- **CI/CD** (GitHub Actions): não está no rubric desta disciplina. Fica anotado como
-  melhoria possível; um workflow de `dotnet build` + `dotnet test` protege a penalidade de
-  −20 por "não compilar" e pode entrar depois, se o dono do repositório quiser.
-- Funcionalidade nova de domínio, mudança no repositório Java, e o **deploy** de qualquer
-  coisa (Render, Azure, Atlas): só sob pedido explícito.
+- **CI/CD** (GitHub Actions): não consta no rubric desta disciplina. Registrado como possível
+  melhoria futura; um workflow de `dotnet build` + `dotnet test` evitaria a penalidade de
+  −20 por "não compilar" e pode ser adicionado depois, caso o dono do repositório queira.
+- Funcionalidade nova de domínio, mudanças no repositório Java, e o **deploy** de qualquer
+  parte (Render, Azure, Atlas): somente mediante pedido explícito.
 
 ## 12. Pendências externas (não dependem de código)
 
-1. **Professor** — responder a ADR-005 (§7.3).
+1. **Professor** — resposta pendente sobre a ADR-005 (§7.3).
 2. ~~**Ambiente** — instalar o runtime .NET 8~~ — **resolvido** em 19/09/2026 (P1 do plano).
-3. **Mongo hospedado** — só se o dono do repositório quiser o Mongo ligado em produção
-   (ex.: MongoDB Atlas, camada gratuita); criar conta e cluster é decisão dele, e o código
-   funciona sem isso (§7.2).
+3. **Mongo hospedado** — necessário apenas se o dono do repositório optar por manter o Mongo
+   ativo em produção (ex.: MongoDB Atlas, camada gratuita); criar a conta e o cluster é
+   decisão dele, e o código funciona normalmente sem isso (§7.2).

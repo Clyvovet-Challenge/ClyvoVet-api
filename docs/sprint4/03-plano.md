@@ -1,10 +1,10 @@
 # Plano-mestre — Sprint 4
 
-> **Para quem for executar:** leia [`02-design.md`](02-design.md) antes. Este plano dá as
-> **fases, as tarefas e os critérios de pronto**. Ao começar cada fase, escreva o passo a
-> passo detalhado dela (com código) em `docs/sprint4/fases/FN-*.md`, com a skill
-> `superpowers:writing-plans`, **partindo do código como ele está naquele momento** — as
-> fases seguintes dependem da forma que o código ganha nas anteriores. Execução:
+> **Para quem for executar:** leia [`02-design.md`](02-design.md) primeiro. Este plano
+> estabelece as **fases, as tarefas e os critérios de conclusão**. Ao iniciar cada fase,
+> registre o passo a passo detalhado dela (com código) em `docs/sprint4/fases/FN-*.md`, usando
+> a skill `superpowers:writing-plans`, **sempre a partir do código como ele estiver naquele
+> momento** — cada fase depende da forma que o código assumiu nas anteriores. Execução:
 > `superpowers:executing-plans` ou `superpowers:subagent-driven-development`.
 
 **Meta:** fechar os gaps do rubric ([`01-gap-analysis.md`](01-gap-analysis.md)) sem quebrar
@@ -337,5 +337,5 @@ P1 ──► F0 ──► F1 ──► F2 ──► F3 ──► F4 ──► F5
 P2 ──► F7   (paralela às demais; não bloqueia F1–F6)
 ```
 
-F1 vem antes de tudo porque **move todos os arquivos**: fazer feature antes dela geraria
-conflito em cada fase seguinte.
+A F1 precede todas as outras porque **move todos os arquivos**: implementar qualquer feature
+antes dela geraria conflito em cada fase subsequente.

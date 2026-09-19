@@ -1,7 +1,7 @@
 # Gap-analysis — rubric da Sprint 4 × código atual
 
-> Levantado em **19/09/2026** na branch `sprint-4` (base `777a113`), **lendo o código**, não o
-> README. Legenda: 🟢 atende · 🟡 atende em parte · 🔴 não atende.
+> Levantamento feito em **19/09/2026**, na branch `sprint-4` (base `777a113`), com base
+> na leitura do código, e não do README. Legenda: 🟢 atende · 🟡 atende parcialmente · 🔴 não atende.
 
 ## 0. Linha de base (build e testes)
 
@@ -12,16 +12,17 @@
 | Testes de integração | ✅ **93 / 93** passam |
 | **Total** | ✅ **256 / 256** — linha de base oficial da Sprint 4 (medida em 19/09/2026, runtime 8.0.31) |
 
-**Histórico da medição.** A primeira tentativa, com só o runtime **.NET 10** na máquina e
-`DOTNET_ROLL_FORWARD=Major`, deu 26 de 93 na integração: o `Mvc.Testing 8.0.11` rodava
-misturado com o ASP.NET 10 e toda resposta serializada estourava com
-`The PipeWriter 'ResponseBodyPipeWriter' does not implement PipeWriter.UnflushedBytes`.
-Era **artefato do ambiente, não defeito do código**: sumiu ao instalar o runtime 8
-(pré-requisito P1 do [plano](03-plano.md), resolvido com um SDK 8 instalado localmente). O
-SDK 8 não lê `.slnx`, então os testes rodam apontando os dois `.csproj`.
+**Histórico da medição.** Na primeira tentativa, usando apenas o runtime **.NET 10** na
+máquina com `DOTNET_ROLL_FORWARD=Major`, o resultado foi 26 de 93 na integração: o
+`Mvc.Testing 8.0.11` acabava rodando junto com o ASP.NET 10, e toda resposta serializada
+falhava com `The PipeWriter 'ResponseBodyPipeWriter' does not implement
+PipeWriter.UnflushedBytes`. Isso era **um artefato do ambiente, não um defeito do código** —
+o problema desapareceu ao instalar o runtime 8 (pré-requisito P1 do [plano](03-plano.md),
+resolvido com um SDK 8 instalado localmente). Como o SDK 8 não lê `.slnx`, os testes passam
+a rodar apontando diretamente para os dois `.csproj`.
 
-> Correção de um número dito em conversa: "215 testes" veio de um `grep` em `[Fact]`/`[Theory]`.
-> Os casos reais são **256** (163 + 93).
+> Correção de um número mencionado antes em conversa: "215 testes" veio de um
+> `grep` em `[Fact]`/`[Theory]`. O número real de casos é **256** (163 + 93).
 
 ## 1. Arquitetura e código — 30 pts
 
@@ -78,6 +79,6 @@ SDK 8 não lê `.slnx`, então os testes rodam apontando os dois `.csproj`.
 | Monitoramento e testes | 20 | 🟡 F4 + F5 |
 | Documentação | 10 | 🟡 F6 |
 
-**Risco de penalidade:** nenhuma hoje (compila; há testes; há README). O risco é **introduzir**
-uma durante a F1, que mexe em todos os arquivos — por isso cada passo termina com build e
-testes verdes antes de qualquer commit.
+**Risco de penalidade:** nenhum, no momento (o projeto compila, há testes e há README).
+O risco real é **introduzir** algum durante a F1, que altera todos os arquivos — por isso
+cada passo termina com build e testes verdes antes de qualquer commit.
