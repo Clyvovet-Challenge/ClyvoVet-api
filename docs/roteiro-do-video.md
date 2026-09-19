@@ -1,33 +1,34 @@
 # Roteiro do vídeo — API .NET
 
-Este repositório responde por **duas** disciplinas no mesmo vídeo.
+Este repositório atende **duas** disciplinas com o mesmo vídeo.
 
 | Disciplina | Peso do vídeo | O que ele tem de provar |
 |---|---|---|
 | **DevOps Tools & Cloud Computing** | **80 dos 100 pontos** | o deploy acontecendo, seguindo o README |
 | **Advanced Business Development with .NET** | — | a API e o domínio funcionando |
 
-> O vídeo da entrega anterior está em
+> O vídeo da entrega anterior está disponível em
 > `https://www.youtube.com/watch?v=8R_eru120m8`. Ele **não serve** para esta
-> Sprint: a infraestrutura mudou (banco agora compartilhado com a API Java) e
-> *"vídeo incompatível com o que foi entregue"* é a penalidade mais cara da
-> régua. Grave de novo.
+> Sprint: a infraestrutura mudou (o banco agora é compartilhado com a API Java), e
+> *"vídeo incompatível com o que foi entregue"* é a penalidade mais alta da régua.
+> É preciso gravar de novo.
 
 ---
 
 > ## ⚠️ Antes de planejar
 >
-> **O vídeo de DevOps não é demo de API — é o deploy acontecendo.** A régua
-> exige *"deploy seguindo **exatamente** os passos descritos no README.md"*.
-> Grava-se a execução, não o resultado.
+> **O vídeo de DevOps não é uma demo da API — é o deploy sendo executado.** A
+> régua exige *"deploy seguindo **exatamente** os passos descritos no
+> README.md"*. O que se grava é a execução, não o resultado final.
 >
-> **O item 9.3 pede CRUD em duas tabelas relacionadas, provado por `SELECT` no
-> banco.** Aqui o par é natural: **`t_clyvo_produto` ← `t_clyvo_sugestao_produto`**,
-> ligadas por `produto_id`. As duas são o núcleo desta API e ambas têm CRUD
-> completo — `POST`, `GET`, `PUT`, `DELETE` nos dois controllers.
+> **O item 9.3 exige CRUD em duas tabelas relacionadas, comprovado por `SELECT`
+> no banco.** O par natural aqui é **`t_clyvo_produto` ← `t_clyvo_sugestao_produto`**,
+> ligadas por `produto_id`. Ambas são o núcleo desta API e têm CRUD completo —
+> `POST`, `GET`, `PUT`, `DELETE` nos dois controllers.
 >
-> `t_clyvo_tutor` e `t_clyvo_animal` aparecem por FK, mas são **da API Java**: a
-> .NET só lê. Não as use como as "duas tabelas" desta disciplina.
+> `t_clyvo_tutor` e `t_clyvo_animal` aparecem via FK, mas pertencem **à API
+> Java**: a .NET apenas as lê. Não use essas como as "duas tabelas" desta
+> disciplina.
 
 ---
 
@@ -50,17 +51,17 @@ Este repositório responde por **duas** disciplinas no mesmo vídeo.
 
 ### Parte 1 — Provisionar as DUAS APIs (≈5 min)
 
-> **Os scripts `azure/01` a `04` DESTE repositório não entram no vídeo.** Eles
-> são o caminho da entrega **anterior**, e o README deste repo diz isso na
-> primeira dobra: *"este repositório não provisiona mais nada sozinho"*. Na
-> Sprint 3 existe **uma** infraestrutura, e quem a levanta são os scripts
-> `azure/00` a `09` do repositório
+> **Os scripts `azure/01` a `04` DESTE repositório não aparecem no vídeo.** Eles
+> pertencem ao caminho da entrega **anterior**, e o README deste repositório já
+> avisa isso logo no início: *"este repositório não provisiona mais nada
+> sozinho"*. Na Sprint 3 existe **uma única** infraestrutura, levantada pelos
+> scripts `azure/00` a `09` do repositório
 > [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java)
-> — Resource Group, MySQL, o plano compartilhado e **as duas** APIs, esta
-> inclusive.
+> — Resource Group, MySQL, o plano compartilhado e **as duas** APIs, incluindo
+> esta.
 >
-> É por isso que este vídeo mostra as duas subindo: não é escolha de roteiro, é
-> como a infraestrutura foi montada.
+> É por isso que o vídeo mostra as duas subindo: não é uma escolha de roteiro, é
+> como a infraestrutura foi de fato montada.
 
 Grave seguindo os seis passos do README de lá, nesta ordem:
 
@@ -74,27 +75,28 @@ Grave seguindo os seis passos do README de lá, nesta ordem:
 | 5 | Publicar as aplicações | `bash azure/07-deploy-java.sh` **e depois** `bash azure/08-deploy-dotnet.sh` | "a Java primeiro, e a ordem importa — ver abaixo" |
 | 6 | Verificar de ponta a ponta | `bash azure/09-verificar.sh` | "o script bate na saúde das duas e prova que o schema existe" |
 
-> ### ⚠️ A ordem do passo 5 não é preferência — é quebra
+> ### ⚠️ A ordem do passo 5 não é uma preferência — é o que evita quebrar tudo
 >
-> O banco é criado **vazio**, e quem cria o schema é o **Flyway da API Java, no
-> primeiro boot dela**. Aplicar o `schema/script_bd.sql` deste repositório antes
-> disso deixa o banco com as tabelas mas **sem a `flyway_schema_history`** — e o
-> Flyway recusa migrar um schema não vazio que ele não conhece. A API Java
-> simplesmente não sobe, e não há conserto rápido no meio de uma gravação.
+> O banco nasce **vazio**, e é o **Flyway da API Java, no primeiro boot dela**,
+> quem cria o schema. Se o `schema/script_bd.sql` deste repositório for aplicado
+> antes disso, o banco fica com as tabelas mas **sem a `flyway_schema_history`**
+> — e o Flyway se recusa a migrar um schema não vazio que ele não reconhece. A
+> API Java simplesmente não sobe, e não existe conserto rápido no meio de uma
+> gravação.
 >
 > **Java primeiro. Sempre.**
 
-O `09-verificar.sh` fecha o bloco sozinho: ele consulta
-`{java}/actuator/health`, `{dotnet}/health/live` e
-`{dotnet}/health/ready`, e em seguida faz um cadastro real pela API Java —
-que é a prova de que o Flyway criou o schema. Deixe a saída inteira aparecer.
+O `09-verificar.sh` encerra o bloco por conta própria: ele consulta
+`{java}/actuator/health`, `{dotnet}/health/live` e `{dotnet}/health/ready`, e em
+seguida faz um cadastro real pela API Java — a prova de que o Flyway criou o
+schema. Deixe a saída completa aparecer na tela.
 
-Depois, 10 segundos no **portal da Azure** mostrando os recursos, e o
+Em seguida, 10 segundos mostrando os recursos no **portal da Azure**, e o
 `/swagger` desta API aberto na URL publicada.
 
-> **A frase que vale ponto:** *"nem o app nem o banco estão em container — os
-> dois são serviços gerenciados da Azure"*. É exatamente o que a régua penaliza
-> quando é falso, e vale dizer quando é verdade.
+> **A frase que garante o ponto:** *"nem o app nem o banco estão em container —
+> os dois são serviços gerenciados da Azure"*. É exatamente o que a régua
+> penaliza quando é falso, e vale a pena dizer quando é verdadeiro.
 
 ### Parte 2 — CRUD com prova no banco (≈4 min) — *o item 9.3*
 
@@ -108,41 +110,46 @@ Duas janelas lado a lado: Postman/Swagger de um lado, MySQL do outro.
 | 4 | **UPDATE** | `PUT /api/v1/produtos/{id}` mudando o preço | `SELECT` **antes e depois**, na mesma tela |
 | 5 | **DELETE** | `DELETE /api/v1/sugestoes-produto/{id}` | o `SELECT` volta vazio |
 
-> **Narre o que o `SELECT` prova.** *"a linha saiu do banco"* vale mais que
-> *"a API respondeu 204"* — é a diferença que o item 9.3 cobra.
+> **Explique o que o `SELECT` está provando.** Dizer *"a linha saiu do banco"*
+> vale mais do que *"a API respondeu 204"* — essa é a diferença que o item 9.3
+> exige.
 
 ### Parte 3 — Advanced Business Development (≈1,5 min)
 
-O que esta API tem além do CRUD, e que só aparece se você mostrar:
+O que esta API oferece além do CRUD só fica visível se for mostrado:
 
 - **Lembretes** (`/api/v1/lembretes`) — a funcionalidade que o app consome
 - **Saúde preditiva** (`/api/v1/widget-saude-preditiva`) — o parecer por
-  raça/idade. Diga se veio da **OCI** ou das **regras locais**: hoje sai por
-  `origem: REGRAS`, e afirmar IA sem a credencial configurada seria falso
+  raça/idade. Informe se ele veio da **OCI** ou das **regras locais**: hoje sai
+  como `origem: REGRAS`, e afirmar que é IA sem a credencial configurada seria
+  incorreto
 - **Telegram** (`/api/v1/telegram`) — o canal de notificação
-- **Duas camadas de credencial**: `X-Api-Key` prova que a chamada veio do app;
-  `Bearer` prova quem a fez. Mostre um `401` sem a chave e um `200` com ela —
-  dois segundos, e evidencia segurança
+- **Duas camadas de credencial**: `X-Api-Key` comprova que a chamada partiu do
+  app; `Bearer` comprova quem a fez. Mostre um `401` sem a chave e um `200` com
+  ela — leva dois segundos e evidencia a segurança
 
 ---
 
 ## O que **não** fazer
 
-- **Não corte o meio do deploy.** Corte no meio sugere que não funcionou.
-- **Não mostre segredo**: `Api:ApiKey`, senha do MySQL, connection string. Se
-  vazar no vídeo, troque a credencial antes de entregar.
-- **Não rode script de destruição** — nem o `azure/04-destruir-recursos.sh`
-  daqui, nem o `azure/99-destruir.sh` do repo Java — no vídeo nem depois dele.
-  Recurso apagado equivale a entrega em localhost. Só **após a correção**.
-- **Não aplique `schema/script_bd.sql` deste repositório.** Ver o aviso do
-  passo 5: ele impede a API Java de subir.
+- **Não corte no meio do deploy.** Um corte no meio sugere que algo não
+  funcionou.
+- **Não exiba nenhum segredo**: `Api:ApiKey`, senha do MySQL, connection string.
+  Se algum vazar no vídeo, troque a credencial antes de entregar.
+- **Não execute script de destruição** — nem o `azure/04-destruir-recursos.sh`
+  deste repositório, nem o `azure/99-destruir.sh` do repo Java — durante o vídeo
+  ou depois dele. Recurso apagado equivale a uma entrega em localhost. Só
+  **depois da correção**.
+- **Não aplique `schema/script_bd.sql` deste repositório.** Veja o aviso do
+  passo 5: isso impede a API Java de subir.
 - **Não reaproveite o vídeo anterior.** A infraestrutura descrita nele é outra.
 
 ---
 
 ## Depois de subir
 
-1. Link do YouTube no `README.md`, substituindo o da entrega anterior.
-2. PDF com nome completo e RM de todos, link do GitHub e link do YouTube — e
-   nada além disso.
-3. Vídeo **não listado**, nunca privado.
+1. Atualizar o link do YouTube no `README.md`, substituindo o da entrega
+   anterior.
+2. Gerar um PDF com nome completo e RM de todos os integrantes, o link do
+   GitHub e o link do YouTube — sem mais nada além disso.
+3. Publicar o vídeo como **não listado**, nunca como privado.

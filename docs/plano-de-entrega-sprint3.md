@@ -1,19 +1,20 @@
 # Plano de entrega — Sprint 3 (12/09/2026)
 
-> Escrito em **07/09/2026**, faltando 5 dias. Consolida as decisões de uma sessão de
-> entrevista sobre a arquitetura, revisadas contra o **documento oficial do
-> Challenge** (`2TDS Fevereiro - Challenge 2026 - 2º Semestre.pdf`).
+> Redigido em **07/09/2026**, a 5 dias do prazo. Reúne as decisões tomadas numa
+> sessão de entrevista sobre a arquitetura, conferidas contra o **documento oficial
+> do Challenge** (`2TDS Fevereiro - Challenge 2026 - 2º Semestre.pdf`).
 >
-> Complementa a [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md), que
-> lista os achados desta API. Este documento diz **o que entra na entrega e em que
-> ordem** — considerando a régua de avaliação, que a auditoria não considerava.
+> Serve de complemento à [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md),
+> que lista os achados desta API. Aqui está definido **o que entra na entrega e em
+> qual ordem** — levando em conta a régua de avaliação, algo que a auditoria não
+> considerava.
 
 ---
 
 ## 1. A notícia boa: esta API já atende quase toda a régua dela
 
-A disciplina **Advanced Business Development with .NET** pede exatamente o que este
-repositório já tem. Verificado no código, não presumido:
+A disciplina **Advanced Business Development with .NET** exige exatamente o que
+este repositório já entrega. Confirmado no código, não presumido:
 
 | Requisito | Pontos | Estado |
 |---|---:|---|
@@ -25,23 +26,24 @@ repositório já tem. Verificado no código, não presumido:
 | **Organização**: projetos separados por camada, nomenclatura `MetodoTestado_Cenario_ResultadoEsperado`, Fixtures | 15 | ✅ `Tests.Unit` e `Tests.Integration` separados, `IntegrationTestFixture`, nomes como `GetAll_SemApiKey_RetornaUnauthorized` |
 | **README atualizado**: documentar health checks, como monitorar, como rodar `dotnet test`, descrição geral | 10 | ✅ feito — e o buraco era outro, ver §2.1 |
 
-**São ~90 dos 100 pontos já construídos.** O trabalho restante desta disciplina é
-essencialmente o README.
+**Cerca de 90 dos 100 pontos já estão construídos.** O que resta fazer nesta
+disciplina se resume, essencialmente, ao README.
 
-Isso reposiciona este repositório no plano: ele não é o gargalo. O gargalo é o
-deploy, que é entregável da disciplina de **DevOps** e vive no repositório Java.
+Isso muda o posicionamento deste repositório no plano: ele não é o gargalo. O
+gargalo é o deploy, entregável da disciplina de **DevOps**, que vive no repositório
+Java.
 
 ---
 
 ## 2.1 O README: o buraco não era o que a régua descrevia
 
-A régua pede "README atualizado" e vale 10 pontos, e a leitura inicial deste plano
-era que o documento simplesmente não existia. **Existia, com 2.024 linhas**, e já
-cobria os quatro itens cobrados: health checks, como monitorar, `dotnet test` e a
-descrição geral. Os 10 pontos não estavam vazios.
+A régua exige um "README atualizado" e vale 10 pontos; a leitura inicial deste
+plano assumia que o documento simplesmente não existia. **Ele existia, com 2.024
+linhas**, e já cobria os quatro itens exigidos: health checks, como monitorar,
+`dotnet test` e a descrição geral. Os 10 pontos não estavam em branco.
 
-O problema era outro, e maior: **grande parte do README descrevia um projeto que
-não é mais este.** Verificado arquivo por arquivo:
+O problema era diferente, e mais sério: **boa parte do README descrevia um projeto
+que já não é este.** Conferido arquivo por arquivo:
 
 | O que o README afirmava | O que o código faz | Consequência |
 |---|---|---|
@@ -54,44 +56,45 @@ não é mais este.** Verificado arquivo por arquivo:
 | "103 testes (46 + 57)" | 116 (47 + 69) | contagem desatualizada |
 | Passo 5 do deploy: aplicar `schema/script_bd.sql` no banco da nuvem | na Sprint 3 o banco nasce vazio e o Flyway da Java cria o schema | **quebra a API Java**: tabelas sem `flyway_schema_history`, e o Flyway recusa migrar schema não vazio desconhecido |
 
-As duas últimas linhas são as que custam nota, e nenhuma delas é "documentação
-desatualizada" no sentido inofensivo: uma contradiz a arquitetura que a entrega
-declara, e a outra é uma instrução que, seguida, impede a outra API de subir.
+As duas últimas linhas são as que custam pontos, e nenhuma delas é "documentação
+desatualizada" num sentido inofensivo: uma contradiz a arquitetura declarada na
+entrega, e a outra é uma instrução que, se seguida, impede a outra API de subir.
 
-A seção de deploy da entrega anterior **não foi apagada** — ela documenta o vídeo
-daquela sprint, e apagá-la seria reescrever o registro de outra pessoa. Ganhou um
-aviso no topo dizendo que o procedimento vigente está no repositório da API Java, e
-um aviso no passo 5 especificamente.
+A seção de deploy da entrega anterior **não foi removida** — ela registra o vídeo
+daquela sprint, e apagá-la equivaleria a reescrever o histórico de outra pessoa. Ela
+recebeu um aviso no topo informando que o procedimento vigente está no repositório
+da API Java, além de um aviso específico no passo 5.
 
 ---
 
 ## 2. Um ponto de atenção que a auditoria criou
 
-A auditoria recomendou **remover o sink de arquivo do Serilog** (§2.4), e a
-recomendação foi aplicada. O motivo é sólido: no App Service o caminho é efêmero e
-por instância, cada réplica escreve o seu próprio arquivo e o conteúdo some no
-restart.
+A auditoria recomendou **remover o sink de arquivo do Serilog** (§2.4), e essa
+recomendação foi aplicada. A justificativa é sólida: no App Service o caminho é
+efêmero e específico de cada instância — cada réplica grava seu próprio arquivo, e
+o conteúdo desaparece a cada restart.
 
-Mas o requisito oficial (p. 7) diz, textualmente: *"Logging Estruturado — ...
+Só que o requisito oficial (p. 7) afirma, textualmente: *"Logging Estruturado — ...
 incluindo níveis de log (Information, Warning, Error), correlação de requisições e
 saída para **console/arquivo**"*.
 
-A leitura natural é "console **ou** arquivo", e o console atende. Mas são 10 pontos
-apostados numa leitura.
+A leitura mais natural é "console **ou** arquivo", e o console já atende. Mas são 10
+pontos apostados nessa interpretação.
 
-**Resolução recomendada:** trazer o sink de arquivo de volta **condicionado a
-desenvolvimento**. Assim ele existe no código — visível para quem corrige, e
-demonstrável rodando localmente — e não roda no App Service, onde não serviria para
-nada. Atende os dois lados sem escolher entre eles.
+**Resolução recomendada:** reintroduzir o sink de arquivo, porém **condicionado ao
+ambiente de desenvolvimento**. Assim ele passa a existir no código — visível para
+quem revisa, e demonstrável em execução local — sem rodar no App Service, onde não
+teria utilidade. Atende os dois lados, sem forçar uma escolha entre eles.
 
 ---
 
 ## 3. O papel desta API no deploy
 
-A disciplina de DevOps exige o deploy de **uma** das duas APIs, e a escolhida é a
-Java. Mas as duas vão para a nuvem, porque o app móvel precisa das duas para
-funcionar de verdade — e manter uma local e outra pública cria configuração dupla
-de URL no app, que é o tipo de coisa que falha durante a gravação.
+A disciplina de DevOps exige o deploy de **apenas uma** das duas APIs, e a
+escolhida foi a Java. Ainda assim, as duas sobem para a nuvem, porque o app móvel
+depende de ambas para funcionar de verdade — manter uma local e outra pública
+criaria configuração dupla de URL no app, exatamente o tipo de coisa que falha
+durante a gravação.
 
 | Recurso | Valor |
 |---|---|
@@ -102,58 +105,62 @@ de URL no app, que é o tipo de coisa que falha durante a gravação.
 | Banco | MySQL Flexible Server `Standard_B1ms`, provisionado **vazio** |
 | Instâncias | **uma. Autoscale DESLIGADO** — ver §5 |
 
-O schema continua sendo criado pelo **Flyway do repositório Java**, da V1 à V9, no
-primeiro boot dele. Esta API não tem migrations, por decisão registrada no ADR-002:
-migrations EF aqui seriam uma terceira fonte de verdade para o mesmo banco.
+O schema segue sendo criado pelo **Flyway do repositório Java**, da V1 à V9, logo no
+primeiro boot dele. Esta API não possui migrations, conforme decisão registrada no
+ADR-002: migrations EF aqui criariam uma terceira fonte de verdade para o mesmo
+banco.
 
-**Consequência de ordem no deploy:** a API Java precisa subir **antes** desta, ou as
-seis tabelas `t_clyvo_*` que esta consome ainda não existem. No ambiente local isso
-está resolvido por `depends_on: service_healthy`; na Azure, é ordem de execução do
-script.
+**Consequência de ordem no deploy:** a API Java precisa subir **antes** desta,
+senão as seis tabelas `t_clyvo_*` que ela consome ainda não existiriam. No
+ambiente local isso é resolvido via `depends_on: service_healthy`; na Azure, depende
+da ordem de execução do script.
 
 ---
 
 ## 4. O que este repositório precisa entregar
 
-Em ordem.
+Em ordem de prioridade.
 
-1. **README atualizado** — os 10 pontos que faltam da disciplina: endpoints de
-   health check, como monitorar, `dotnet test`, e a descrição geral com as
-   funcionalidades novas.
-2. **Sink de arquivo condicionado a desenvolvimento** (§2).
+1. **README atualizado** — os 10 pontos que faltam nesta disciplina: endpoints de
+   health check, como monitorar, `dotnet test`, e a descrição geral com as novas
+   funcionalidades.
+2. **Sink de arquivo condicionado ao ambiente de desenvolvimento** (§2).
 3. **Pacotes vulneráveis** — `Microsoft.OpenApi` 2.4.1 e `Microsoft.Bcl.Memory`
-   9.0.0, ambos de gravidade alta (achado §2.10 da auditoria). Confirmar antes que
-   o `Swashbuckle.AspNetCore` 10.1.7 aceita a versão nova do primeiro.
+   9.0.0, ambos classificados como gravidade alta (achado §2.10 da auditoria).
+   Confirmar antes se o `Swashbuckle.AspNetCore` 10.1.7 é compatível com a versão
+   nova do primeiro pacote.
 4. **Varredura de segredo exposto no código-fonte** — a régua de DevOps desconta
    **−20** por *"deixar dados sensíveis expostos (usuário, senha e tokens) no
-   código fonte"*, e o `appsettings.json` tem placeholders que precisam ser
-   conferidos um por um.
+   código fonte"*, e os placeholders do `appsettings.json` precisam ser conferidos
+   um a um.
 5. **`Castrado` declarado como `TINYINT(1)`** (achado §2.11) — a coluna real é
-   `INT`. Não quebra, mas documenta o tipo errado. Alinhar com quem escreveu.
-6. ✅ **JWT compartilhado com a API Java** (§2.1 da auditoria — era o furo mais
-   grave). Feito **antes** do deploy, e não depois, porque saiu inteiramente
-   desligado: as três camadas de servidor existem, e o comportamento com as flags
-   em `false` é byte a byte o de antes — provado pelos 69 testes de integração
-   antigos, que não mandam `Authorization` e seguem passando sem alteração.
+   `INT`. Isso não quebra nada, mas documenta o tipo errado; vale alinhar com quem
+   escreveu.
+6. ✅ **JWT compartilhado com a API Java** (§2.1 da auditoria — era a falha mais
+   grave). Implementado **antes** do deploy, e não depois, justamente porque foi
+   entregue totalmente desligado: as três camadas do servidor já existem, e o
+   comportamento com as flags em `false` é idêntico, byte a byte, ao de antes —
+   comprovado pelos 69 testes de integração antigos, que não enviam `Authorization`
+   e continuam passando sem alteração.
 
    Cobre `lembretes`, `sugestoes-produto` e `widget-saude-preditiva`. Os dois
-   interruptores são app settings, então reverter na Azure é um comando, sem
-   redeploy — **na ordem `Api__EscopoPorTutor=false` primeiro**, e só depois o
-   segredo; o inverso deixa a API exigindo identidade sem conseguir lê-la, que é o
+   interruptores são app settings, então revertê-los na Azure é um único comando,
+   sem redeploy — **primeiro `Api__EscopoPorTutor=false`**, e só depois o segredo;
+   fazer na ordem inversa deixaria a API exigindo identidade sem conseguir lê-la, o
    pior estado possível.
 
-   **Falta o lado do app**, e essa parte não é aditiva: o cliente `.NET` dele não
-   tem refresh, então mandar o `Bearer` sem mais nada faria as chamadas falharem 15
-   minutos após o login — e o 401 é traduzido para "Serviço de lembretes
-   indisponível" em vez de renovar a sessão.
-7. **Fora de escopo nesta sprint:** pipeline de CI. O documento oficial coloca
+   **Ainda falta o lado do app**, e essa parte não é meramente aditiva: o cliente
+   `.NET` do app não tem refresh, então enviar o `Bearer` sozinho faria as chamadas
+   falharem 15 minutos após o login — e o 401 apareceria como "Serviço de
+   lembretes indisponível" em vez de renovar a sessão.
+7. **Fora do escopo desta sprint:** pipeline de CI. O documento oficial situa
    CI/CD como requisito da **Sprint 4**, não desta.
 
 ---
 
 ## 5. Instância única, autoscale desligado
 
-Dois componentes deste repositório impedem *scale-out*, e são os dois
+Dois componentes deste repositório impedem o *scale-out*: os dois
 `BackgroundService` registrados em `Program.cs`:
 
 | Serviço | O que acontece com 3 réplicas |
@@ -161,34 +168,37 @@ Dois componentes deste repositório impedem *scale-out*, e são os dois
 | `LembreteNotificationService` | o tutor recebe a mesma notificação **3 vezes** |
 | `TelegramLinkListenerService` | três `getUpdates` concorrentes; o Telegram entrega cada update a um consumidor e o comportamento fica não determinístico |
 
-Com uma instância, nenhum dos dois é problema — e é a configuração certa para a
-entrega. A correção definitiva é eleição de líder, fila com consumidor único, ou
-mover para Azure Function com timer. Nenhuma delas nesta sprint.
+Com uma única instância, nenhum dos dois representa problema — e essa é a
+configuração correta para a entrega. A correção definitiva passaria por eleição de
+líder, fila com consumidor único, ou migração para Azure Function com timer.
+Nenhuma delas está prevista para esta sprint.
 
-O registro é explícito porque o sintoma de errar aqui **não aparece em log de
-erro**: aparece como tutor recebendo notificação triplicada.
+Este registro é deliberadamente explícito porque o sintoma de um erro aqui **não
+aparece em log de erro**: aparece como o tutor recebendo a mesma notificação três
+vezes.
 
 ---
 
 ## 6. O que **não** fazer
 
-- **Não** criar migrations EF nesta API. Reintroduziria a terceira fonte de verdade
-  que a V8 do repositório Java eliminou. Antes dela, as tabelas `t_clyvo_*` nasciam
-  de SQL avulso e **não existiriam na nuvem**, porque no App Service só o Flyway
-  roda.
-- **Não** voltar a mapear `t_clyvo_animal` / `t_clyvo_tutor` próprias. Era isso que
-  fazia o `animalId` devolvido pela Java não existir para esta API.
+- **Não** criar migrations EF nesta API. Isso reintroduziria a terceira fonte de
+  verdade que a V8 do repositório Java eliminou. Antes dela, as tabelas `t_clyvo_*`
+  nasciam de SQL avulso e **não existiriam na nuvem**, já que no App Service só o
+  Flyway é executado.
+- **Não** voltar a mapear `t_clyvo_animal` / `t_clyvo_tutor` como entidades
+  próprias. Era exatamente isso que fazia o `animalId` devolvido pela Java deixar
+  de existir para esta API.
 - **Não** passar a escrever em `t_clyvo_animal` ou `t_clyvo_tutor`. É a única
-  mudança capaz de introduzir conflito de escrita num banco que hoje não tem
-  nenhum, e derrubaria o ADR-001.
-- **Não** uniformizar o tipo booleano entre as duas partes do schema. `TINYINT` nas
-  tabelas `t_clyvo_*` de conteúdo desta API, porque o Pomelo mapeia `bool` para
-  `tinyint(1)`; **`INT`** nas colunas booleanas que a API Java escreve, porque o
+  mudança capaz de gerar conflito de escrita num banco que hoje não tem nenhum, e
+  derrubaria o ADR-001.
+- **Não** uniformizar o tipo booleano entre as duas partes do schema: `TINYINT` nas
+  tabelas `t_clyvo_*` de conteúdo desta API, já que o Pomelo mapeia `bool` para
+  `tinyint(1)`; **`INT`** nas colunas booleanas escritas pela API Java, pois o
   `NumericBooleanConverter` entrega `Integer` ao JDBC e o `ddl-auto=validate`
-  reprova `TINYINT` contra `INTEGER`. Cada tabela segue o ORM que a usa.
+  rejeita `TINYINT` contra `INTEGER`. Cada tabela acompanha o ORM que a usa.
 - **Não** containerizar o app nem o banco. Na Opção 2 escolhida pela disciplina de
-  DevOps, cada um vale **−40**.
-- **Não** montar pipeline de CI/CD agora. É Sprint 4.
+  DevOps, cada um custa **−40**.
+- **Não** montar o pipeline de CI/CD agora. Isso é assunto da Sprint 4.
 
 ---
 
@@ -199,6 +209,6 @@ erro**: aparece como tutor recebendo notificação triplicada.
 | `clyvovet-backend-java` | `docs/12-plano-de-entrega-sprint3.md` — o plano completo, com a régua de DevOps, os scripts `az` e o cronograma |
 | `2tdspw-challenge-clyvovet-challenge` | `spec/12-auditoria-de-arquitetura.md` — o recorte do app móvel |
 
-O cronograma vale para os três repositórios, e a data que decide tudo é **09/09**:
-se o deploy não estiver de pé e verificado até lá, não sobra folga para gravar o
-vídeo de DevOps, que vale 80 dos 100 pontos daquela disciplina.
+O cronograma se aplica aos três repositórios, e a data decisiva é **09/09**: se o
+deploy não estiver funcionando e verificado até então, não sobrará tempo para
+gravar o vídeo de DevOps, que vale 80 dos 100 pontos daquela disciplina.

@@ -1,12 +1,12 @@
 # Auditoria de arquitetura — o que esta API precisa corrigir
 
-> Levantado em **06/09/2026** sobre o código, `Program.cs`, configurations do EF,
-> Dockerfile e scripts `azure/` — não sobre o README. Relatório completo dos dois
-> backends, com comparação de arquiteturas e matriz de riscos:
+> Feito em **06/09/2026**, com base no código, `Program.cs`, configurações do EF,
+> Dockerfile e scripts `azure/` — não no README. O relatório completo dos dois
+> backends, com a comparação de arquiteturas e a matriz de riscos, está em:
 > [claude.ai/code/artifact/79da68b6-2d7d-41b1-82c2-aac5fc68652a](https://claude.ai/code/artifact/79da68b6-2d7d-41b1-82c2-aac5fc68652a)
 >
-> Este arquivo é o recorte do que **esta API** é dona. O recorte da API Java está
-> em `clyvovet-backend-java/docs/11-auditoria-de-arquitetura.md`.
+> Este arquivo cobre apenas o que é de responsabilidade **desta API**. O recorte da
+> API Java está em `clyvovet-backend-java/docs/11-auditoria-de-arquitetura.md`.
 
 ---
 
@@ -14,7 +14,7 @@
 
 **Banco compartilhado com a API Java, que é a dona do schema.**
 
-A decisão se apoia num fato do código, não em preferência:
+Essa decisão se sustenta num fato verificável do código, não numa preferência:
 
 > **Cada tabela tem exatamente um escritor.**
 > Esta API lê `animal` e `tutor` e nunca escreve nelas — `AnimalRepository.cs`
@@ -22,10 +22,10 @@ A decisão se apoia num fato do código, não em preferência:
 > `DbSet<Animal>` / `DbSet<Tutor>` em todo o projeto.
 
 Por isso o risco clássico de banco compartilhado — dois serviços disputando a
-mesma linha — não se aplica aqui. As alternativas (consumir a Java por HTTP, ou
-bancos separados com mensageria) foram avaliadas e descartadas: exigiriam cliente
-HTTP com retry e circuit breaker, ou replicação de dados que esta API não é dona,
-e nenhuma das duas coisas existe hoje.
+mesma linha — simplesmente não existe aqui. As alternativas (consumir a Java via
+HTTP, ou bancos separados com mensageria) foram avaliadas e rejeitadas: exigiriam
+um cliente HTTP com retry e circuit breaker, ou a replicação de dados que esta API
+não possui, e nenhuma das duas coisas está implementada hoje.
 
 ### Divisão de propriedade
 
@@ -36,14 +36,15 @@ e nenhuma das duas coisas existe hoje.
 | **Não toca** | `usuario`, `autorizacao_acesso`, `acesso_historico` e o resto do núcleo clínico |
 | **Define o schema** | A API Java, via Flyway. Desde a `V8__tabelas_dotnet.sql`, isso inclui as seis tabelas acima |
 
-**O que isso muda na prática:** as tabelas desta API continuam sendo dela — o que
-mudou é onde a **definição** vive. O provisionamento passa a ter um caminho só.
+**O que isso muda na prática:** as tabelas continuam pertencendo a esta API — o
+que mudou foi apenas onde a **definição** delas vive. O provisionamento fica com
+um único caminho.
 
 ---
 
 ## 2. Achados desta API
 
-Ordenados por gravidade. Cada um cita o arquivo que justifica a conclusão.
+Listados por ordem de gravidade. Cada achado cita o arquivo que sustenta a conclusão.
 
 ### 2.1 ✅ Não havia autorização por usuário — CORRIGIDO, e desligável
 
@@ -180,11 +181,11 @@ decidido antes do deploy da Java.
 | `LembreteNotificationService` | o tutor recebe a mesma notificação **3 vezes** |
 | `TelegramLinkListenerService` | três `getUpdates` concorrentes; a API do Telegram entrega cada update a um consumidor e o comportamento fica não determinístico |
 
-**Correção:** eleição de líder, ou mover para uma fila com consumidor único, ou
-extrair para um Azure Function com timer.
+**Correção:** eleição de líder, migração para uma fila com consumidor único, ou
+extração para um Azure Function com timer.
 
 **Para a entrega:** manter o App Service em **instância única** elimina o problema
-inteiro. É a decisão certa para o prazo.
+por completo — é a decisão certa dado o prazo.
 
 ### 2.4 ✅ Serilog grava em disco local — CORRIGIDO
 
@@ -194,8 +195,9 @@ No App Service esse caminho é efêmero e por instância: cada réplica escreve 
 próprio arquivo, ninguém os agrega, e o conteúdo some no próximo restart. O sink
 de console já existe e é o que o App Service captura.
 
-**Correção:** remover o sink de arquivo, ou condicioná-lo a desenvolvimento. Uma
-linha. É a única dependência de armazenamento local em qualquer das duas APIs.
+**Correção:** remover o sink de arquivo, ou condicioná-lo ao ambiente de
+desenvolvimento. Basta uma linha, e é a única dependência de armazenamento local
+em qualquer das duas APIs.
 
 ### 2.5 ✅ Connection pool no padrão do driver — CORRIGIDO
 
@@ -206,20 +208,21 @@ A API Java opera com o padrão do HikariCP, **10**. Esta API pode abrir **dez ve
 mais conexões** — sendo a que tem menos endpoints (24 contra 74) e menos tráfego.
 Não é dimensionamento, é o padrão que ninguém tocou.
 
-**Correção:** `Maximum Pool Size=15` na connection string, e o equivalente do lado
-Java. Confirmar o teto real com `SHOW VARIABLES LIKE 'max_connections'` antes de
-escalar — o servidor é `Standard_B1ms`, tier Burstable.
+**Correção:** definir `Maximum Pool Size=15` na connection string, com o
+equivalente do lado Java. Antes de escalar, confirmar o teto real com
+`SHOW VARIABLES LIKE 'max_connections'` — o servidor roda em `Standard_B1ms`,
+tier Burstable.
 
 ### 2.6 ✅ CORS não configurado — CORRIGIDO
 
 Não há `AddCors` nem `UseCors` em `Program.cs`. A API Java configura por
 `CLYVOVET_CORS_ORIGENS`.
 
-Não afeta o app nativo, que não faz CORS. Afeta o Expo web, se ele for
-demonstrado.
+O app nativo não é afetado, já que não faz CORS. Já o Expo web seria afetado, caso
+venha a ser demonstrado.
 
-**Correção:** espelhar o desenho da Java — origens por variável de ambiente, nunca
-`AllowAnyOrigin` junto de credenciais.
+**Correção:** replicar o desenho já usado na Java — origens definidas por variável
+de ambiente, e nunca `AllowAnyOrigin` combinado com credenciais.
 
 ### 2.7 ✅ `DbSet` mortos apontando para tabelas inexistentes — CORRIGIDO
 
@@ -227,12 +230,12 @@ demonstrado.
 `VeterinarioConfiguration.cs` e `ConsultaConfiguration.cs` para
 `t_clyvo_veterinario` e `t_clyvo_consulta` — tabelas que **nenhum script cria**.
 
-São inertes: nenhum arquivo em `Repositories/`, `Services/` ou `Controllers/` os
-referencia, e sem migrations o EF nunca valida o modelo contra o banco. Só mordem
-se alguém rodar `dotnet ef`.
+Eles são inertes: nenhum arquivo em `Repositories/`, `Services/` ou `Controllers/`
+os referencia, e como não há migrations, o EF nunca valida o modelo contra o
+banco. Só causariam problema se alguém rodasse `dotnet ef`.
 
-**Correção:** remover as entidades, as configurations e os `DbSet`. Faxina, não
-bug.
+**Correção:** remover as entidades, as configurations e os `DbSet` correspondentes.
+É faxina, não correção de bug.
 
 ### 2.8 🟢 Sem pipeline de CI
 
@@ -240,16 +243,17 @@ Não há `.github/workflows`, `azure-pipelines.yml` nem equivalente. Os testes d
 integração — que valem 50 pontos na disciplina — **nunca rodam automaticamente**.
 O deploy é manual via `azure/03-deploy.sh`.
 
-**Correção:** workflow que roda `dotnet test` em cada push. O `IntegrationTestFixture`
-usa EF InMemory e semeia sozinho, então não precisa de banco no CI.
+**Correção:** um workflow que rode `dotnet test` a cada push. Como o
+`IntegrationTestFixture` usa EF InMemory e semeia os próprios dados, nenhum banco
+é necessário no CI.
 
 ### 2.9 🟢 Comparação de chave não é de tempo constante
 
 `ApiKeyFilterAttribute.cs:17` usa `!=` entre strings. Tecnicamente suscetível a
 timing attack.
 
-Severidade baixa e cai para irrelevante depois de §2.1, porque a chave deixa de
-ser o único mecanismo. Registrado por completude.
+A severidade é baixa, e se torna praticamente irrelevante após o §2.1, já que a
+chave deixa de ser o único mecanismo de proteção. Registrado apenas por completude.
 
 ---
 
@@ -315,28 +319,30 @@ mexer.
 
 ### Pendência que ficou desta rodada
 
-O `schema/script_bd.sql` continua sendo **cópia manual** do schema da API Java, e
-já defasou duas vezes. A correção durável é gerar um `script_bd_mysql.sql` a
-partir de `db/migration/mysql/` — o `scripts/gerar-script-bd.py` do repositório
-Java já faz isso para o Oracle e precisaria de uma variante.
+O `schema/script_bd.sql` segue sendo uma **cópia manual** do schema da API Java, e
+já ficou desatualizado duas vezes. A correção duradoura seria gerar um
+`script_bd_mysql.sql` a partir de `db/migration/mysql/` — o
+`scripts/gerar-script-bd.py` do repositório Java já faz algo equivalente para o
+Oracle e precisaria de uma variante própria.
 
-O que impede a substituição direta hoje: este arquivo tem um bloco
-`DROP TABLE IF EXISTS` no topo que o torna re-executável, e um script gerado por
-concatenação de migrations não tem isso. O gerador precisaria emitir o preâmbulo
-de limpeza para o arquivo servir ao mesmo propósito no vídeo de entrega.
+O que impede a substituição direta hoje é que este arquivo traz um bloco
+`DROP TABLE IF EXISTS` no topo, o que o torna re-executável, enquanto um script
+gerado por concatenação de migrations não tem isso. O gerador precisaria emitir
+esse preâmbulo de limpeza para que o arquivo cumprisse o mesmo papel no vídeo de
+entrega.
 
 ---
 
 ## 4. Efeito colateral que precisa de dono
 
 `t_clyvo_lembrete.animal_id` e `t_clyvo_sugestao_produto.animal_id` referenciam
-`animal(id)` **sem** `ON DELETE CASCADE` — decisão deliberada da V8: apagar um
-animal e apagar em silêncio o que esta API gravou sobre ele seria decisão dela,
-não da migration.
+`animal(id)` **sem** `ON DELETE CASCADE` — uma decisão deliberada tomada na V8:
+apagar um animal e, em silêncio, apagar também o que esta API registrou sobre ele
+deveria ser decisão desta API, não algo definido pela migration.
 
-Consequência: `DELETE /animais/{id}` na API Java falha com erro de integridade
-enquanto existir lembrete daquele animal, e a Java **não sabe dizer** o que travou,
-porque desconhece a tabela.
+Consequência: `DELETE /animais/{id}` na API Java falha por erro de integridade
+enquanto houver lembrete associado àquele animal, e a Java **não consegue
+explicar** o que travou, já que desconhece essa tabela.
 
 **Precisa de decisão entre as duas equipes:**
 
@@ -361,19 +367,22 @@ porque desconhece a tabela.
 | 9 | JWT compartilhado (§2.1) | ✅ feito nas três camadas de servidor, todas desligáveis por app setting. Falta só o app mandar o `Bearer` — ver §2.1 |
 | 10 | Tempo constante na chave (§2.9) | ✅ feito — `CryptographicOperations.FixedTimeEquals`, mais falha fechada quando `Api__ApiKey` não está configurada. Coberto por `ApiKeyFilterAttributeTests` |
 
-**O que sobrou é de dois tipos.** O 6 se resolve provisionando certo. O 9 é o único
-que exige coordenação entre os três repositórios, e o caminho natural é fazê-lo
-junto com o deploy, quando o Key Vault existir para guardar o segredo compartilhado.
+**O que restou se divide em dois tipos.** O item 6 se resolve com o provisionamento
+correto. O item 9 é o único que exige coordenação entre os três repositórios, e o
+caminho natural é resolvê-lo junto com o deploy, quando o Key Vault já existir para
+guardar o segredo compartilhado.
 
 ---
 
 ## 6. O que **não** fazer
 
-Caminhos plausíveis que a auditoria descartou com base no código:
+Caminhos plausíveis que a auditoria rejeitou com base no código:
 
-- **Não** criar migrations EF nesta API. Introduziria uma terceira fonte de
-  verdade para o mesmo schema — o problema que a V8 acabou de resolver.
-- **Não** voltar a mapear `t_clyvo_animal` / `t_clyvo_tutor` próprias. Era isso que
-  fazia o `animalId` devolvido pela Java não existir para esta API.
+- **Não** criar migrations EF nesta API. Isso reintroduziria uma terceira fonte
+  de verdade para o mesmo schema — exatamente o problema que a V8 acabou de
+  resolver.
+- **Não** voltar a mapear `t_clyvo_animal` / `t_clyvo_tutor` como entidades
+  próprias. Era isso que fazia o `animalId` devolvido pela Java deixar de existir
+  para esta API.
 - **Não** passar a escrever em `animal` ou `tutor`. É a única mudança capaz de
-  introduzir conflito de escrita num banco que hoje não tem nenhum.
+  gerar conflito de escrita num banco que hoje não tem nenhum.

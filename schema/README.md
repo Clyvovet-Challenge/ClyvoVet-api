@@ -9,9 +9,9 @@
   Sugestão de Produto funcionem via API
 
 > **Por que `t_clyvo_tutor` é necessária?**  
-> O `AnimalRepository` usa `.Include(a => a.Tutor)`, o que gera um JOIN com
-> `t_clyvo_tutor`. Sem essa tabela, qualquer validação de `animalId`
-> na API termina em `ORA-00942`, com HTTP 500 de resposta.
+> O `AnimalRepository` faz `.Include(a => a.Tutor)`, o que resulta num JOIN com
+> `t_clyvo_tutor`. Na ausência dessa tabela, qualquer validação de `animalId`
+> na API acaba em `ORA-00942`, retornando HTTP 500.
 
 ---
 
@@ -49,13 +49,13 @@ Todas as tabelas usam o prefixo `t_clyvo_`:
 | **Bloco 1** | `t_clyvo_produto`, `t_clyvo_evento_pet` | Sempre — sem FK Java |
 | **Bloco 2** | `t_clyvo_lembrete`, `t_clyvo_sugestao_produto` | Só se existir um `animal_id` real em `t_clyvo_animal` |
 
-Não existindo a tabela Java, o Bloco 2 termina com um aviso, mas **os dados do Bloco 1 permanecem intactos**.
+Se a tabela Java não existir, o Bloco 2 encerra com um aviso, mas **os dados do Bloco 1 seguem intactos**.
 
 ---
 
 ## Ordem de execução
 
-> Abra cada arquivo no Oracle SQL Developer e pressione **F5 (Run Script)** para rodar
+> Abra cada arquivo no Oracle SQL Developer e execute com **F5 (Run Script)**
 
 ### Deploy completo (primeira vez)
 
@@ -82,7 +82,7 @@ dotnet run
 
 ### Via Visual Studio / Rider
 
-Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
+Abra `ClyvoVet-api.slnx` e use **F5** (com debug) ou **Ctrl+F5** (sem debug).
 
 ---
 
@@ -148,7 +148,7 @@ Abra `ClyvoVet-api.slnx` → **F5** (debug) ou **Ctrl+F5** (sem debug).
 
 ## Fluxo de teste sugerido
 
-> Siga esta sequência para validar as dependências, passo a passo.
+> Siga esta ordem, passo a passo, para validar as dependências.
 
 **1. Listar produtos (sem dependência Java)**
 ```
