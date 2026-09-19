@@ -17,17 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="ClyvoVet.Api.Tests.Unit\**" />
-    <Content Remove="ClyvoVet.Api.Tests.Unit\**" />
-    <EmbeddedResource Remove="ClyvoVet.Api.Tests.Unit\**" />
-    <None Remove="ClyvoVet.Api.Tests.Unit\**" />
-    <Compile Remove="ClyvoVet.Api.Tests.Integration\**" />
-    <Content Remove="ClyvoVet.Api.Tests.Integration\**" />
-    <EmbeddedResource Remove="ClyvoVet.Api.Tests.Integration\**" />
-    <None Remove="ClyvoVet.Api.Tests.Integration\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

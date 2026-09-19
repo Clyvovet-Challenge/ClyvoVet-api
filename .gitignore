@@ -371,7 +371,7 @@ MigrationBackup/
 .ionide/
 
 # Serilog file sink output
-ClyvoVet.Api/Logs/
+src/ClyvoVet.Api/Logs/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

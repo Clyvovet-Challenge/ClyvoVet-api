@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ClyvoVet.Api.csproj" />
+    <ProjectReference Include="..\..\src\ClyvoVet.Api\ClyvoVet.Api.csproj" />
   </ItemGroup>
 
 </Project>
