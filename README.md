@@ -30,7 +30,7 @@
 > `flyway_schema_history` — e o Flyway recusa migrar um schema não vazio que ele
 > não conhece, então a API Java simplesmente não sobe. Ver o passo 5 abaixo.
 
-> Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
+> Esta seção documenta a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, publicada aqui num **Azure App Service** e conectada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica etc.). O passo a passo abaixo reproduz fielmente o que foi feito no vídeo de entrega.
 
 > 📋 **Roteiro da gravação desta Sprint:** [`docs/roteiro-do-video.md`](docs/roteiro-do-video.md).
 
@@ -48,14 +48,14 @@
 
 ### Descrição da Solução
 
-Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
+Construída em ASP.NET Core 8, a ClyvoVet API cuida do catálogo de produtos/serviços veterinários e também das sugestões de produto feitas para cada animal — duas tabelas conectadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Nesta entrega, ela roda num **Azure App Service** (Linux, sem container) e persiste os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco usado pela API Java do time (Tutor, Animal, Clínica, Veterinário etc.) —, permitindo que o app Mobile do grupo consuma as duas APIs sobre a mesma base de dados.
 
 ### Benefícios para o Negócio
 
-- **Catálogo centralizado**: preço, categoria e espécie indicada de cada produto/serviço da clínica passam a viver num só lugar, no lugar de planilhas soltas ou anotações em papel.
-- **Sugestão de produto rastreável**: toda sugestão feita a um tutor guarda justificativa e data, o que dá à clínica um histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
-- **Integração real entre os sistemas do time**: .NET e Java apontam para o mesmo banco, então um animal já cadastrado na API Java pode receber lembretes e sugestões de produto pela API .NET sem precisar de um segundo cadastro.
-- **Escalabilidade sem gerenciar servidor**: por rodar em PaaS (App Service + banco gerenciado), a clínica dispensa infraestrutura própria — disponibilidade, backup e patch do banco ficam por conta da Azure.
+- **Catálogo centralizado**: preço, categoria e espécie indicada de cada produto/serviço da clínica passam a ficar num único lugar, substituindo planilhas soltas ou anotações em papel.
+- **Sugestão de produto rastreável**: cada sugestão feita a um tutor guarda justificativa e data, dando à clínica um histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
+- **Integração real entre os sistemas do time**: como .NET e Java apontam para o mesmo banco, um animal já cadastrado na API Java pode receber lembretes e sugestões de produto pela API .NET sem exigir um segundo cadastro.
+- **Escalabilidade sem gerenciar servidor**: rodando em PaaS (App Service + banco gerenciado), a clínica dispensa infraestrutura própria — disponibilidade, backup e patch do banco ficam a cargo da Azure.
 
 ### Banco de Dados em Nuvem
 
@@ -65,7 +65,7 @@ Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/s
 
 ### Arquitetura escolhida: Opção 2 — App Service + Banco PaaS
 
-Nenhuma parte desta entrega roda em container — nem o app, nem o banco: tudo fica em serviços gerenciados da Azure, provisionados via **Azure CLI**:
+Nenhuma parte desta entrega roda em container — nem o app nem o banco: tudo é feito em serviços gerenciados da Azure, provisionados via **Azure CLI**:
 
 | Recurso | Serviço Azure | Criado por |
 |---|---|---|
