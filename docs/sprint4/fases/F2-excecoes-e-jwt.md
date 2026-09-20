@@ -1,21 +1,23 @@
 # F2 — Exceções globais e JWT: plano de implementação
 
-> **Para quem for executar:** use `superpowers:executing-plans` (cada commit precisa do "sim"
-> do dono do repositório, algo que um subagente não tem como pedir sozinho). As caixas `- [ ]`
-> marcam o andamento. Antes de começar, leia [`../02-design.md`](../02-design.md) §6.1–§6.2 e
+> **Para quem for executar:** use `superpowers:executing-plans` (a razão é que cada commit
+> exige o "sim" do dono do repositório — algo que um subagente não consegue solicitar por
+> conta própria). O andamento dos passos é marcado pelas caixas `- [ ]`. Antes de começar,
+> leia [`../02-design.md`](../02-design.md) §6.1–§6.2 e
 > [`../decisoes/ADR-003-jwt-bearer-e-authorize.md`](../decisoes/ADR-003-jwt-bearer-e-authorize.md).
-> **Em qualquer divergência entre este plano e o design, vale o que está aqui** — a seção
-> "Achados" lista o que o design não previa, descoberto lendo o código (commit `1285c34`) e
-> rodando um protótipo descartável em 20/09/2026.
+> **Se este plano divergir do design em algum ponto, prevalece o que está escrito aqui** — a
+> seção "Achados" reúne o que o design não antecipava, apurado na leitura do código (commit
+> `1285c34`) e num protótipo descartável rodado em 20/09/2026.
 
-**Meta:** trocar o middleware "inerte" por autenticação/autorização padrão do ASP.NET
-(`AddJwtBearer` + `[Authorize]`) e o lambda do `UseExceptionHandler` por um
-`IExceptionHandler` com `ProblemDetails` — **sem quebrar o contrato com o app**.
+**Meta:** substituir o middleware "inerte" pela autenticação/autorização padrão do ASP.NET
+(`AddJwtBearer` + `[Authorize]`), além de trocar o lambda do `UseExceptionHandler` por um
+`IExceptionHandler` que devolve `ProblemDetails` — tudo isso **preservando o contrato com o app**.
 
-**Arquitetura:** o `JwtBearer` valida o token com os mesmos parâmetros de hoje; duas políticas
-(`Autenticado`, `Equipe`) são aplicadas **por controller/ação**, sem `FallbackPolicy`.
-`IUsuarioAtual` passa a ler `HttpContext.User`. `MapaDeErro` continua decidindo status e
-mensagem; o `TratadorGlobalDeExcecoes` só escreve a resposta.
+**Arquitetura:** o `JwtBearer` valida o token usando os mesmos parâmetros já vigentes; duas
+políticas (`Autenticado`, `Equipe`) passam a ser aplicadas **por controller/ação**, sem
+recorrer a `FallbackPolicy`. A leitura de `HttpContext.User` passa para o `UsuarioAtualHttp`, a
+implementação de `IUsuarioAtual`. Quem continua decidindo status e mensagem é o `MapaDeErro`;
+ao `TratadorGlobalDeExcecoes` cabe só escrever a resposta.
 
 **Stack:** .NET 8, `Microsoft.AspNetCore.Authentication.JwtBearer 8.0.11`,
 `System.IdentityModel.Tokens.Jwt 8.3.1` (já presente), xUnit + Moq.

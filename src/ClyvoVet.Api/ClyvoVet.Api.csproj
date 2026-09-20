@@ -33,14 +33,10 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 
-    <!-- Valida o access token que a API Java emite (ValidadorDeTokenJwt).
-         Escolhido em vez de Microsoft.AspNetCore.Authentication.JwtBearer de
-         proposito. O JwtBearer traria uma cadeia nova de Microsoft.IdentityModel
-         para um grafo ja unificado em 8.3.1, e junto com ela o modelo de
-         autenticacao do ASP.NET — [Authorize], FallbackPolicy, esquemas. Nada
-         disso e necessario aqui: esta API so precisa LER a identidade, e quem
-         decide negar e a camada de escopo. Usando so o handler, a validacao
-         nao tem como interferir em /health, /metrics, /swagger ou nos webhooks. -->
+    <!-- Mantem o grafo do Microsoft.IdentityModel em 8.3.1: o JwtBearer 8.0.11 declara
+         7.1.2 nos pacotes Protocols e Protocols.OpenIdConnect, e o resto do grafo
+         (Tokens, JsonWebTokens, Logging) fica em 8.3.1. Convivem em execucao — a
+         prova e o AutenticacaoJwtTests. -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
   </ItemGroup>
 

@@ -53,11 +53,6 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
-// Validacao do token emitido pela API Java. Singleton porque a chave e montada
-// uma vez; INERTE enquanto Jwt:Secret nao existir, e incapaz de lancar no boot
-// mesmo com valor invalido — ver o comentario da classe.
-builder.Services.AddSingleton<ValidadorDeTokenJwt>();
-
 // JWT do ASP.NET e politicas de acesso; o porque esta em Extensions/AutenticacaoJwtExtensions.cs.
 builder.Services.AddAutenticacaoJwt();
 
@@ -122,11 +117,6 @@ app.UseExceptionHandler(errorApp =>
 });
 
 app.UseHttpsRedirection();
-// Le o Bearer, quando houver, e guarda a identidade em HttpContext.Items.
-// NAO rejeita nada — atravessa /health, /metrics, /swagger e os webhooks sem
-// tocar neles. Fica depois do CORS para que o preflight OPTIONS nao passe por
-// aqui, e antes dos controllers, que sao quem consome a identidade.
-app.UseMiddleware<IdentidadeMiddleware>();
 
 // Antes de UseAuthentication e UseAuthorization: o preflight OPTIONS chega sem credencial
 // nenhuma e precisa ser respondido pelo CORS, nao recusado pela autenticacao nem pela autorizacao.
