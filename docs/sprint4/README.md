@@ -15,8 +15,8 @@ Rubric de 100 pontos. **Este diretório é a fonte única de verdade sobre o tra
 
 | Fase | Tema | Estado |
 |---|---|---|
-| F0 | Organização (`CLAUDE.md`, docs, ambiente) | ⏳ escrita, falta commit |
-| F1 | Clean Architecture em 4 projetos | ⬜ |
+| F0 | Organização (`CLAUDE.md`, docs, ambiente) | ✅ |
+| F1 | Clean Architecture em 4 projetos | ✅ |
 | F2 | Exceções globais + JWT/`[Authorize]` | ⬜ |
 | F3 | Ordenação, paginação com total e HATEOAS | ⬜ |
 | F4 | MongoDB (cache do parecer de IA) | ⬜ |

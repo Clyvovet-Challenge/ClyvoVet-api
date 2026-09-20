@@ -283,29 +283,41 @@ desenvolvimento local; ele não produz o artefato publicado.)
 
 ```
 ClyvoVet-api/
-├── ClyvoVet.Api/
-│   ├── Controllers/           → Recebem requisições HTTP e delegam ao Service
-│   ├── Services/               → Regras de negócio
-│   │   └── Interfaces/
-│   ├── Repositories/          → Acesso ao banco via EF Core
-│   │   └── Interfaces/
-│   ├── Models/                 → Entidades mapeadas nas tabelas MySQL
-│   ├── DTOs/
-│   │   ├── Request/           → Dados recebidos nas requisições (POST/PUT)
-│   │   └── Response/          → Dados retornados nas respostas
-│   ├── Enums/                 → Enumerações dos valores aceitos pelo banco
-│   ├── Data/
-│   │   ├── AppDbContext.cs    → DbContext principal
-│   │   └── Configurations/    → Fluent API (mapeamento tabela ↔ modelo)
-│   ├── Exceptions/            → NotFoundException, BadRequestException
-│   ├── HealthChecks/          → Formatação JSON do resultado do Health Check
-│   ├── Middleware/            → CorrelationIdMiddleware (rastreio de requisições nos logs)
-│   ├── Properties/
-│   │   └── launchSettings.json
-│   ├── appsettings.json       → Connection string MySQL (placeholder) + níveis de log
-│   ├── Program.cs             → DI, Swagger, Health Checks, Serilog, OpenTelemetry, middleware de erros
-│   ├── Logs/                   → Log em arquivo do Serilog, só em `Development` (não versionado)
-│   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Services, mocks via Moq)
+├── src/
+│   ├── ClyvoVet.Domain/               → Entidades, enums e exceções de negócio (não conhece nenhum outro projeto)
+│   │   ├── Entities/                  → Entidades mapeadas nas tabelas MySQL
+│   │   ├── Enums/                     → Enumerações dos valores aceitos pelo banco
+│   │   └── Exceptions/                → NotFoundException, BadRequestException, RegistroEmUsoException
+│   ├── ClyvoVet.Application/          → Casos de uso; só conhece o Domain
+│   │   ├── Services/                  → Regras de negócio (+ Interfaces/)
+│   │   ├── DTOs/
+│   │   │   ├── Request/               → Dados recebidos nas requisições (POST/PUT)
+│   │   │   └── Response/              → Dados retornados nas respostas
+│   │   ├── Abstractions/
+│   │   │   ├── Repositories/          → Interfaces dos repositórios
+│   │   │   └── External/              → Interfaces dos serviços externos (OCI, Telegram)
+│   │   └── Security/                  → Escopo do tutor e identidade do chamador
+│   ├── ClyvoVet.Infrastructure/       → EF Core, repositórios concretos e integrações externas
+│   │   ├── Data/
+│   │   │   ├── AppDbContext.cs        → DbContext principal
+│   │   │   └── Configurations/        → Fluent API (mapeamento tabela ↔ modelo)
+│   │   ├── Repositories/              → Acesso ao banco via EF Core
+│   │   ├── External/                  → Clientes da OCI Generative AI e do Telegram
+│   │   ├── Background/                → Serviços em segundo plano (lembretes, vínculo do Telegram)
+│   │   └── HealthChecks/              → Check do Telegram
+│   └── ClyvoVet.Api/                  → Porta de entrada HTTP
+│       ├── Controllers/               → Recebem requisições HTTP e delegam ao Service
+│       ├── Extensions/                → Observabilidade (Serilog, OpenTelemetry) e documentação (Swagger)
+│       ├── Errors/                    → MapaDeErro (exceção → status HTTP)
+│       ├── HealthChecks/              → Formatação JSON do resultado do Health Check
+│       ├── Middleware/                → CorrelationIdMiddleware (rastreio de requisições nos logs)
+│       ├── Properties/
+│       │   └── launchSettings.json
+│       ├── appsettings.json           → Connection string MySQL (placeholder) + níveis de log
+│       ├── Program.cs                 → Só orquestra: composição dos serviços e pipeline HTTP
+│       └── Logs/                      → Log em arquivo do Serilog, só em `Development` (não versionado)
+├── tests/
+│   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Services, mocks via Moq) e regras de arquitetura
 │   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
 └── schema/
     ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
@@ -343,7 +355,7 @@ cd ClyvoVet-api
 
 ```bash
 ls
-# Deve listar: ClyvoVet.Api/  schema/  README.md  ClyvoVet-api.slnx  ...
+# Deve listar: src/  tests/  schema/  README.md  ClyvoVet-api.slnx  ...
 ```
 
 > **Erro: `git: command not found`**  
@@ -362,10 +374,10 @@ ls
 > **`ConnectionStrings:DefaultConnection`**. Um secret antigo com o nome velho é
 > simplesmente ignorado, e a API sobe reclamando de connection string ausente.
 
-Por ficar versionado no repositório, `ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
+Por ficar versionado no repositório, `src/ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
 
 ```bash
-cd ClyvoVet.Api
+cd src/ClyvoVet.Api
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=clyvovet;Uid=root;Pwd=SUA_SENHA_LOCAL;"
 ```
 
@@ -468,7 +480,7 @@ responde normalmente, mas sempre com a lista vazia.
 Na raiz do projeto:
 
 ```bash
-cd ClyvoVet.Api
+cd src/ClyvoVet.Api
 dotnet restore
 ```
 
@@ -618,11 +630,11 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
 
 ### Logging Estruturado (Serilog)
 
-- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
+- Configurado em [`ObservabilidadeExtensions.cs`](src/ClyvoVet.Api/Extensions/ObservabilidadeExtensions.cs), chamado pelo [`Program.cs`](src/ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
 - O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
-- Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
+- Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](src/ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
 - São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
-- Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
+- Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](src/ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
 
 ### Tracing e Métricas (OpenTelemetry)
 
@@ -637,7 +649,7 @@ curl http://localhost:5191/metrics
 
 ## Testes Automatizados
 
-Dentro de `ClyvoVet.Api/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
+Em `tests/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
 
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
@@ -647,9 +659,8 @@ Dentro de `ClyvoVet.Api/`, os testes se dividem em dois projetos, seguindo o pad
 ### Rodando os testes
 
 ```bash
-cd ClyvoVet.Api
-dotnet test ClyvoVet.Api.Tests.Unit
-dotnet test ClyvoVet.Api.Tests.Integration
+dotnet test tests/ClyvoVet.Api.Tests.Unit
+dotnet test tests/ClyvoVet.Api.Tests.Integration
 ```
 
 Ou os dois juntos, direto da raiz do repositório:

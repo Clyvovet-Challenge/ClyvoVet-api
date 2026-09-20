@@ -20,13 +20,10 @@ Não adiante trabalho de fases futuras, mesmo que pareça óbvio.
 
 ## Comandos
 
-Caminhos abaixo valem **até a Fase 1**. Depois dela os projetos vivem em `src/` e `tests/`
-(a Fase 1 atualiza esta seção).
-
 ```bash
 dotnet build ClyvoVet-api.slnx
 dotnet test  ClyvoVet-api.slnx
-dotnet run --project ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swagger
+dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swagger
 ```
 
 - **Precisa do runtime .NET 8** para rodar os testes de integração. Com só o .NET 10
@@ -34,11 +31,11 @@ dotnet run --project ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swagger
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (19/09/2026): **163 unidade + 93 integração = 256, todos verdes.**
+- Linha de base (F1 fechada, 20/09/2026): **176 unidade + 96 integração = 272, todos verdes.**
 - Segredos locais: `dotnet user-secrets` (o projeto já tem `UserSecretsId`). Em produção,
   variáveis de ambiente do Render. **Nunca** credencial em arquivo versionado.
 
-## Arquitetura alvo (Clean Architecture, 4 projetos)
+## Arquitetura (Clean Architecture, 4 projetos)
 
 ```
 Api ──► Application ──► Domain

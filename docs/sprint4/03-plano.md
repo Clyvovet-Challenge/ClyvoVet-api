@@ -60,14 +60,14 @@ pronto para medir.
 
 - [x] `CLAUDE.md` na raiz e `docs/sprint4/` escritos (README, requisitos, gap-analysis,
       design, plano, 5 ADRs).
-- [ ] Revisão do dono do repositório.
+- [x] Revisão do dono do repositório.
 - [x] **P1** resolvido; linha de base real registrada em `01-gap-analysis.md` §0
       (163 unidade + 93 integração = **256 ✅**, runtime 8.0.31).
-- [ ] `.gitignore`: acrescentar `CLAUDE.local.md` (preferências pessoais) e
+- [x] `.gitignore`: acrescentar `CLAUDE.local.md` (preferências pessoais) e
       `.claude/settings.local.json`; e `git rm --cached .claude/settings.local.json` — hoje
       ele está **versionado com caminhos do Windows de outro integrante**, e arquivo `local`
       não deve ser compartilhado. **Pedir "sim" antes**: mexe em arquivo de outra pessoa.
-- [ ] Commits sugeridos:
+- [x] Commits sugeridos:
   - `docs: organiza a Sprint 4 (CLAUDE.md, requisitos, gap-analysis, design e plano)`
   - `chore: tira .claude/settings.local.json do versionamento`
 
@@ -83,79 +83,79 @@ pronto para medir.
 testes verdes **antes** do commit.
 
 ### T1 — Preparar o terreno
-- [ ] `git ls-files ClyvoVet.Api/publish ClyvoVet.Api/Logs` — se houver algo versionado que
+- [x] `git ls-files ClyvoVet.Api/publish ClyvoVet.Api/Logs` — se houver algo versionado que
       não devia (o `publish/` apareceu na listagem), tirar do índice em commit próprio
       (`git rm -r --cached`).
-- [ ] Limpar saídas de build: `rm -rf ClyvoVet.Api/{bin,obj} ClyvoVet.Api/*/{bin,obj}`.
+- [x] Limpar saídas de build: `rm -rf ClyvoVet.Api/{bin,obj} ClyvoVet.Api/*/{bin,obj}`.
 
 ### T2 — Mover para `src/` e `tests/` (só movimento, zero lógica)
-- [ ] `mkdir -p src tests`
-- [ ] `git mv ClyvoVet.Api src/ClyvoVet.Api`
-- [ ] `git mv src/ClyvoVet.Api/ClyvoVet.Api.Tests.Unit tests/ClyvoVet.Api.Tests.Unit`
-- [ ] `git mv src/ClyvoVet.Api/ClyvoVet.Api.Tests.Integration tests/ClyvoVet.Api.Tests.Integration`
-- [ ] Ajustar: `ClyvoVet-api.slnx` (3 caminhos); `ProjectReference` dos dois projetos de
+- [x] `mkdir -p src tests`
+- [x] `git mv ClyvoVet.Api src/ClyvoVet.Api`
+- [x] `git mv src/ClyvoVet.Api/ClyvoVet.Api.Tests.Unit tests/ClyvoVet.Api.Tests.Unit`
+- [x] `git mv src/ClyvoVet.Api/ClyvoVet.Api.Tests.Integration tests/ClyvoVet.Api.Tests.Integration`
+- [x] Ajustar: `ClyvoVet-api.slnx` (3 caminhos); `ProjectReference` dos dois projetos de
       teste (passa a ser `..\..\src\ClyvoVet.Api\ClyvoVet.Api.csproj`); remover os 8 itens
       `Remove` do `csproj` da Api; `Dockerfile` (copiar `src/` e restaurar
       `src/ClyvoVet.Api/ClyvoVet.Api.csproj`; `WORKDIR /src/src/ClyvoVet.Api`);
       `.dockerignore` (`**/ClyvoVet.Api.Tests.*/` → `tests/`).
-- [ ] **Verificar:** `dotnet build`, `dotnet test` (mesmo total da linha de base) e
+- [x] **Verificar:** `dotnet build`, `dotnet test` (mesmo total da linha de base) e
       `docker build -t clyvovet-api .` (exige o Docker ligado).
-- [ ] Commit: `refactor: move os projetos para src/ e tests/`
+- [x] Commit: `refactor: move os projetos para src/ e tests/`
 
 ### T3 — Domain
-- [ ] **Teste primeiro:** criar `tests/…Unit/ArquiteturaTests.cs` com a regra do Domain
+- [x] **Teste primeiro:** criar `tests/…Unit/ArquiteturaTests.cs` com a regra do Domain
       (design §4) e ver falhar (o projeto ainda não existe).
-- [ ] `dotnet new classlib -n ClyvoVet.Domain -o src/ClyvoVet.Domain -f net8.0`; adicionar à
+- [x] `dotnet new classlib -n ClyvoVet.Domain -o src/ClyvoVet.Domain -f net8.0`; adicionar à
       solução; **nenhum pacote**.
-- [ ] `git mv` de `Models/`→`Entities/`, `Enums/`, `Exceptions/`; trocar o `namespace` de cada
+- [x] `git mv` de `Models/`→`Entities/`, `Enums/`, `Exceptions/`; trocar o `namespace` de cada
       arquivo movido e os `using` no restante (o compilador aponta os que faltarem).
-- [ ] **Teste primeiro:** `RegistroEmUsoExceptionTests` (mensagem/tipo) → criar
+- [x] **Teste primeiro:** `RegistroEmUsoExceptionTests` (mensagem/tipo) → criar
       `RegistroEmUsoException` em `Domain/Exceptions`.
-- [ ] Build + testes verdes. Commit: `refactor: extrai o projeto Domain`
+- [x] Build + testes verdes. Commit: `refactor: extrai o projeto Domain`
 
 ### T4 — Application
-- [ ] Regra de dependência do Application em `ArquiteturaTests` (vermelho).
-- [ ] Criar projeto; pacotes só de `Microsoft.Extensions.*.Abstractions`.
-- [ ] Mover DTOs, interfaces e serviços de caso de uso, `DataValidationHelper`,
+- [x] Regra de dependência do Application em `ArquiteturaTests` (vermelho).
+- [x] Criar projeto; pacotes só de `Microsoft.Extensions.*.Abstractions`.
+- [x] Mover DTOs, interfaces e serviços de caso de uso, `DataValidationHelper`,
       `Repositories/Interfaces`→`Abstractions/Repositories`, `IOciGenerativeAiClient` e
       `ITelegramService`→`Abstractions/External`, `EscopoDoTutor`,
       `IdentidadeDoChamador`, `VinculosPendentesDeTelegram`.
-- [ ] **`IUsuarioAtual`** (Application): `IdentidadeDoChamador? Identidade { get; }`.
+- [x] **`IUsuarioAtual`** (Application): `IdentidadeDoChamador? Identidade { get; }`.
       `EscopoDoTutor` passa a depender dele em vez de `IHttpContextAccessor`; implementação
       `UsuarioAtualHttp` na Api lendo `HttpContext.Items` (como hoje — a F2 troca por claims).
-- [ ] `AddApplication()`.
-- [ ] Build + testes verdes. Commit: `refactor: extrai o projeto Application`
+- [x] `AddApplication()`.
+- [x] Build + testes verdes. Commit: `refactor: extrai o projeto Application`
 
 ### T5 — Infrastructure
-- [ ] Regra de dependência da Infrastructure em `ArquiteturaTests` (vermelho).
-- [ ] Criar projeto com EF, Pomelo, HealthChecks.EFCore, Telegram.Bot, Http, hosting.
-- [ ] Mover `Data/`, repositórios concretos + `Paginacao`, `OciGenerativeAiClient`,
+- [x] Regra de dependência da Infrastructure em `ArquiteturaTests` (vermelho).
+- [x] Criar projeto com EF, Pomelo, HealthChecks.EFCore, Telegram.Bot, Http, hosting.
+- [x] Mover `Data/`, repositórios concretos + `Paginacao`, `OciGenerativeAiClient`,
       `TelegramService`, os dois `BackgroundService`, `TelegramHealthCheck`.
       `InternalsVisibleTo("ClyvoVet.Api.Tests.Unit")` vai junto.
-- [ ] **Teste primeiro:** em `tests/…Integration`, "SaveChanges com violação de integridade
+- [x] **Teste primeiro:** em `tests/…Integration`, "SaveChanges com violação de integridade
       lança `RegistroEmUsoException`" → `AppDbContext.SaveChangesAsync` captura
       `DbUpdateException` e relança. `MapaDeErro` passa a mapear `RegistroEmUsoException`
       → 409 e a mesma mensagem ("Registro em uso por outro cadastro."); ajustar
       `MapaDeErroTests`.
-- [ ] `AddInfrastructure(configuration, environment)` recebendo o que hoje está no
+- [x] `AddInfrastructure(configuration, environment)` recebendo o que hoje está no
       `Program.cs` (teto de pool, versão fixa do MySQL, DI de repositórios/clientes,
       *background services* fora de `Testing`, health checks).
-- [ ] Build + testes verdes. Commit: `refactor: extrai o projeto Infrastructure`
+- [x] Build + testes verdes. Commit: `refactor: extrai o projeto Infrastructure`
 
 ### T6 — Api enxuta
-- [ ] Regra da Api em `ArquiteturaTests`: não referenciar EF nem MongoDB (vermelho enquanto o
-      `MapaDeErro`/`Program.cs` ainda tocar no EF).
-- [ ] `Program.cs` só orquestra; extensões em `src/ClyvoVet.Api/Extensions/`
+- [x] A regra da Api em `ArquiteturaTests` (não referenciar EF nem MongoDB) foi para a T5,
+      onde ela nasce vermelha até o fim da tarefa (`fases/F1-clean-architecture.md`, achado A6).
+- [x] `Program.cs` só orquestra; extensões em `src/ClyvoVet.Api/Extensions/`
       (`AddDocumentacaoApi`, `AddObservabilidade`). **Os comentários de "porquê" vão junto.**
-- [ ] Tirar do `csproj` da Api os pacotes que passaram para a Infrastructure.
-- [ ] Build + testes verdes. Commit: `refactor: enxuga o Program.cs e a Api`
+- [x] Tirar do `csproj` da Api os pacotes que passaram para a Infrastructure.
+- [x] Build + testes verdes. Commit: `refactor: enxuga o Program.cs e a Api`
 
 ### T7 — Reapontar testes, `Dockerfile` e docs
-- [ ] `ProjectReference` dos testes para os projetos certos; namespaces dos testes.
-- [ ] `Dockerfile` copiando `src/` inteiro (já cobre os 4 projetos); `docker build` verde.
-- [ ] Atualizar `CLAUDE.md` (seção **Comandos** com os caminhos novos) e os caminhos no
+- [x] `ProjectReference` dos testes para os projetos certos; namespaces dos testes.
+- [x] `Dockerfile` copiando `src/` inteiro (já cobre os 4 projetos); `docker build` verde.
+- [x] Atualizar `CLAUDE.md` (seção **Comandos** com os caminhos novos) e os caminhos no
       `README.md`.
-- [ ] Commit: `docs: atualiza caminhos e comandos para a nova estrutura`
+- [x] Commit: `docs: atualiza caminhos e comandos para a nova estrutura`
 
 **Pronto quando:** DoD + `ArquiteturaTests` verdes + `docker build` verde + `dotnet run`
 sobe e `GET /health/live` responde 200 + `git diff --stat -M` mostra os arquivos como

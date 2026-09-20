@@ -81,7 +81,8 @@ compor o DI em `Program.cs`).
 
 `ClyvoVet.Api.Tests.Unit` e `ClyvoVet.Api.Tests.Integration` mantêm os nomes; só passam a
 referenciar os projetos certos. `InternalsVisibleTo("ClyvoVet.Api.Tests.Unit")`, hoje na Api
-por causa do laço de notificação, passa para a Infrastructure junto com o serviço.
+por causa do laço de notificação, passa para a Infrastructure junto com o serviço **e para a
+Application** (o `SaudePreditivaService` tem membros `internal` que os testes chamam).
 
 ### 3.4 Pacotes por projeto
 
@@ -118,7 +119,10 @@ citar `DbUpdateException` (§7.1).
   repositórios, cliente OCI, Telegram, *background services* (**não** registrados no ambiente
   `Testing`, como hoje) e health checks de dependência.
 - `Api`: `Program.cs` só orquestra e delega a extensões em `Api/Extensions/`:
-  `AddDocumentacaoApi`, `AddAutenticacaoJwt` (F2) e `AddObservabilidade`.
+  `AddDocumentacaoApi`, `AddAutenticacaoJwt` (F2) e `AddObservabilidade`. O
+  `AddDocumentacaoApi` inclui no Swagger o **XML de comentários da Application**, além do da
+  Api: os DTOs, com o `summary` de cada campo, moram lá, e sem esse XML a descrição some do
+  Swagger sem nenhum erro.
 - **Mantido igual:** todos os comentários de "por que" do `Program.cs` atual (versão fixa do
   MySQL, teto de pool, CORS, sink de arquivo só em Development). Eles acompanham o código
   para o novo lugar; não são reescritos.

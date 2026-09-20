@@ -28,10 +28,10 @@ a rodar apontando diretamente para os dois `.csproj`.
 
 | Item | Estado | Evidência | Fase |
 |---|---|---|---|
-| Clean Architecture com camadas | 🔴 | `ClyvoVet-api.slnx` lista 3 projetos: a Api (com tudo dentro, só separado por pasta) e 2 de teste. Não há Domain/Application/Infrastructure. | F1 |
-| SOLID / Clean Code | 🟡 | Interface por serviço e por repositório; controllers finos. Mas o `Program.cs` tem 411 linhas e faz tudo (logging, CORS, Swagger, banco, DI, health, OTel). Não há revisão nem evidência documentada dos princípios. | F1, F5 |
-| Injeção de dependência | 🟢 | Tudo registrado por interface em `Program.cs:222-268`. Falta só extrair para `AddApplication`/`AddInfrastructure`. | F1 |
-| Exceções globais | 🟡 | Existe e é testado (`Errors/MapaDeErro.cs`), mas o handler é um lambda de 40 linhas em `Program.cs:329-372`, e o `MapaDeErro` conhece `DbUpdateException` (EF) — vazamento de infraestrutura. | F1, F2 |
+| Clean Architecture com camadas | 🟢 | 4 projetos em `src/` (Domain, Application, Infrastructure, Api) e os de teste em `tests/`, com as regras de dependência checadas por `ArquiteturaTests`. Fechada na F1 (commits `c66c7f0`, `1e65926`, `c24cd5c`, `f0bdfb0`). | F1 ✅ |
+| SOLID / Clean Code | 🟡 | Interface por serviço e por repositório; controllers finos. O `Program.cs` foi de 411 para 158 linhas na F1 (Serilog, OpenTelemetry e Swagger viraram extensões; banco, repositórios e health de dependência foram para `AddInfrastructure`). Falta a revisão e a evidência documentada dos princípios. | F5 |
+| Injeção de dependência | 🟢 | Tudo registrado por interface, agora dentro de `AddApplication` e `AddInfrastructure`; o `Program.cs` só as chama. | F1 ✅ |
+| Exceções globais | 🟡 | Existe e é testado (`Errors/MapaDeErro.cs`), mas o handler ainda é um lambda de 40 linhas no `Program.cs`. O vazamento do EF foi corrigido na F1: o `AppDbContext` traduz `DbUpdateException` em `RegistroEmUsoException`, e o `MapaDeErro` não conhece mais o EF. | F2 |
 
 ## 2. API RESTful — 20 pts
 
@@ -50,7 +50,7 @@ a rodar apontando diretamente para os dois `.csproj`.
 |---|---|---|---|
 | EF Core com **migrações** | 🔴 | Não existe pasta `Migrations`. Provider é **MySQL** (`Pomelo.EntityFrameworkCore.MySql 8.0.2`, `Program.cs:219-220`); o rubric diz **Oracle ou SQL Server**, e em 20/09/2026 o professor liberou manter o MySQL. A auditoria de 06/09 (§6) proibiu migrations aqui porque o schema é da API Java (Flyway); a F7 as cria só para as `t_clyvo_*`. | F7 — **liberada ([ADR-005](decisoes/ADR-005-banco-e-migrations.md))** |
 | MongoDB | 🔴 | Zero ocorrências. | F4 |
-| Repository | 🟢 | 9 interfaces em `Repositories/Interfaces/` e 9 implementações concretas. | — |
+| Repository | 🟢 | 9 interfaces em `Application/Abstractions/Repositories/` e 9 implementações concretas em `Infrastructure/Repositories/`. | — |
 
 ## 4. Monitoramento, observabilidade e testes — 20 pts
 
@@ -73,7 +73,7 @@ a rodar apontando diretamente para os dois `.csproj`.
 
 | Bloco | Pts | Situação |
 |---|---|---|
-| Arquitetura e código | 30 | 🔴 F1 + F2 |
+| Arquitetura e código | 30 | 🟡 F1 concluída; faltam F2 + F5 |
 | API RESTful | 20 | 🟡 F2 + F3 |
 | Persistência | 20 | 🔴 F4 (+ F7 se o professor exigir) |
 | Monitoramento e testes | 20 | 🟡 F4 + F5 |
