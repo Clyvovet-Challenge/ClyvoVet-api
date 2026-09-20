@@ -1,6 +1,6 @@
-using ClyvoVet.Api.Enums;
+using ClyvoVet.Domain.Enums;
 
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 public class PredisposicaoSaude
 {

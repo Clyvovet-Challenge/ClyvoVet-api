@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 /// <summary>
 /// O parecer de saúde preditiva persistido (t_clyvo_parecer_ia, V15). É um

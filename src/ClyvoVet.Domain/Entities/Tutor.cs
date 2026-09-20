@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 public class Tutor
 {

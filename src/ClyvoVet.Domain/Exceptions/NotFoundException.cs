@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Exceptions;
+namespace ClyvoVet.Domain.Exceptions;
 
 public class NotFoundException : Exception
 {

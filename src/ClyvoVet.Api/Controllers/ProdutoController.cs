@@ -1,5 +1,5 @@
 using ClyvoVet.Api.DTOs.Request;
-using ClyvoVet.Api.Enums;
+using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;

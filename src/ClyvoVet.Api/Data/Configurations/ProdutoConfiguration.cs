@@ -1,4 +1,4 @@
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

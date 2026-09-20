@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using ClyvoVet.Api.DTOs.Response;
-using ClyvoVet.Api.Exceptions;
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Exceptions;
+using ClyvoVet.Domain.Entities;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services.Interfaces;
 

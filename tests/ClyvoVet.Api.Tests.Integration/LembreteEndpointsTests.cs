@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using ClyvoVet.Api.DTOs.Request;
 using ClyvoVet.Api.DTOs.Response;
-using ClyvoVet.Api.Enums;
+using ClyvoVet.Domain.Enums;
 
 namespace ClyvoVet.Api.Tests.Integration;
 

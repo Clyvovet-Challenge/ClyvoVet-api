@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using ClyvoVet.Api.Data;
 using ClyvoVet.Api.DTOs.Request;
 using ClyvoVet.Api.DTOs.Response;
-using ClyvoVet.Api.Exceptions;
+using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

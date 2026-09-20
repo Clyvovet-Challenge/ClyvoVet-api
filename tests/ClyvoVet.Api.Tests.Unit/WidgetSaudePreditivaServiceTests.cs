@@ -1,6 +1,6 @@
-using ClyvoVet.Api.Enums;
-using ClyvoVet.Api.Exceptions;
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Exceptions;
+using ClyvoVet.Domain.Entities;
 using ClyvoVet.Api.Repositories.Interfaces;
 using ClyvoVet.Api.Services;
 using Microsoft.Extensions.Logging;

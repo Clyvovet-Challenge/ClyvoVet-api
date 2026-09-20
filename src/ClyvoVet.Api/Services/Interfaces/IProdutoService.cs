@@ -1,6 +1,6 @@
 using ClyvoVet.Api.DTOs.Request;
 using ClyvoVet.Api.DTOs.Response;
-using ClyvoVet.Api.Enums;
+using ClyvoVet.Domain.Enums;
 
 namespace ClyvoVet.Api.Services.Interfaces;
 

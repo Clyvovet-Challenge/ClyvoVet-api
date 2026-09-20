@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Enums;
+namespace ClyvoVet.Domain.Enums;
 
 /// <summary>
 /// O porte que um produto atende.

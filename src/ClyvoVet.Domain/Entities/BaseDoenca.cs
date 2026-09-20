@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 /// <summary>
 /// Uma linha da base agregada de doenças (t_clyvo_base_doencas, V15 do Flyway

@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 /// <summary>
 /// O corpo estruturado do parecer — o que vai serializado em

@@ -1,5 +1,5 @@
-using ClyvoVet.Api.Enums;
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Entities;
 
 namespace ClyvoVet.Api.Repositories.Interfaces;
 

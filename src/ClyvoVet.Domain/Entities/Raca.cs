@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Models;
+namespace ClyvoVet.Domain.Entities;
 
 /// <summary>
 /// Catálogo de raças (t_clyvo_raca, criado pela V14 do Flyway da API Java).

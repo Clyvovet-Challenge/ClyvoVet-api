@@ -1,4 +1,4 @@
-using ClyvoVet.Api.Enums;
+using ClyvoVet.Domain.Enums;
 
 namespace ClyvoVet.Api.DTOs.Response;
 

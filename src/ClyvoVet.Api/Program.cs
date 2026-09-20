@@ -1,7 +1,7 @@
 using ClyvoVet.Api.Errors;
 using System.Reflection;
 using ClyvoVet.Api.Data;
-using ClyvoVet.Api.Exceptions;
+using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;

@@ -1,6 +1,6 @@
 using ClyvoVet.Api.DTOs.Request;
-using ClyvoVet.Api.Enums;
-using ClyvoVet.Api.Exceptions;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Security;
 using ClyvoVet.Api.Services.Interfaces;

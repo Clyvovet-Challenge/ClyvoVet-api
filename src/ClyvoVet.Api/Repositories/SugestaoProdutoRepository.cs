@@ -1,5 +1,5 @@
 using ClyvoVet.Api.Data;
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Entities;
 using ClyvoVet.Api.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,6 +1,6 @@
 using ClyvoVet.Api.Data;
-using ClyvoVet.Api.Enums;
-using ClyvoVet.Api.Models;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ClyvoVet.Api\ClyvoVet.Api.csproj" />
+    <ProjectReference Include="..\..\src\ClyvoVet.Domain\ClyvoVet.Domain.csproj" />
   </ItemGroup>
 
 </Project>

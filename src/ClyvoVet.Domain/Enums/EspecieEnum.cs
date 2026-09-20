@@ -1,4 +1,4 @@
-namespace ClyvoVet.Api.Enums;
+namespace ClyvoVet.Domain.Enums;
 
 public enum EspecieEnum
 {
