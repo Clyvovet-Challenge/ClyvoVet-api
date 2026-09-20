@@ -58,6 +58,9 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 // mesmo com valor invalido — ver o comentario da classe.
 builder.Services.AddSingleton<ValidadorDeTokenJwt>();
 
+// JWT do ASP.NET e politicas de acesso; o porque esta em Extensions/AutenticacaoJwtExtensions.cs.
+builder.Services.AddAutenticacaoJwt();
+
 // Quem le a identidade da requisicao corrente e o UsuarioAtualHttp, entao ele
 // precisa do acessor -- que NAO vinha registrado. Sem ele a resolucao falha no
 // primeiro request, e nao no startup: o app sobe verde e so quebra quando alguem chama.
@@ -125,9 +128,10 @@ app.UseHttpsRedirection();
 // aqui, e antes dos controllers, que sao quem consome a identidade.
 app.UseMiddleware<IdentidadeMiddleware>();
 
-// Antes de UseAuthorization: o preflight OPTIONS chega sem credencial nenhuma e
-// precisa ser respondido pelo CORS, nao recusado pela autorizacao.
+// Antes de UseAuthentication e UseAuthorization: o preflight OPTIONS chega sem credencial
+// nenhuma e precisa ser respondido pelo CORS, nao recusado pela autenticacao nem pela autorizacao.
 app.UseCors(PoliticaCors);
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
