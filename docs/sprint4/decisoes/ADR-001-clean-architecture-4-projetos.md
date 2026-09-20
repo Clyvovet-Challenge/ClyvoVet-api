@@ -4,36 +4,38 @@
 
 ## Contexto
 
-Atualmente existe **um único projeto** (`ClyvoVet.Api`), organizado em pastas por camada
-(`Models`, `Services`, `Repositories`, `Controllers`…), com dois projetos de teste aninhados
-dentro dele. O rubric atribui 30 pts a "Clean Architecture aplicada corretamente, com
-separação de camadas" e exige cobertura mínima "das camadas de Domínio e Aplicação" —
-algo que só pode ser medido se essas camadas existirem como unidades de fato separadas.
+Hoje tudo mora em **um projeto único** (`ClyvoVet.Api`), com camadas separadas apenas por
+pasta (`Models`, `Services`, `Repositories`, `Controllers`…) e dois projetos de teste
+aninhados dentro dele. O rubric dá 30 pts para "Clean Architecture aplicada corretamente,
+com separação de camadas" e cobra cobertura mínima "das camadas de Domínio e Aplicação" —
+item que só dá para medir se essas camadas forem unidades separadas de verdade, não pastas.
 
-Um ponto a favor, confirmado no código: os `Services` **não** dependem de EF e os
-repositórios **não** usam DTOs. Boa parte da separação, portanto, se resume a mover arquivos.
+A favor, e já confirmado lendo o código: nem os `Services` dependem de EF, nem os
+repositórios usam DTOs. Isso significa que boa parte da separação é, na prática, mover
+arquivo de lugar.
 
 ## Decisão
 
-Adotar quatro projetos dentro de `src/` (`Domain`, `Application`, `Infrastructure`, `Api`) e
-mover os testes para `tests/`, com dependências apontando sempre para dentro (design §3).
-As regras passam a ser **verificadas por teste** (`ArquiteturaTests`, design §4), e não
-apenas seguidas por convenção.
+Passar a quatro projetos dentro de `src/` (`Domain`, `Application`, `Infrastructure`, `Api`),
+com os testes indo para `tests/` e as dependências sempre apontando para dentro (design §3).
+As regras deixam de valer por convenção e passam a ser **checadas por teste**
+(`ArquiteturaTests`, design §4).
 
 ## Consequências
 
-- ➕ A separação vira algo verificável, por `.csproj` e por teste — não uma questão de
-  opinião do avaliador.
-- ➕ "Cobertura de Domínio e Aplicação" deixa de ser interpretação e passa a ser um número.
-- ➕ `Program.cs` deixa de ter 411 linhas.
-- ➖ `Dockerfile`, `.dockerignore`, `slnx` e todos os `namespace` mudam de uma só vez; é a
-  fase de maior risco (mitigada com passos pequenos e build/testes verdes a cada um).
-- ➖ A referência entre projetos não bloqueia o uso transitivo de pacotes — por isso o teste
-  de arquitetura é parte da decisão, e não um extra opcional.
+- ➕ A separação passa a ser verificável — por `.csproj` e por teste — em vez de depender da
+  opinião de quem avalia.
+- ➕ "Cobertura de Domínio e Aplicação" vira número, não interpretação.
+- ➕ `Program.cs` sai das 411 linhas atuais.
+- ➖ `Dockerfile`, `.dockerignore`, o `slnx` e todo `namespace` mudam juntos, de uma vez — é o
+  trecho de maior risco do plano (mitigado com passos pequenos e build/testes verdes a cada
+  etapa).
+- ➖ A referência entre projetos, sozinha, não impede o uso transitivo de pacotes; por isso o
+  teste de arquitetura entra como parte da decisão, não como extra opcional.
 
 ## Alternativas descartadas
 
-- **Um projeto só, com pastas reforçadas.** Reduz o risco, mas a separação continuaria
-  existindo apenas por convenção; o avaliador poderia concluir que não há camadas reais.
-- **Três projetos (Core, Infrastructure, Api).** Mistura entidades e casos de uso num só
-  lugar, e o rubric cita Domínio e Aplicação como itens separados.
+- **Manter um projeto só, com pastas mais rígidas.** Risco menor, mas a separação seguiria
+  existindo só por convenção — quem avaliar pode concluir que não há camadas de fato.
+- **Três projetos (Core, Infrastructure, Api).** Junta entidades e casos de uso num único
+  lugar, e o rubric trata Domínio e Aplicação como itens distintos.

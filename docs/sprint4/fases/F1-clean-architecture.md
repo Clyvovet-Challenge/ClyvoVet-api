@@ -1,19 +1,21 @@
 # F1 — Clean Architecture em 4 projetos: plano de implementação
 
-> **Para quem for executar:** use `superpowers:executing-plans` (recomendado: cada commit
-> precisa do "sim" do dono do repositório, e um subagente não consegue pedi-lo) ou
-> `superpowers:subagent-driven-development`. Os passos usam caixas `- [ ]` para acompanhar.
-> Leia antes [`../02-design.md`](../02-design.md) e [`../decisoes/ADR-001-clean-architecture-4-projetos.md`](../decisoes/ADR-001-clean-architecture-4-projetos.md).
-> **Onde este plano e o design divergirem, vale este plano** — ver "Achados" abaixo, que
-> saíram de ler o código e de protótipos, e que o design não previa.
+> **Para quem for executar:** use `superpowers:executing-plans` (o motivo é que cada commit
+> precisa do "sim" do dono do repositório, algo que um subagente não tem como pedir sozinho)
+> ou `superpowers:subagent-driven-development`. As caixas `- [ ]` marcam o andamento dos
+> passos. Antes de começar, leia [`../02-design.md`](../02-design.md) e
+> [`../decisoes/ADR-001-clean-architecture-4-projetos.md`](../decisoes/ADR-001-clean-architecture-4-projetos.md).
+> **Em qualquer divergência entre este plano e o design, vale o que está aqui** — a seção
+> "Achados" logo abaixo lista o que o design não previa, descoberto lendo o código e testando
+> protótipos.
 
-**Meta:** separar a solução em Domain, Application, Infrastructure e Api, com as regras de
-dependência **verificadas por teste**, **sem mudar nenhum comportamento observável**.
+**Meta:** dividir a solução em Domain, Application, Infrastructure e Api, com as regras de
+dependência **checadas por teste** e **nenhuma mudança de comportamento observável**.
 
-**Arquitetura:** `Api → Application → Domain` e `Api → Infrastructure → Application`.
-Tudo é *movimento* (`git mv`) + troca de `namespace`/`using`; a lógica só muda em quatro
-pontos pequenos e declarados: `IUsuarioAtual` (T4), tradução de `DbUpdateException` (T5),
-inclusão do XML da Application no Swagger (T4) e composição em `Program.cs` (T5/T6).
+**Arquitetura:** `Api → Application → Domain` e `Api → Infrastructure → Application`. Quase
+tudo é *movimento* (`git mv`) mais troca de `namespace`/`using`; a lógica de fato só muda em
+quatro pontos pequenos e declarados: `IUsuarioAtual` (T4), tradução de `DbUpdateException`
+(T5), inclusão do XML da Application no Swagger (T4) e a composição em `Program.cs` (T5/T6).
 
 **Stack:** .NET 8, EF Core 8.0.11, Pomelo 8.0.2, xUnit + Moq, Swashbuckle 10.1.7.
 
