@@ -1,7 +1,7 @@
 # Design — Sprint 4
 
-> **Status:** aprovado em conversa, em 19/09/2026. **Única decisão pendente:** banco e
-> migrations ([ADR-005](decisoes/ADR-005-banco-e-migrations.md)), que aguarda o professor.
+> **Status:** aprovado em conversa, em 19/09/2026. **Sem decisão pendente:** o professor
+> liberou o MySQL com migrations em 20/09/2026 ([ADR-005](decisoes/ADR-005-banco-e-migrations.md)).
 > As evidências do estado atual estão em [`01-gap-analysis.md`](01-gap-analysis.md).
 
 ## 1. Objetivo e escopo
@@ -21,7 +21,7 @@ de um MongoDB hospedado.
 | 2 | MongoDB guarda o **cache do parecer de IA** | [ADR-002](decisoes/ADR-002-mongodb-cache-parecer-ia.md) |
 | 3 | **`AddJwtBearer` + `[Authorize]`**, sem `FallbackPolicy` | [ADR-003](decisoes/ADR-003-jwt-bearer-e-authorize.md) |
 | 4 | HATEOAS **sem quebrar** o array das listagens | [ADR-004](decisoes/ADR-004-hateoas-sem-quebrar-o-app.md) |
-| 5 | Banco e migrations | [ADR-005](decisoes/ADR-005-banco-e-migrations.md) — **aguardando o professor** |
+| 5 | Banco e migrations | [ADR-005](decisoes/ADR-005-banco-e-migrations.md) — **MySQL liberado pelo professor (20/09/2026)** |
 
 ## 3. Estrutura da solução
 
@@ -250,8 +250,8 @@ mídia no Swagger.
 
 ### 7.1 EF Core / MySQL
 
-O EF Core e o MySQL compartilhado **continuam** (ADR-005 trata do rubric "Oracle ou SQL
-Server"). Mudança de fronteira: hoje `MapaDeErro` responde 409 para `DbUpdateException`.
+O EF Core e o MySQL compartilhado **continuam** (o professor liberou o MySQL para o rubric
+"Oracle ou SQL Server"; ver ADR-005). Mudança de fronteira: hoje `MapaDeErro` responde 409 para `DbUpdateException`.
 A Application e a Api não podem conhecer o EF, então `AppDbContext.SaveChangesAsync` passa a
 capturar `DbUpdateException` e relançar **`RegistroEmUsoException`** (Domain). O
 `MapaDeErro` mapeia essa exceção para o mesmo 409 e a mesma mensagem de sempre
@@ -285,10 +285,10 @@ capturar `DbUpdateException` e relançar **`RegistroEmUsoException`** (Domain). 
 - A tabela `t_clyvo_parecer_ia` (Flyway V15 da Java) continua existindo; fica sem uso
   quando o Mongo está ligado.
 
-### 7.3 Migrations (F7, condicional)
+### 7.3 Migrations (F7)
 
-Só executa depois da resposta do professor. Resumo dos dois caminhos em
-[ADR-005](decisoes/ADR-005-banco-e-migrations.md).
+O professor liberou o MySQL em 20/09/2026, então vale o caminho F7-A da
+[ADR-005](decisoes/ADR-005-banco-e-migrations.md): migration *baseline* só das `t_clyvo_*`.
 
 ## 8. Observabilidade e testes
 
@@ -348,7 +348,8 @@ Só executa depois da resposta do professor. Resumo dos dois caminhos em
 
 ## 12. Pendências externas (não dependem de código)
 
-1. **Professor** — resposta pendente sobre a ADR-005 (§7.3).
+1. ~~**Professor** — resposta pendente sobre a ADR-005 (§7.3)~~ — **resolvido** em 20/09/2026:
+   MySQL liberado.
 2. ~~**Ambiente** — instalar o runtime .NET 8~~ — **resolvido** em 19/09/2026 (P1 do plano).
 3. **Mongo hospedado** — necessário apenas se o dono do repositório optar por manter o Mongo
    ativo em produção (ex.: MongoDB Atlas, camada gratuita); criar a conta e o cluster é

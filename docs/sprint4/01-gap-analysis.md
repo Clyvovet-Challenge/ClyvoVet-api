@@ -48,7 +48,7 @@ a rodar apontando diretamente para os dois `.csproj`.
 
 | Item | Estado | Evidência | Fase |
 |---|---|---|---|
-| EF Core com **migrações** | 🔴 | Não existe pasta `Migrations`. Provider é **MySQL** (`Pomelo.EntityFrameworkCore.MySql 8.0.2`, `Program.cs:219-220`); o rubric diz **Oracle ou SQL Server**. A auditoria de 06/09 (§6) proibiu migrations aqui: o schema é da API Java (Flyway). | F7 — **bloqueada por [ADR-005](decisoes/ADR-005-banco-e-migrations.md)** |
+| EF Core com **migrações** | 🔴 | Não existe pasta `Migrations`. Provider é **MySQL** (`Pomelo.EntityFrameworkCore.MySql 8.0.2`, `Program.cs:219-220`); o rubric diz **Oracle ou SQL Server**, e em 20/09/2026 o professor liberou manter o MySQL. A auditoria de 06/09 (§6) proibiu migrations aqui porque o schema é da API Java (Flyway); a F7 as cria só para as `t_clyvo_*`. | F7 — **liberada ([ADR-005](decisoes/ADR-005-banco-e-migrations.md))** |
 | MongoDB | 🔴 | Zero ocorrências. | F4 |
 | Repository | 🟢 | 9 interfaces em `Repositories/Interfaces/` e 9 implementações concretas. | — |
 

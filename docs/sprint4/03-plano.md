@@ -29,7 +29,7 @@ Valem para toda tarefa de toda fase.
   listagem devolve **array JSON** por padrão.
 - Autorização: **sem `FallbackPolicy`**; chave JWT = `Convert.FromBase64String`; só
   `tipo = access`; `tutorId` nulo nega; recurso alheio = 404.
-- Não escrever em `animal`/`tutor`; **sem migrations EF** até a ADR-005.
+- Não escrever em `animal`/`tutor`; **migrations EF só na F7**, e só das `t_clyvo_*` (ADR-005).
 - Git: commit só após "sim", uma mudança lógica por commit, sem `--amend`/rebase/reset,
   push e deploy só sob pedido, mensagens sem linha de atribuição.
 
@@ -48,7 +48,7 @@ Valem para toda tarefa de toda fase.
 | # | Pré-requisito | Quem | Como |
 |---|---|---|---|
 | **P1** ✅ | **Runtime .NET 8** para rodar os testes de integração | **resolvido em 19/09/2026** | SDK 8 instalado localmente, ao lado do SDK 10 do sistema (detalhes do ambiente ficam no `CLAUDE.local.md` de cada pessoa). O SDK 8 não lê `.slnx`, então os testes rodam pelos `.csproj`. Linha de base: **256 / 256 verdes** (gap-analysis §0). |
-| **P2** | Resposta do professor sobre banco/migrations | dono do repo | Texto pronto em [ADR-005](decisoes/ADR-005-banco-e-migrations.md). Só bloqueia a F7. |
+| **P2** ✅ | Resposta do professor sobre banco/migrations | **resolvido em 20/09/2026** | O professor aceitou manter o MySQL, com migrations do EF ([ADR-005](decisoes/ADR-005-banco-e-migrations.md)). F7 liberada. |
 | **P3** | MongoDB hospedado (ex.: Atlas, camada gratuita) | dono do repo | **Opcional.** Só para ligar o Mongo em produção; o código funciona sem ele (design §7.2). |
 
 ---
@@ -316,16 +316,20 @@ geral registrado em `docs/sprint4/ensaio-geral.md`.
 
 ---
 
-## F7 — Migrations EF (condicional)
+## F7 — Migrations EF
 
-**Bloqueada por [ADR-005](decisoes/ADR-005-banco-e-migrations.md)** — só começa depois de
-**P2**. O conteúdo depende da resposta:
+**Liberada** em 20/09/2026: o professor aceitou manter o MySQL, com migrations do EF
+([ADR-005](decisoes/ADR-005-banco-e-migrations.md)). Caminho F7-A:
 
-- **MySQL aceito:** migration *baseline* só das `t_clyvo_*`, com `animal`/`tutor` fora das
-  migrations; script idempotente como entregável; provar em banco vazio.
-- **SQL Server ou Oracle exigidos:** **não é uma fase, é um redesenho** (o schema
-  compartilhado com a Java deixa de servir). Volta ao brainstorming, com spec própria,
-  antes de qualquer código.
+- migration *baseline* só das `t_clyvo_*`, com `animal`/`tutor` fora das migrations
+  (`ExcludeFromMigrations`);
+- script idempotente como entregável, provado em banco vazio;
+- no banco compartilhado, a migration inicial entra como *já aplicada* (as tabelas existem
+  via Flyway);
+- um teste que detecta divergência entre o modelo e as migrations.
+
+O caminho F7-B (Oracle/SQL Server) ficou descartado. As migrations moram na Infrastructure,
+junto do `AppDbContext`, então a F7 vem depois da T5 da F1.
 
 ---
 
@@ -334,7 +338,7 @@ geral registrado em `docs/sprint4/ensaio-geral.md`.
 ```
 P1 ──► F0 ──► F1 ──► F2 ──► F3 ──► F4 ──► F5 ──► F6
                                (F4 é independente de F2/F3)
-P2 ──► F7   (paralela às demais; não bloqueia F1–F6)
+F7   (liberada; depois da T5 da F1, fora isso paralela às demais)
 ```
 
 A F1 precede todas as outras porque **move todos os arquivos**: implementar qualquer feature

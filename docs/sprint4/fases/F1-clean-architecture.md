@@ -84,10 +84,13 @@ export DOTNET_ROOT="$HOME/.dotnet"
 - **Nunca** use `DOTNET_ROLL_FORWARD` para "fazer passar" (CLAUDE.md).
 - Se, ao alternar de SDK, o restore reclamar de `project.assets.json`, apague os `obj/` dos projetos e rode de novo.
 - `sed` do macOS é o BSD: use `sed -i ''`, **sem** `\b`. Os comandos deste plano já foram validados assim.
+- No zsh (o shell padrão do macOS), uma variável sem aspas **não** é separada em palavras. Por
+  isso a lista de arquivos vai por pipe para `xargs`, e não numa variável `$FILES` (que dava
+  `sed: File name too long`, com todos os caminhos grudados num só argumento).
 
 Auxiliar usado nas tarefas T3–T5. É idempotente (não duplica um `using` que já existe). **Funções de shell
 não sobrevivem entre chamadas de ferramenta**: cole esta definição no começo de *cada* comando que usar `add_using`
-(o mesmo vale para as variáveis `A`, `I`, `T`, `FILES` dos passos, que são redefinidas em cada bloco):
+(o mesmo vale para as variáveis `A`, `I`, `T` dos passos, que são redefinidas em cada bloco):
 
 ```bash
 add_using() { local ns="$1"; shift; for f in "$@"; do grep -q "^using $ns;" "$f" || sed -i '' "1i\\
@@ -495,12 +498,11 @@ git mv src/ClyvoVet.Api/Exceptions/*.cs src/ClyvoVet.Domain/Exceptions/
 - [ ] **Step 6: Trocar `namespace` e `using` em todo o código**
 
 ```bash
-FILES=$(grep -rlE 'ClyvoVet\.Api\.(Models|Enums|Exceptions)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj)
-sed -i '' -E \
+grep -rlE 'ClyvoVet\.Api\.(Models|Enums|Exceptions)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj \
+  | xargs sed -i '' -E \
   -e 's/ClyvoVet\.Api\.Models/ClyvoVet.Domain.Entities/g' \
   -e 's/ClyvoVet\.Api\.Enums/ClyvoVet.Domain.Enums/g' \
-  -e 's/ClyvoVet\.Api\.Exceptions/ClyvoVet.Domain.Exceptions/g' \
-  $FILES
+  -e 's/ClyvoVet\.Api\.Exceptions/ClyvoVet.Domain.Exceptions/g'
 ```
 
 Não toca em `ClyvoVet.Api.Tests.*` (o padrão é específico) nem em `ClyvoVet.Api.Errors`/`Filters`/…
@@ -771,13 +773,12 @@ sed -i '' -E 's/^namespace ClyvoVet\.Api\.Security;/namespace ClyvoVet.Applicati
 - [ ] **Step 7: `using` de todo o código**
 
 ```bash
-FILES=$(grep -rlE 'using ClyvoVet\.Api\.(DTOs|Repositories\.Interfaces|Services|Security)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj)
-sed -i '' -E \
+grep -rlE 'using ClyvoVet\.Api\.(DTOs|Repositories\.Interfaces|Services|Security)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj \
+  | xargs sed -i '' -E \
   -e 's/^using ClyvoVet\.Api\.DTOs/using ClyvoVet.Application.DTOs/' \
   -e 's/^using ClyvoVet\.Api\.Repositories\.Interfaces;/using ClyvoVet.Application.Abstractions.Repositories;/' \
   -e 's/^using ClyvoVet\.Api\.Services\.Interfaces;/using ClyvoVet.Application.Services.Interfaces;/' \
-  -e 's/^using ClyvoVet\.Api\.Security;/using ClyvoVet.Application.Security;/' \
-  $FILES
+  -e 's/^using ClyvoVet\.Api\.Security;/using ClyvoVet.Application.Security;/'
 
 # `using ClyvoVet.Api.Services;` é ambíguo (Application e Infrastructure moram nele hoje): por grupo.
 T=tests/ClyvoVet.Api.Tests.Unit
@@ -1178,11 +1179,10 @@ sed -i '' -E 's/^namespace ClyvoVet\.Api\.Services;/namespace ClyvoVet.Infrastru
 sed -i '' -E 's/^namespace ClyvoVet\.Api\.Services;/namespace ClyvoVet.Infrastructure.Background;/'  $I/Background/*.cs
 sed -i '' -E 's/^namespace ClyvoVet\.Api\.HealthChecks;/namespace ClyvoVet.Infrastructure.HealthChecks;/' $I/HealthChecks/*.cs
 
-FILES=$(grep -rlE 'using ClyvoVet\.Api\.(Data|Repositories)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj)
-sed -i '' -E \
+grep -rlE 'using ClyvoVet\.Api\.(Data|Repositories)' src tests --include='*.cs' --exclude-dir=bin --exclude-dir=obj \
+  | xargs sed -i '' -E \
   -e 's/^using ClyvoVet\.Api\.Data/using ClyvoVet.Infrastructure.Data/' \
-  -e 's/^using ClyvoVet\.Api\.Repositories;/using ClyvoVet.Infrastructure.Repositories;/' \
-  $FILES
+  -e 's/^using ClyvoVet\.Api\.Repositories;/using ClyvoVet.Infrastructure.Repositories;/'
 sed -i '' 's/^using ClyvoVet\.Api\.Services;/using ClyvoVet.Infrastructure.Background;/' tests/ClyvoVet.Api.Tests.Unit/LembreteNotificationServiceTests.cs
 
 # O SDK Web injetava estes; o classlib não (achado A3):

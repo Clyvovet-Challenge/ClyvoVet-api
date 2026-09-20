@@ -1,6 +1,6 @@
 # ADR-005 — Banco de dados e migrations do EF Core
 
-**Status:** ⏳ **aguardando o professor** · **Data:** 19/09/2026 · **Fase:** F7 (condicional)
+**Status:** ✅ **aceita** — o professor liberou o MySQL em 20/09/2026 · **Data:** 19/09/2026 · **Fase:** F7
 
 ## Contexto
 
@@ -42,13 +42,28 @@ Vale registrar, para o caso de resposta "Oracle": a auditoria já mostra que a A
 migrations tanto para MySQL **quanto** para Oracle (`db/migration/mysql` e
 `db/migration/oracle`), então o schema das `t_clyvo_*` já existe em Oracle do lado da Java.
 
+## Resolução (20/09/2026)
+
+A pergunta foi enviada ao professor pelo Teams, junto com o print do critério 3, nesta forma:
+
+> No critério 3 da Sprint 4 (Persistência de Dados) o senhor pede EF Core com migrações em
+> Oracle ou SQL Server.
+> Nós fizemos toda a Sprint 3 em MySQL, num banco compartilhado com a API Java do grupo.
+> Podemos manter o MySQL, com as migrations do EF, para esse item? Se não, o senhor prefere
+> Oracle ou SQL Server?
+
+A resposta veio no mesmo dia: *"Pode manter"* e *"Sem problemas"*. Como a pergunta já dizia
+"com as migrations do EF", vale o caminho **F7-A** (a linha "MySQL aceito" da tabela acima) e
+o F7-B fica descartado. A regra do `CLAUDE.md` passou de "nenhuma migration" para
+"migrations só na F7, e só das `t_clyvo_*`".
+
 ## Consequências
 
 - ➕ Nenhuma fase fica travada esperando a resposta.
 - ➕ Evita levar a F7 na direção errada (uma migration "de graça" no MySQL pode virar trabalho
   jogado fora se a exigência acabar sendo outra).
-- ➖ Enquanto o professor não responde, o item "EF Core com migrações" continua 🔴 no
-  gap-analysis, com risco de desconto parcial nesse item.
+- ➖ O item "EF Core com migrações" continua 🔴 no gap-analysis até a F7 entregar as
+  migrations; o MySQL deixou de ser um risco para ele com a resposta do professor.
 
 ## Alternativas descartadas
 

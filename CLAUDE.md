@@ -85,7 +85,9 @@ arquitetura está errada — não o teste.
 ## O que NÃO fazer (decisões já tomadas — cada uma tem motivo em `docs/`)
 
 - **Não escrever em `animal` nem `tutor`.** Esta API só lê; a Java é dona dessas tabelas.
-- **Não criar migrations EF** antes de fechar o ADR-005 (banco). Ver `docs/sprint4/decisoes/`.
+- **Migrations EF só na F7, e só das `t_clyvo_*`.** O professor liberou o MySQL com migrations
+  (20/09/2026, ADR-005). `animal` e `tutor` são da Java e ficam fora delas. Antes da F7,
+  nenhuma migration.
 - **Não usar `FallbackPolicy` global** de autorização: derrubaria `/health`, `/metrics`,
   `/swagger` e os webhooks, e health check quebrado tira a app de rotação no Render.
 - **JWT: a chave é o base64 *decodificado* do segredo** (`Convert.FromBase64String`), igual

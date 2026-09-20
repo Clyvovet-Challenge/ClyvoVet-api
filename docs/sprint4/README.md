@@ -22,7 +22,7 @@ Rubric de 100 pontos. **Este diretório é a fonte única de verdade sobre o tra
 | F4 | MongoDB (cache do parecer de IA) | ⬜ |
 | F5 | Observabilidade, testes e qualidade de código | ⬜ |
 | F6 | README final, diagrama, Swagger exportado e ensaio geral | ⬜ |
-| F7 | Migrations EF | ⛔ condicional — ADR-005 aguarda o professor |
+| F7 | Migrations EF (MySQL, só `t_clyvo_*`) | ⬜ liberada — o professor aceitou o MySQL (ADR-005) |
 
 Mantenha esta tabela atualizada no mesmo commit que encerra cada fase.
 
