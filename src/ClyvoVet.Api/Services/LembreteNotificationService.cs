@@ -1,7 +1,8 @@
+using ClyvoVet.Application.Abstractions.External;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
-using ClyvoVet.Api.Repositories.Interfaces;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Services.Interfaces;
 
 namespace ClyvoVet.Api.Services;
 

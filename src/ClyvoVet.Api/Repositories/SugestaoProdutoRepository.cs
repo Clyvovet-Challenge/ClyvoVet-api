@@ -1,6 +1,6 @@
 using ClyvoVet.Api.Data;
 using ClyvoVet.Domain.Entities;
-using ClyvoVet.Api.Repositories.Interfaces;
+using ClyvoVet.Application.Abstractions.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Api.Repositories;

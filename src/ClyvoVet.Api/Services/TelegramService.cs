@@ -1,5 +1,6 @@
+using ClyvoVet.Application.Abstractions.External;
 using ClyvoVet.Domain.Exceptions;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 

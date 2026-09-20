@@ -1,0 +1,16 @@
+using ClyvoVet.Domain.Enums;
+
+namespace ClyvoVet.Application.DTOs.Response;
+
+public class ProdutoResponse
+{
+    public string Id { get; set; } = null!;
+    public string Nome { get; set; } = null!;
+    public string? Descricao { get; set; }
+    public CategoriaEnum Categoria { get; set; }
+    public decimal? Preco { get; set; }
+    public EspecieEnum EspecieIndicada { get; set; }
+    public PorteEnum PorteIndicado { get; set; }
+    public bool Ativo { get; set; }
+    public DateTime CriadoEm { get; set; }
+}

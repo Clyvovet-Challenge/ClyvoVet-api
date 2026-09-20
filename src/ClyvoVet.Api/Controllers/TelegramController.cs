@@ -1,9 +1,10 @@
-using ClyvoVet.Api.Repositories.Interfaces;
-using ClyvoVet.Api.DTOs.Request;
-using ClyvoVet.Api.DTOs.Response;
+using ClyvoVet.Application.Abstractions.External;
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.DTOs.Request;
+using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Api.Filters;
-using ClyvoVet.Api.Security;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;

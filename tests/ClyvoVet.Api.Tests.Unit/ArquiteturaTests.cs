@@ -1,4 +1,5 @@
 using System.Reflection;
+using ClyvoVet.Application.Security;
 using ClyvoVet.Domain.Entities;
 
 namespace ClyvoVet.Api.Tests.Unit;
@@ -20,6 +21,7 @@ namespace ClyvoVet.Api.Tests.Unit;
 public class ArquiteturaTests
 {
     private static readonly Assembly AssemblyDoDomain = typeof(Animal).Assembly;
+    private static readonly Assembly AssemblyDaApplication = typeof(EscopoDoTutor).Assembly;
 
     private static IReadOnlyList<string> Referencias(Assembly assembly) =>
         assembly.GetReferencedAssemblies().Select(nome => nome.Name!).ToList();
@@ -39,5 +41,24 @@ public class ArquiteturaTests
     public void Domain_NaoReferenciaNenhumProjetoNemPacote()
     {
         NaoPodeReferenciar(AssemblyDoDomain, "ClyvoVet.", "Microsoft.");
+    }
+
+    [Fact]
+    public void Application_NaoReferenciaInfraestruturaNemFrameworkWeb()
+    {
+        NaoPodeReferenciar(
+            AssemblyDaApplication,
+            "Microsoft.EntityFrameworkCore", "MongoDB", "Telegram", "Microsoft.AspNetCore",
+            "ClyvoVet.Infrastructure", "ClyvoVet.Api");
+    }
+
+    /// <summary>
+    /// Sem este, a regra acima passaria mesmo que <c>GetReferencedAssemblies</c> devolvesse
+    /// sempre uma lista vazia — uma verificação que nunca falha não verifica nada.
+    /// </summary>
+    [Fact]
+    public void Application_UsaAbstracoesDoMicrosoftExtensions_ProvaQueAVerificacaoEnxergaReferencias()
+    {
+        Assert.Contains("Microsoft.Extensions.Logging.Abstractions", Referencias(AssemblyDaApplication));
     }
 }

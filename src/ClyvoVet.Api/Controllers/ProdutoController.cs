@@ -1,7 +1,7 @@
-using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;

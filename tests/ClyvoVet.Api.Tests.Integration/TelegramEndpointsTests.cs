@@ -1,10 +1,11 @@
+using ClyvoVet.Application.Abstractions.External;
 using System.Net;
 using System.Net.Http.Json;
 using ClyvoVet.Api.Data;
-using ClyvoVet.Api.DTOs.Request;
-using ClyvoVet.Api.DTOs.Response;
+using ClyvoVet.Application.DTOs.Request;
+using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Domain.Exceptions;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

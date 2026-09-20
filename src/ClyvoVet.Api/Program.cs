@@ -1,3 +1,7 @@
+using ClyvoVet.Api.Security;
+using ClyvoVet.Application;
+using ClyvoVet.Application.Abstractions.External;
+using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Api.Errors;
 using System.Reflection;
 using ClyvoVet.Api.Data;
@@ -6,10 +10,10 @@ using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;
 using ClyvoVet.Api.Repositories;
-using ClyvoVet.Api.Repositories.Interfaces;
+using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Api.Services;
-using ClyvoVet.Api.Services.Interfaces;
-using ClyvoVet.Api.Security;
+using ClyvoVet.Application.Services.Interfaces;
+using ClyvoVet.Application.Security;
 using ClyvoVet.Api.Swagger;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -155,11 +159,15 @@ builder.Services.AddSwaggerGen(options =>
     // Ordena as rotas pelo caminho relativo
     options.OrderActionsBy(api => $"{api.RelativePath}_{api.HttpMethod}");
 
-    // Inclui comentários XML gerados a partir dos /// dos controllers
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-        options.IncludeXmlComments(xmlPath);
+    // Um XML por projeto que tem documentação para o Swagger: os controllers estão na Api,
+    // e os DTOs — com o summary de cada campo — na Application. Sem o segundo, o Swagger
+    // continua respondendo 200 e a descrição dos campos some em silêncio.
+    foreach (var assembly in new[] { Assembly.GetExecutingAssembly(), typeof(ProdutoRequest).Assembly })
+    {
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, $"{assembly.GetName().Name}.xml");
+        if (File.Exists(xmlPath))
+            options.IncludeXmlComments(xmlPath);
+    }
 
     // Botão "Authorize" no Swagger — os endpoints principais (Produto, Lembrete,
     // EventoPet, SugestaoProduto) exigem o header X-Api-Key. O cadeado só aparece
@@ -229,12 +237,7 @@ builder.Services.AddScoped<ITutorTelegramRepository, TutorTelegramRepository>();
 builder.Services.AddScoped<IBaseDoencaRepository, BaseDoencaRepository>();
 builder.Services.AddScoped<IParecerIaRepository, ParecerIaRepository>();
 
-builder.Services.AddScoped<IProdutoService,         ProdutoService>();
-builder.Services.AddScoped<ISugestaoProdutoService, SugestaoProdutoService>();
-builder.Services.AddScoped<ILembreteService,        LembreteService>();
-builder.Services.AddScoped<IEventoPetService,       EventoPetService>();
-builder.Services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
-builder.Services.AddScoped<ISaudePreditivaService, SaudePreditivaService>();
+builder.Services.AddApplication();
 
 // OCI Generative AI via HttpClient tipado. Sem credencial no ambiente o
 // cliente nasce com Configurado=false e a saude preditiva responde pelas
@@ -247,20 +250,16 @@ builder.Services.AddHttpClient<IOciGenerativeAiClient, OciGenerativeAiClient>(cl
 // mesmo com valor invalido — ver o comentario da classe.
 builder.Services.AddSingleton<ValidadorDeTokenJwt>();
 
-// O EscopoDoTutor le a identidade da requisicao corrente, entao precisa do
-// acessor -- que NAO vinha registrado. Sem ele a resolucao falha no primeiro
-// request, e nao no startup: o app sobe verde e so quebra quando alguem chama.
+// Quem le a identidade da requisicao corrente e o UsuarioAtualHttp, entao ele
+// precisa do acessor -- que NAO vinha registrado. Sem ele a resolucao falha no
+// primeiro request, e nao no startup: o app sobe verde e so quebra quando alguem chama.
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<EscopoDoTutor>();
+builder.Services.AddScoped<IUsuarioAtual, UsuarioAtualHttp>();
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
 
-// Singleton, e nao Scoped: quem GERA o convite e uma requisicao HTTP, quem o CONSOME
-// e o BackgroundService do Telegram. Se cada um recebesse a sua instancia, todo link
-// nasceria ja invalido.
-builder.Services.AddSingleton<VinculosPendentesDeTelegram>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<TelegramLinkListenerService>();

@@ -1,7 +1,8 @@
+using ClyvoVet.Api.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ClyvoVet.Api.Security;
+using ClyvoVet.Application.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.Tokens;

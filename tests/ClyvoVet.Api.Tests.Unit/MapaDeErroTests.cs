@@ -1,6 +1,6 @@
 using ClyvoVet.Api.Errors;
 using ClyvoVet.Domain.Exceptions;
-using ClyvoVet.Api.Security;
+using ClyvoVet.Application.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 

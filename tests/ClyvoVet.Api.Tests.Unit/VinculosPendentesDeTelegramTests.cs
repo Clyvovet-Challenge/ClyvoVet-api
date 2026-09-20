@@ -1,4 +1,4 @@
-using ClyvoVet.Api.Security;
+using ClyvoVet.Application.Security;
 
 namespace ClyvoVet.Api.Tests.Unit;
 

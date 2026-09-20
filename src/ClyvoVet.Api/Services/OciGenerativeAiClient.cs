@@ -1,7 +1,8 @@
+using ClyvoVet.Application.Abstractions.External;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Services.Interfaces;
 
 namespace ClyvoVet.Api.Services;
 

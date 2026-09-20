@@ -1,9 +1,9 @@
-using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Domain.Entities;
-using ClyvoVet.Api.Repositories.Interfaces;
-using ClyvoVet.Api.Services;
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Services;
 using Moq;
 
 namespace ClyvoVet.Api.Tests.Unit;

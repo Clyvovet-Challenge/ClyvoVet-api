@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ClyvoVet.Api.Data;
-using ClyvoVet.Api.DTOs.Response;
+using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;

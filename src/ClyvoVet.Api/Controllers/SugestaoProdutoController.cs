@@ -1,8 +1,8 @@
-using ClyvoVet.Api.DTOs.Request;
+using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
-using ClyvoVet.Api.Security;
-using ClyvoVet.Api.Services.Interfaces;
+using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;

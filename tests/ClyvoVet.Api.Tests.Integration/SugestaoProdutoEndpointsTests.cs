@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using ClyvoVet.Api.DTOs.Request;
-using ClyvoVet.Api.DTOs.Response;
+using ClyvoVet.Application.DTOs.Request;
+using ClyvoVet.Application.DTOs.Response;
 
 namespace ClyvoVet.Api.Tests.Integration;
 

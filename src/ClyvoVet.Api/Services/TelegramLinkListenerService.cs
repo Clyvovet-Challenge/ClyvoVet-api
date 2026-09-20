@@ -1,5 +1,5 @@
-using ClyvoVet.Api.Repositories.Interfaces;
-using ClyvoVet.Api.Security;
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Security;
 using Telegram.Bot;
 
 namespace ClyvoVet.Api.Services;
