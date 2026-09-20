@@ -96,6 +96,16 @@ public static class DocumentacaoApiExtensions
                 Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
             });
             options.DocumentFilter<ApiKeySecurityDocumentFilter>();
+
+            // O access token vem do login da API Java; o Swagger só o repassa no header.
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Type         = SecuritySchemeType.Http,
+                Scheme       = "bearer",
+                BearerFormat = "JWT",
+                Description  = "Access token emitido pela API Java no login. Cole só o token: o Swagger acrescenta o prefixo Bearer."
+            });
+            options.DocumentFilter<BearerSecurityDocumentFilter>();
         });
 
         return services;

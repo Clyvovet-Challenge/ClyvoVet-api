@@ -67,6 +67,44 @@ public class SwaggerEndpointsTests
     }
 
     [Fact]
+    public async Task GetSwaggerJson_Documento_DeclaraOEsquemaBearer()
+    {
+        // Arrange
+        var resposta = await _client.GetAsync("/swagger/v1/swagger.json");
+        var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+
+        // Act
+        var bearer = documento.RootElement
+            .GetProperty("components").GetProperty("securitySchemes").GetProperty("Bearer");
+
+        // Assert
+        Assert.Equal("http", bearer.GetProperty("type").GetString());
+        Assert.Equal("bearer", bearer.GetProperty("scheme").GetString());
+        Assert.Equal("JWT", bearer.GetProperty("bearerFormat").GetString());
+    }
+
+    [Fact]
+    public async Task GetSwaggerJson_RotaComAuthorize_ExigeApiKeyEBearerJuntos()
+    {
+        // Arrange
+        var resposta = await _client.GetAsync("/swagger/v1/swagger.json");
+        var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        var paths = documento.RootElement.GetProperty("paths");
+
+        // Act
+        var requisito = paths.GetProperty("/api/v1/lembretes").GetProperty("get")
+            .GetProperty("security")[0];
+        var telegram = paths.GetProperty("/api/v1/telegram/enviar").GetProperty("post");
+
+        // Assert
+        // Um ÚNICO requisito com os dois esquemas é E (as duas credenciais); dois requisitos seriam OU.
+        Assert.True(requisito.TryGetProperty("ApiKey", out _));
+        Assert.True(requisito.TryGetProperty("Bearer", out _));
+        // O Telegram não tem [Authorize]: não ganha o cadeado do Bearer.
+        Assert.False(telegram.TryGetProperty("security", out var seguranca) && seguranca.ToString().Contains("Bearer"));
+    }
+
+    [Fact]
     public async Task GetSwaggerUi_ApiEmExecucao_RetornaOkComAPaginaHtml()
     {
         // Arrange & Act
