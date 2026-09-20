@@ -1,67 +1,21 @@
-using ClyvoVet.Api.Security;
-using ClyvoVet.Application;
-using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Api.Errors;
-using System.Reflection;
-using ClyvoVet.Domain.Exceptions;
-using ClyvoVet.Api.Filters;
+using ClyvoVet.Api.Extensions;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;
+using ClyvoVet.Api.Security;
+using ClyvoVet.Application;
 using ClyvoVet.Application.Security;
-using ClyvoVet.Api.Swagger;
+using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.OpenApi;                      // OpenApiInfo, OpenApiContact (Microsoft.OpenApi 2.x)
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
-using Swashbuckle.AspNetCore.SwaggerUI;       // DocExpansion
-
-const string ServiceName = "ClyvoVet.Api";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração estática (em vez do padrão bootstrap-logger/ReloadableLogger): evita o erro
-// "the logger is already frozen" quando o host é construído mais de uma vez no mesmo
-// processo, como acontece com WebApplicationFactory nos testes de integração.
-const string TemplateLog =
-    "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}";
-
-var configuracaoLog = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .Enrich.WithMachineName()
-    .Enrich.WithProperty("Application", ServiceName)
-    .WriteTo.Console(outputTemplate: TemplateLog);
-
-// SINK DE ARQUIVO SO EM DESENVOLVIMENTO
-// O requisito da disciplina pede "saida para console/arquivo". O console atende a
-// leitura natural ("console ou arquivo"), mas o arquivo existir no codigo tira a
-// duvida -- e da o que demonstrar rodando local, que e onde ele serve para algo.
-//
-// Fora de Development ele nao entra, e o motivo e concreto: no App Service o
-// caminho e efemero e por instancia. Cada replica escreveria o seu proprio
-// arquivo, ninguem os agrega, e o conteudo some no proximo restart -- seria a
-// unica dependencia de armazenamento local em qualquer das duas APIs. Lá quem
-// captura o log e o console, via "Log stream" e Application Insights.
-//
-// O ambiente de teste e "Testing" (IntegrationTestFixture), entao a suite tambem
-// nao escreve arquivo -- 113 testes nao deixam rastro em disco.
-if (builder.Environment.IsDevelopment())
-{
-    configuracaoLog.WriteTo.File(
-        path: "Logs/clyvovet-api-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate: TemplateLog);
-}
-
-Log.Logger = configuracaoLog.CreateLogger();
-
-builder.Host.UseSerilog();
+// Serilog e OpenTelemetry — os comentários do porquê estão em Extensions/ObservabilidadeExtensions.cs.
+builder.AddObservabilidade();
 
 // CORS ESPELHANDO O DESENHO DA API JAVA
 // Nao afeta o app nativo, que nao faz CORS -- afeta o Expo web, se ele for
@@ -87,95 +41,17 @@ builder.Services.AddCors(options =>
         .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title   = "🐾 Clyvo Vet API",
-        Version = "v1",
-        Description = """
-            API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + MySQL).
-
-            ---
-
-            ### Recursos gerenciados por esta API
-
-            | Recurso | Rota base | Tabela |
-            |---------|-----------|---------------|
-            | Produtos | `/api/v1/produtos` | `t_clyvo_produto` |
-            | Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |
-            | Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |
-            | Sugestões de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
-
-            ### Tabelas da API Java (somente consulta)
-
-            | Tabela | Finalidade |
-            |--------|-----------|
-            | `animal` | Validação de `animalId` nas FKs |
-            | `tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
-
-            > Nesta entrega (Sprint 3 — DevOps Tools & Cloud Computing), o banco é um Azure Database
-            > for MySQL Flexible Server **compartilhado com a API Java** — as tabelas `tutor` e `animal`
-            > seguem o schema definido pelas migrations Flyway do time de Java.
-
-            ---
-
-            **Banco de dados:** Azure Database for MySQL Flexible Server
-            """,
-        Contact = new OpenApiContact
-        {
-            Name  = "Clyvo Vet — Equipe .NET",
-            Email = "rm562312@fiap.com.br"
-        }
-    });
-
-    // Agrupa por controller com nomes amigáveis
-    options.TagActionsBy(api =>
-        api.ActionDescriptor.RouteValues["controller"] switch
-        {
-            "Produto"         => ["Produtos"],
-            "Lembrete"        => ["Lembretes"],
-            "EventoPet"       => ["Eventos Pet"],
-            "SugestaoProduto" => ["Sugestões de Produto"],
-            "WidgetSaudePreditiva" => ["Widget de Saúde Preditiva"],
-            "SaudePreditiva"  => ["Saúde Preditiva (IA)"],
-            "Telegram"        => ["Telegram"],
-            var other         => [other ?? "Outros"]
-        });
-
-    // Descrições por grupo de tag
-    options.DocumentFilter<TagDescriptionsDocumentFilter>();
-
-    // Ordena as rotas pelo caminho relativo
-    options.OrderActionsBy(api => $"{api.RelativePath}_{api.HttpMethod}");
-
-    // Um XML por projeto que tem documentação para o Swagger: os controllers estão na Api,
-    // e os DTOs — com o summary de cada campo — na Application. Sem o segundo, o Swagger
-    // continua respondendo 200 e a descrição dos campos some em silêncio.
-    foreach (var assembly in new[] { Assembly.GetExecutingAssembly(), typeof(ProdutoRequest).Assembly })
-    {
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, $"{assembly.GetName().Name}.xml");
-        if (File.Exists(xmlPath))
-            options.IncludeXmlComments(xmlPath);
-    }
-
-    // Botão "Authorize" no Swagger — os endpoints principais (Produto, Lembrete,
-    // EventoPet, SugestaoProduto) exigem o header X-Api-Key. O cadeado só aparece
-    // nesses endpoints (ver ApiKeySecurityOperationFilter) — Widget não exige
-    // chave, e WhatsApp/Telegram exigem chaves próprias e diferentes desta.
-    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
-    {
-        Name        = "X-Api-Key",
-        Type        = SecuritySchemeType.ApiKey,
-        In          = ParameterLocation.Header,
-        Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
-    });
-    options.DocumentFilter<ApiKeySecurityDocumentFilter>();
-});
+builder.Services.AddDocumentacaoApi();
 
 builder.Services.AddApplication();
+
+// "self" cobre liveness. Os checks de dependência (banco e Telegram) vêm da Infrastructure,
+// junto de quem os implementa, e são registrados DEPOIS deste: a ordem do JSON de /health
+// continua sendo a de sempre — self, mysql-database, telegram-bot.
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"]);
+
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 
 // Validacao do token emitido pela API Java. Singleton porque a chave e montada
 // uma vez; INERTE enquanto Jwt:Secret nao existir, e incapaz de lancar no boot
@@ -188,28 +64,6 @@ builder.Services.AddSingleton<ValidadorDeTokenJwt>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioAtual, UsuarioAtualHttp>();
 
-// "self" cobre liveness. Os checks de dependência (banco e Telegram) vêm da Infrastructure,
-// junto de quem os implementa, e são registrados DEPOIS deste: a ordem do JSON de /health
-// continua sendo a de sempre — self, mysql-database, telegram-bot.
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy("API em execução."), tags: ["live"]);
-
-builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
-
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(
-        serviceName: ServiceName,
-        serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddEntityFrameworkCoreInstrumentation()
-        .AddConsoleExporter())
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddPrometheusExporter());
-
 var app = builder.Build();
 
 // CorrelationIdMiddleware precisa envolver o UseSerilogRequestLogging: o log de conclusão da
@@ -217,20 +71,7 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 
-// Swagger sempre ativo — professor pode testar sem cliente HTTP externo
-app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Clyvo Vet API v1");
-    options.RoutePrefix               = "swagger";
-    options.DocumentTitle             = "Clyvo Vet — API de Gestão Veterinária";
-    options.DefaultModelsExpandDepth(-1);            // oculta seção Schemas por padrão
-    options.DocExpansion(DocExpansion.List);          // lista endpoints recolhidos
-    options.DisplayRequestDuration();                 // exibe tempo de resposta em cada chamada
-    options.EnableFilter();                           // caixa de busca/filtro de rotas
-    options.EnableDeepLinking();                      // URLs navegáveis por endpoint (bookmark)
-    options.EnableTryItOutByDefault();                // "Try it out" já aberto por padrão
-});
+app.UseDocumentacaoApi();
 
 app.UseExceptionHandler(errorApp =>
 {

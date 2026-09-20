@@ -1,0 +1,70 @@
+using System.Reflection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+
+namespace ClyvoVet.Api.Extensions;
+
+public static class ObservabilidadeExtensions
+{
+    private const string NomeDoServico = "ClyvoVet.Api";
+
+    public static WebApplicationBuilder AddObservabilidade(this WebApplicationBuilder builder)
+    {
+        // Configuração estática (em vez do padrão bootstrap-logger/ReloadableLogger): evita o erro
+        // "the logger is already frozen" quando o host é construído mais de uma vez no mesmo
+        // processo, como acontece com WebApplicationFactory nos testes de integração.
+        const string TemplateLog =
+            "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}";
+
+        var configuracaoLog = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .Enrich.FromLogContext()
+            .Enrich.WithMachineName()
+            .Enrich.WithProperty("Application", NomeDoServico)
+            .WriteTo.Console(outputTemplate: TemplateLog);
+
+        // SINK DE ARQUIVO SO EM DESENVOLVIMENTO
+        // O requisito da disciplina pede "saida para console/arquivo". O console atende a
+        // leitura natural ("console ou arquivo"), mas o arquivo existir no codigo tira a
+        // duvida -- e da o que demonstrar rodando local, que e onde ele serve para algo.
+        //
+        // Fora de Development ele nao entra, e o motivo e concreto: no App Service o
+        // caminho e efemero e por instancia. Cada replica escreveria o seu proprio
+        // arquivo, ninguem os agrega, e o conteudo some no proximo restart -- seria a
+        // unica dependencia de armazenamento local em qualquer das duas APIs. Lá quem
+        // captura o log e o console, via "Log stream" e Application Insights.
+        //
+        // O ambiente de teste e "Testing" (IntegrationTestFixture), entao a suite tambem
+        // nao escreve arquivo -- 113 testes nao deixam rastro em disco.
+        if (builder.Environment.IsDevelopment())
+        {
+            configuracaoLog.WriteTo.File(
+                path: "Logs/clyvovet-api-.log",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                outputTemplate: TemplateLog);
+        }
+
+        Log.Logger = configuracaoLog.CreateLogger();
+
+        builder.Host.UseSerilog();
+
+        builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService(
+                serviceName: NomeDoServico,
+                serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddEntityFrameworkCoreInstrumentation()
+                .AddConsoleExporter())
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddPrometheusExporter());
+
+        return builder;
+    }
+}
