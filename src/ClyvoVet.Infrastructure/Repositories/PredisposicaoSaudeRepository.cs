@@ -1,0 +1,24 @@
+using ClyvoVet.Infrastructure.Data;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Entities;
+using ClyvoVet.Application.Abstractions.Repositories;
+using Microsoft.EntityFrameworkCore;
+
+namespace ClyvoVet.Infrastructure.Repositories;
+
+public class PredisposicaoSaudeRepository : IPredisposicaoSaudeRepository
+{
+    private readonly AppDbContext _context;
+
+    public PredisposicaoSaudeRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IEnumerable<PredisposicaoSaude>> GetByEspecieAsync(EspecieEnum especie)
+    {
+        return await _context.PredisposicoesSaude
+            .Where(p => p.Especie == especie)
+            .ToListAsync();
+    }
+}

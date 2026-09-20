@@ -1,4 +1,4 @@
-using ClyvoVet.Api.Data;
+using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;

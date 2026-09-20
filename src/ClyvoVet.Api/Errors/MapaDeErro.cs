@@ -1,7 +1,6 @@
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Application.Security;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Api.Errors;
 
@@ -26,10 +25,11 @@ public static class MapaDeErro
         // O recorte esta ligado e a requisicao nao identifica um tutor.
         // 403 e nao 401: a X-Api-Key foi aceita, o que falta e IDENTIDADE.
         SemTutorNoTokenException => StatusCodes.Status403Forbidden,
-        // Chave estrangeira barrando: o registro esta em uso por outro. E regra
-        // de negocio funcionando, nao falha -- a API Java responde 409 na mesma
-        // situacao, e o app ja sabe ler esse status.
-        DbUpdateException => StatusCodes.Status409Conflict,
+        // Chave estrangeira barrando: o registro esta em uso por outro. A excecao
+        // vem do AppDbContext, que traduz a falha do EF. E regra de negocio
+        // funcionando, nao falha -- a API Java responde 409 na mesma situacao, e
+        // o app ja sabe ler esse status.
+        RegistroEmUsoException => StatusCodes.Status409Conflict,
         _ => StatusCodes.Status500InternalServerError
     };
 
@@ -39,9 +39,10 @@ public static class MapaDeErro
         NotFoundException e => e.Message,
         BadRequestException e => e.Message,
         SemTutorNoTokenException e => e.Message,
-        // A mensagem do EF cita tabela e constraint -- detalhe de banco que nao
-        // ajuda quem le a tela e que expoe o schema.
-        DbUpdateException => "Registro em uso por outro cadastro.",
+        // A mensagem e fixa na propria excecao. O texto do EF cita tabela e
+        // constraint -- detalhe de banco que nao ajuda quem le a tela e que expoe
+        // o schema --, entao ele fica so na excecao interna e no log.
+        RegistroEmUsoException e => e.Message,
         _ => "Erro interno no servidor."
     };
 

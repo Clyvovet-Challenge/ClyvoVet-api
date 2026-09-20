@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\ClyvoVet.Api\ClyvoVet.Api.csproj" />
     <ProjectReference Include="..\..\src\ClyvoVet.Domain\ClyvoVet.Domain.csproj" />
     <ProjectReference Include="..\..\src\ClyvoVet.Application\ClyvoVet.Application.csproj" />
+    <ProjectReference Include="..\..\src\ClyvoVet.Infrastructure\ClyvoVet.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

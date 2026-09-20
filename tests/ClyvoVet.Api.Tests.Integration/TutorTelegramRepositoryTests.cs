@@ -1,5 +1,5 @@
-using ClyvoVet.Api.Data;
-using ClyvoVet.Api.Repositories;
+using ClyvoVet.Infrastructure.Data;
+using ClyvoVet.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Api.Tests.Integration;

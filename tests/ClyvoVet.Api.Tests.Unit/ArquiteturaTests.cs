@@ -1,6 +1,8 @@
 using System.Reflection;
+using ClyvoVet.Api.Errors;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Domain.Entities;
+using ClyvoVet.Infrastructure.Data;
 
 namespace ClyvoVet.Api.Tests.Unit;
 
@@ -22,6 +24,8 @@ public class ArquiteturaTests
 {
     private static readonly Assembly AssemblyDoDomain = typeof(Animal).Assembly;
     private static readonly Assembly AssemblyDaApplication = typeof(EscopoDoTutor).Assembly;
+    private static readonly Assembly AssemblyDaInfrastructure = typeof(AppDbContext).Assembly;
+    private static readonly Assembly AssemblyDaApi = typeof(MapaDeErro).Assembly;
 
     private static IReadOnlyList<string> Referencias(Assembly assembly) =>
         assembly.GetReferencedAssemblies().Select(nome => nome.Name!).ToList();
@@ -60,5 +64,31 @@ public class ArquiteturaTests
     public void Application_UsaAbstracoesDoMicrosoftExtensions_ProvaQueAVerificacaoEnxergaReferencias()
     {
         Assert.Contains("Microsoft.Extensions.Logging.Abstractions", Referencias(AssemblyDaApplication));
+    }
+
+    [Fact]
+    public void Infrastructure_NaoReferenciaMvcNemApi()
+    {
+        NaoPodeReferenciar(AssemblyDaInfrastructure, "Microsoft.AspNetCore.Mvc", "ClyvoVet.Api");
+    }
+
+    [Fact]
+    public void Infrastructure_UsaEntityFramework_ProvaQueAVerificacaoEnxergaReferencias()
+    {
+        Assert.Contains(
+            Referencias(AssemblyDaInfrastructure),
+            nome => nome.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Api_NaoReferenciaEntityFrameworkNemMongo()
+    {
+        NaoPodeReferenciar(AssemblyDaApi, "Microsoft.EntityFrameworkCore", "MongoDB");
+    }
+
+    [Fact]
+    public void Api_UsaApplication_ProvaQueAVerificacaoEnxergaReferencias()
+    {
+        Assert.Contains("ClyvoVet.Application", Referencias(AssemblyDaApi));
     }
 }

@@ -1,4 +1,4 @@
-using ClyvoVet.Api.Repositories;
+using ClyvoVet.Infrastructure.Repositories;
 
 namespace ClyvoVet.Api.Tests.Unit;
 

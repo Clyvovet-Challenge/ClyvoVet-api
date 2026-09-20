@@ -2,7 +2,7 @@ using ClyvoVet.Application.Abstractions.External;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
-using ClyvoVet.Api.Services;
+using ClyvoVet.Infrastructure.Background;
 using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;

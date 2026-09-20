@@ -2,7 +2,6 @@ using ClyvoVet.Api.Errors;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Application.Security;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Api.Tests.Unit;
 
@@ -29,7 +28,7 @@ public class MapaDeErroTests
     [Fact]
     public void FalhaDeChaveEstrangeira_Vira409()
     {
-        var excecao = new DbUpdateException("FK violation", (Exception?)null);
+        var excecao = new RegistroEmUsoException();
 
         Assert.Equal(StatusCodes.Status409Conflict, MapaDeErro.Status(excecao));
     }
@@ -43,10 +42,9 @@ public class MapaDeErroTests
     [Fact]
     public void FalhaDeChaveEstrangeira_NaoVazaOSchemaNaMensagem()
     {
-        var excecao = new DbUpdateException(
+        var excecao = new RegistroEmUsoException(new InvalidOperationException(
             "The DELETE statement conflicted with the REFERENCE constraint "
-                + "\"fk_sugestao_produto\" on table \"t_clyvo_sugestao_produto\".",
-            (Exception?)null);
+                + "\"fk_sugestao_produto\" on table \"t_clyvo_sugestao_produto\"."));
 
         var mensagem = MapaDeErro.Mensagem(excecao);
 
