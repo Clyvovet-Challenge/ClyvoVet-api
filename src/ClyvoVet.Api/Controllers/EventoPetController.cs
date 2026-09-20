@@ -2,6 +2,8 @@ using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Services.Interfaces;
+using ClyvoVet.Api.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;
@@ -13,6 +15,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/eventos-pet")]
 [Produces("application/json")]
+[Authorize(Policy = PoliticasDeAcesso.Autenticado)]
 [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
 public class EventoPetController : ControllerBase
 {

@@ -23,7 +23,7 @@ public class ProdutoEndpointsTests
     {
         // Arrange — client "cru" do TestServer, sem passar pelo ConfigureClient
         // da fixture (que injeta o X-Api-Key automaticamente pros outros testes).
-        var clientSemApiKey = _fixture.Server.CreateClient();
+        var clientSemApiKey = _fixture.CreateClientComBearer();
 
         // Act
         var response = await clientSemApiKey.GetAsync("/api/v1/produtos");
@@ -36,7 +36,7 @@ public class ProdutoEndpointsTests
     public async Task GetAll_ApiKeyErrada_RetornaUnauthorized()
     {
         // Arrange
-        var clientComApiKeyErrada = _fixture.Server.CreateClient();
+        var clientComApiKeyErrada = _fixture.CreateClientComBearer();
         clientComApiKeyErrada.DefaultRequestHeaders.Add("X-Api-Key", "chave-errada");
 
         // Act

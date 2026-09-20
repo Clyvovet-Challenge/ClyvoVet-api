@@ -22,7 +22,7 @@ public class LembreteEndpointsTests
     public async Task GetAll_SemApiKey_RetornaUnauthorized()
     {
         // Arrange
-        var clientSemApiKey = _fixture.Server.CreateClient();
+        var clientSemApiKey = _fixture.CreateClientComBearer();
 
         // Act
         var response = await clientSemApiKey.GetAsync("/api/v1/lembretes");
@@ -35,7 +35,7 @@ public class LembreteEndpointsTests
     public async Task GetAll_ApiKeyErrada_RetornaUnauthorized()
     {
         // Arrange
-        var clientComApiKeyErrada = _fixture.Server.CreateClient();
+        var clientComApiKeyErrada = _fixture.CreateClientComBearer();
         clientComApiKeyErrada.DefaultRequestHeaders.Add("X-Api-Key", "chave-errada");
 
         // Act

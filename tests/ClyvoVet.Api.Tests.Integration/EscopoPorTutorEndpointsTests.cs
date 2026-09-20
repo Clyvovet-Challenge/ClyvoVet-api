@@ -1,7 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Claims;
 using System.Text.Json;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Enums;
@@ -11,7 +9,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 
 namespace ClyvoVet.Api.Tests.Integration;
 
@@ -19,18 +16,14 @@ namespace ClyvoVet.Api.Tests.Integration;
 /// O recorte por dono, <b>ligado</b>.
 ///
 /// <para>
-/// Os outros 69 testes de integração rodam com <c>Api:EscopoPorTutor</c>
-/// desligado e sem mandar <c>Authorization</c> — e continuarem verdes é
-/// justamente a prova de que, desligada, a camada não muda nada. Esta classe sobe
-/// uma instância própria com a flag ligada para provar o outro lado, sem duplicar
-/// a suíte inteira.
+/// Os demais testes de integração rodam com <c>Api:EscopoPorTutor</c> desligado e com um Bearer
+/// de ADMIN (sem tutor) — e continuarem verdes é justamente a prova de que, desligada, a camada
+/// não muda nada. Esta classe sobe uma instância própria com a flag ligada para provar o outro
+/// lado, sem duplicar a suíte inteira.
 /// </para>
 /// </summary>
 public class EscopoLigadoFixture : WebApplicationFactory<Program>
 {
-    /// <summary>O mesmo segredo de teste da API Java.</summary>
-    private const string Segredo = "dGVzdGUtY2x5dm92ZXQtY2hhdmUtaG1hYy1zaGEyNTYtcGFyYS10ZXN0ZXM=";
-
     private readonly string _banco = $"EscopoTestDb-{Guid.NewGuid()}";
 
     public string TutorA { get; private set; } = null!;
@@ -48,7 +41,7 @@ public class EscopoLigadoFixture : WebApplicationFactory<Program>
             configuracao.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Api:EscopoPorTutor"] = "true",
-                ["Jwt:Secret"] = Segredo,
+                ["Jwt:Secret"] = TokensDeTeste.Segredo,
             }));
 
         builder.ConfigureServices(services =>
@@ -138,30 +131,6 @@ public class EscopoLigadoFixture : WebApplicationFactory<Program>
         base.ConfigureClient(client);
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
     }
-
-    /// <summary>Um access token como o que a API Java emite.</summary>
-    public static string Token(string? tutorId, string perfil = "TUTOR")
-    {
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
-            new("perfil", perfil),
-            new("tipo", "access"),
-        };
-        if (tutorId is not null) claims.Add(new Claim("tutorId", tutorId));
-
-        var token = new JwtSecurityToken(
-            issuer: "clyvovet-api-java",
-            audience: "clyvovet",
-            claims: claims,
-            notBefore: DateTime.UtcNow.AddMinutes(-1),
-            expires: DateTime.UtcNow.AddMinutes(15),
-            signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Convert.FromBase64String(Segredo)),
-                SecurityAlgorithms.HmacSha256));
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
 }
 
 public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
@@ -173,7 +142,7 @@ public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
     private HttpClient ClienteDe(string? tutorId, string perfil = "TUTOR")
     {
         var cliente = _fixture.CreateClient();
-        cliente.DefaultRequestHeaders.Add("Authorization", "Bearer " + EscopoLigadoFixture.Token(tutorId, perfil));
+        cliente.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access(tutorId, perfil));
         return cliente;
     }
 
@@ -185,19 +154,18 @@ public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
     // ================================================================
 
     [Fact]
-    public async Task GetAll_ComEscopoLigadoESemToken_RetornaForbidden()
+    public async Task GetAll_ComEscopoLigadoESemToken_RetornaUnauthorized()
     {
         // Arrange
-        // Só a X-Api-Key, que é o que o app manda hoje.
+        // Só a X-Api-Key, sem Bearer.
         var cliente = _fixture.CreateClient();
 
         // Act
         var resposta = await cliente.GetAsync("/api/v1/lembretes");
 
         // Assert
-        // 403 e não 200-sem-filtro. O idioma preguiçoso de "filtro opcional"
-        // devolveria a base inteira exatamente aqui.
-        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+        // Sem Bearer o 401 do JWT chega antes do escopo (ADR-003). O 403 sem token continua provado, com a alavanca desligada, em AlavancaDesligadaTests.
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
     }
 
     [Fact]
@@ -364,7 +332,7 @@ public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
     }
 
     [Fact]
-    public async Task GetAllSugestoes_SemToken_RetornaForbidden()
+    public async Task GetAllSugestoes_SemToken_RetornaUnauthorized()
     {
         // Arrange
         var cliente = _fixture.CreateClient();
@@ -373,7 +341,8 @@ public class EscopoPorTutorEndpointsTests : IClassFixture<EscopoLigadoFixture>
         var resposta = await cliente.GetAsync("/api/v1/sugestoes-produto");
 
         // Assert
-        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+        // Sem Bearer o 401 do JWT chega antes do escopo (ADR-003). O 403 sem token continua provado, com a alavanca desligada, em AlavancaDesligadaTests.
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
     }
 
     [Fact]

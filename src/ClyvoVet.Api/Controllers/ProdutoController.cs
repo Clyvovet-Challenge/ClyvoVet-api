@@ -2,6 +2,8 @@ using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Services.Interfaces;
+using ClyvoVet.Api.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;
@@ -13,6 +15,7 @@ namespace ClyvoVet.Api.Controllers;
 [ApiController]
 [Route("api/v1/produtos")]
 [Produces("application/json")]
+[Authorize(Policy = PoliticasDeAcesso.Autenticado)]
 [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
 public class ProdutoController : ControllerBase
 {
@@ -78,6 +81,7 @@ public class ProdutoController : ControllerBase
     /// O <c>id</c> é gerado pela API, e não pelo banco: o MySQL não tem RETURNING,
     /// então depender de um DEFAULT exigiria ler a linha de volta.
     /// </summary>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -89,6 +93,7 @@ public class ProdutoController : ControllerBase
 
     /// <summary>Atualiza um produto existente.</summary>
     /// <param name="id">UUID do produto a atualizar.</param>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -101,6 +106,7 @@ public class ProdutoController : ControllerBase
 
     /// <summary>Remove um produto pelo ID.</summary>
     /// <param name="id">UUID do produto a remover.</param>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -4,6 +4,7 @@ using ClyvoVet.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClyvoVet.Api.Tests.Integration;
@@ -27,6 +28,13 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
 
+        // O JwtBearer valida com este segredo; sem ele nenhum token dos testes confere.
+        builder.ConfigureAppConfiguration((_, configuracao) =>
+            configuracao.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Secret"] = TokensDeTeste.Segredo,
+            }));
+
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
@@ -42,12 +50,26 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
         });
     }
 
-    // Os controllers principais (Produto, Lembrete, EventoPet, SugestaoProduto) agora
-    // exigem X-Api-Key — injeta o header aqui pra não precisar editar cada teste.
+    /// <summary>
+    /// Cliente "cru" (sem a <c>X-Api-Key</c>) que traz só o Bearer — para provar que o 401 de uma
+    /// chave errada vem do filtro da chave, e não do JWT, que roda antes dele.
+    /// </summary>
+    public HttpClient CreateClientComBearer(string perfil = "ADMIN")
+    {
+        var cliente = Server.CreateClient();
+        cliente.DefaultRequestHeaders.Add(
+            "Authorization",
+            "Bearer " + TokensDeTeste.Access(tutorId: perfil == "TUTOR" ? TutorId : null, perfil: perfil));
+        return cliente;
+    }
+
+    // Os controllers principais exigem X-Api-Key E Bearer — injeta os dois aqui pra não editar cada
+    // teste. ADMIN: sem tutorId, sem restrição de perfil, e o escopo por tutor fica desligado.
     protected override void ConfigureClient(HttpClient client)
     {
         base.ConfigureClient(client);
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access(tutorId: null, perfil: "ADMIN"));
     }
 
     private void Seed(AppDbContext db)
