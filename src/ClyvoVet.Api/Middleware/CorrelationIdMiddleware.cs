@@ -12,6 +12,13 @@ public class CorrelationIdMiddleware
     private const string HeaderName = "X-Correlation-Id";
     private const int MaxLength = 64;
 
+    /// <summary>
+    /// Chave em <see cref="HttpContext.Items"/> com o id da requisição. O header sozinho não basta:
+    /// o <c>ExceptionHandlerMiddleware</c> limpa os headers da resposta antes de chamar o tratador,
+    /// então quem precisa do id numa falha (o <c>TratadorGlobalDeExcecoes</c>) lê daqui.
+    /// </summary>
+    public const string ChaveDoItem = "clyvovet:correlation-id";
+
     private readonly RequestDelegate _next;
 
     public CorrelationIdMiddleware(RequestDelegate next)
@@ -26,6 +33,7 @@ public class CorrelationIdMiddleware
             : context.TraceIdentifier;
 
         context.Response.Headers[HeaderName] = correlationId;
+        context.Items[ChaveDoItem] = correlationId;
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {

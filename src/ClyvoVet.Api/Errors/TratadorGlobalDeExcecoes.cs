@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Middleware;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -22,10 +23,16 @@ public class TratadorGlobalDeExcecoes(
         var status = MapaDeErro.Status(excecao);
         var mensagem = MapaDeErro.Mensagem(excecao);
 
-        // O mesmo id que o CorrelationIdMiddleware já colocou no header e que o Serilog imprime em
-        // cada linha desta requisição.
-        var correlationId = contexto.Response.Headers[HeaderCorrelationId].ToString();
+        // O mesmo id que o CorrelationIdMiddleware colocou no header e que o Serilog imprime em cada
+        // linha desta requisição. Vem de Items e não do header da resposta: o ExceptionHandlerMiddleware
+        // limpa os headers antes de chamar este tratador, então lá o id já não existe (foi o que
+        // deixou a `referencia` sempre ausente, sem que nenhum teste de unidade percebesse).
+        var correlationId = contexto.Items[CorrelationIdMiddleware.ChaveDoItem] as string;
         var referencia = MapaDeErro.Referencia(excecao, correlationId);
+
+        // O header some junto com a limpeza; devolvê-lo mantém o que o CORS já expõe para o app.
+        if (!string.IsNullOrWhiteSpace(correlationId))
+            contexto.Response.Headers[HeaderCorrelationId] = correlationId;
 
         Registrar(contexto, excecao, mensagem);
 

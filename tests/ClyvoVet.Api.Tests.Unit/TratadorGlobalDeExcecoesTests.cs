@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ClyvoVet.Api.Errors;
 using ClyvoVet.Api.Extensions;
+using ClyvoVet.Api.Middleware;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -29,7 +30,9 @@ public class TratadorGlobalDeExcecoesTests
     {
         var contexto = new DefaultHttpContext { RequestServices = servicos, TraceIdentifier = "trace-de-teste" };
         contexto.Response.Body = new MemoryStream();
-        contexto.Response.Headers["X-Correlation-Id"] = "corr-123";
+        // Como o CorrelationIdMiddleware faz. O header da resposta NÃO entra aqui de propósito: no
+        // pipeline real ele já foi limpo quando o tratador roda, e simulá-lo presente escondia o bug.
+        contexto.Items[CorrelationIdMiddleware.ChaveDoItem] = "corr-123";
         if (accept is not null) contexto.Request.Headers.Accept = accept;
         return contexto;
     }
@@ -83,6 +86,22 @@ public class TratadorGlobalDeExcecoesTests
         // O mesmo id que já viaja no header e que o Serilog imprime em toda linha da requisição.
         Assert.Equal("corr-123", corpo.GetProperty("referencia").GetString());
         Assert.Equal("trace-de-teste", corpo.GetProperty("traceId").GetString());
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_Excecao_DevolveOHeaderDeCorrelacaoNaResposta()
+    {
+        // Arrange
+        var (tratador, _, servicos) = Criar();
+        var contexto = Contexto(servicos);
+
+        // Act
+        await tratador.TryHandleAsync(contexto, new InvalidOperationException("banco fora do ar"), CancellationToken.None);
+
+        // Assert
+        // O pipeline limpou o header antes de chamar o tratador; sem devolvê-lo, o app não teria como
+        // cruzar a resposta de erro com a linha do log.
+        Assert.Equal("corr-123", contexto.Response.Headers["X-Correlation-Id"].ToString());
     }
 
     [Fact]
