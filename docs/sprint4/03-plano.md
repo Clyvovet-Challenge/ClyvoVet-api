@@ -168,28 +168,28 @@ sobe e `GET /health/live` responde 200 + `git diff --stat -M` mostra os arquivos
 **Objetivo:** autenticação/autorização padrão do ASP.NET e tratador global de exceções.
 **Spec:** design §6.1, §6.2. **Decisão:** ADR-003.
 
-- [ ] **T1 — Prova de compatibilidade.** Adicionar `Microsoft.AspNetCore.Authentication.JwtBearer
+- [x] **T1 — Prova de compatibilidade.** Adicionar `Microsoft.AspNetCore.Authentication.JwtBearer
       8.0.11` e rodar os testes de token que já existem
       (`ValidadorDeTokenJwtTests`, `EscopoPorTutorEndpointsTests`). Se falhar por conflito
       com `IdentityModel 8.3.1`, fixar a versão exigida e registrar na ADR-003. **Nada de
       refatoração antes disto passar.**
-- [ ] **T2 — `AddAutenticacaoJwt`** (teste primeiro, `AutenticacaoJwtTests`): token válido →
+- [x] **T2 — `AddAutenticacaoJwt`** (teste primeiro, `AutenticacaoJwtTests`): token válido →
       200; sem token → 401; `tipo=refresh` → 401; expirado → 401; chave errada → 401;
       perfil `TUTOR` em rota `Equipe` → 403. Chaves `Jwt:Secret`, `Jwt:Emissor`,
       `Jwt:Publico` (emissor/público com os valores hoje fixos no `ValidadorDeTokenJwt`),
       `Auth:ExigirToken` (padrão `true`).
-- [ ] **T3 — `IUsuarioAtual` sobre `HttpContext.User`**; remover `IdentidadeMiddleware` e
+- [x] **T3 — `IUsuarioAtual` sobre `HttpContext.User`**; remover `IdentidadeMiddleware` e
       `ValidadorDeTokenJwt`; migrar `ValidadorDeTokenJwtTests` para os testes novos sem
       perder nenhum caso (incluindo `ChaveDerivaDoBase64`).
-- [ ] **T4 — `[Authorize]`** conforme design §6.2. **Confirmar com o app** se ele escreve
+- [x] **T4 — `[Authorize]`** conforme design §6.2. **Confirmar com o app** se ele escreve
       produto (se sim, `Produto` cai para `Autenticado`). Testes: `/health*`, `/metrics`,
       `/swagger` → 200 **sem token**; rotas protegidas → 401 sem token; `Auth:ExigirToken=false`
       → 200 sem token.
-- [ ] **T5 — Swagger:** esquema `Bearer` ao lado do `ApiKey`.
-- [ ] **T6 — `TratadorGlobalDeExcecoes` + `ProblemDetails`** (teste primeiro): mesmos
+- [x] **T5 — Swagger:** esquema `Bearer` ao lado do `ApiKey`.
+- [x] **T6 — `TratadorGlobalDeExcecoes` + `ProblemDetails`** (teste primeiro): mesmos
       status de hoje (404/400/403/409/500); corpo com `error`, e `referencia` só no 500;
       `MapaDeErroTests` verdes.
-- [ ] **T7 — Docs:** ADR-003 → *Implementada*; seção "Autenticação" no README; atualizar o
+- [x] **T7 — Docs:** ADR-003 → *Implementada*; seção "Autenticação" no README; atualizar o
       comentário do `csproj` que justificava não usar `JwtBearer`; **checklist de deploy**
       (definir `Jwt__Secret` — mesmo valor da Java — no Render *antes* do deploy).
 

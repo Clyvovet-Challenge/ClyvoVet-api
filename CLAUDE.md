@@ -31,7 +31,7 @@ dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swa
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (F1 fechada, 20/09/2026): **176 unidade + 96 integração = 272, todos verdes.**
+- Linha de base (F2 fechada, 20/09/2026): **182 unidade + 142 integração = 324, todos verdes.**
 - Segredos locais: `dotnet user-secrets` (o projeto já tem `UserSecretsId`). Em produção,
   variáveis de ambiente do Render. **Nunca** credencial em arquivo versionado.
 
@@ -57,7 +57,7 @@ arquitetura está errada — não o teste.
 - **Idioma:** nomes de domínio, comentários e mensagens em português (como no código atual).
   Infraestrutura e termos técnicos ficam em inglês (`Repository`, `Handler`, `Middleware`).
 - **Comentários explicam o porquê**, não o quê. O código atual tem bons exemplos
-  (`Paginacao.cs`, `IdentidadeMiddleware.cs`): siga esse padrão, sem inflar.
+  (`Paginacao.cs`, `ChaveDoJwt.cs`): siga esse padrão, sem inflar.
 - **Testes:** xUnit, padrão **AAA** (Arrange/Act/Assert), nome `Metodo_Cenario_Resultado`.
   Bug corrigido = teste de regressão junto.
 - **Rotas:** `/api/v1/<recurso-no-plural>`; sem verbos na URL.

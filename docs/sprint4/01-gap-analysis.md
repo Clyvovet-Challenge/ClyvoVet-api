@@ -31,18 +31,18 @@ a rodar apontando diretamente para os dois `.csproj`.
 | Clean Architecture com camadas | 🟢 | 4 projetos em `src/` (Domain, Application, Infrastructure, Api) e os de teste em `tests/`, com as regras de dependência checadas por `ArquiteturaTests`. Fechada na F1 (commits `c66c7f0`, `1e65926`, `c24cd5c`, `f0bdfb0`). | F1 ✅ |
 | SOLID / Clean Code | 🟡 | Interface por serviço e por repositório; controllers finos. O `Program.cs` foi de 411 para 158 linhas na F1 (Serilog, OpenTelemetry e Swagger viraram extensões; banco, repositórios e health de dependência foram para `AddInfrastructure`). Falta a revisão e a evidência documentada dos princípios. | F5 |
 | Injeção de dependência | 🟢 | Tudo registrado por interface, agora dentro de `AddApplication` e `AddInfrastructure`; o `Program.cs` só as chama. | F1 ✅ |
-| Exceções globais | 🟡 | Existe e é testado (`Errors/MapaDeErro.cs`), mas o handler ainda é um lambda de 40 linhas no `Program.cs`. O vazamento do EF foi corrigido na F1: o `AppDbContext` traduz `DbUpdateException` em `RegistroEmUsoException`, e o `MapaDeErro` não conhece mais o EF. | F2 |
+| Exceções globais | 🟢 | `Errors/TratadorGlobalDeExcecoes.cs` (`IExceptionHandler` + `ProblemDetails`); a decisão de status e mensagem continua no `MapaDeErro` (testado), e o corpo mantém `error` e, em falha de servidor, `referencia`. O vazamento do EF foi corrigido na F1: o `AppDbContext` traduz `DbUpdateException` em `RegistroEmUsoException`. A `referencia` só passou a chegar de fato ao app com a correção que guarda o id em `HttpContext.Items` (a limpeza de headers do pipeline a escondia). Fechada na F2 (commits `522cba3`, `f09b620`). | F2 ✅ |
 
 ## 2. API RESTful — 20 pts
 
 | Item | Estado | Evidência | Fase |
 |---|---|---|---|
-| Swagger/OpenAPI | 🟢 | `Program.cs:96-176`, XML comments, filtros de tag e de chave. Falta o esquema Bearer. | F2 |
+| Swagger/OpenAPI | 🟢 | XML comments, filtros de tag e de chave, e o esquema `Bearer` ao lado da `ApiKey` (`Swagger/BearerSecurityDocumentFilter.cs`, F2, commit `642d97f`). | F2 ✅ |
 | Paginação | 🟡 | `Repositories/Paginacao.cs` (à prova de estouro). **Sem total**: as listagens devolvem `IEnumerable<T>` (`ILembreteService.GetAllAsync`), então não há como montar `last`. | F3 |
 | Ordenação | 🔴 | Controllers só recebem `page`, `pageSize` e filtros (ex.: `LembreteController.GetAll`). A ordem é um `OrderBy` fixo em cada repositório. | F3 |
 | Filtros | 🟢 | `animalId`, `status`, `tipo` (lembretes); há filtros equivalentes nos outros recursos. | — |
 | HATEOAS | 🔴 | Zero ocorrências de `_links`/`HATEOAS` no código. | F3 |
-| JWT / Identity | 🟡 | `Security/ValidadorDeTokenJwt.cs` + `Middleware/IdentidadeMiddleware.cs` **leem** o token da API Java, mas o middleware é "inerte" (não rejeita nada) e não há `AddAuthentication` nem `[Authorize]`. Quem protege as rotas hoje é a `X-Api-Key` (`[TypeFilter(typeof(ApiKeyFilterAttribute))]`). | F2 |
+| JWT / Identity | 🟢 | `AddJwtBearer` + políticas `Autenticado` e `Equipe` (`Extensions/AutenticacaoJwtExtensions.cs`), `[Authorize]` nas rotas de negócio e **sem** `FallbackPolicy`; só access token vale. Provado por `AutenticacaoJwtTests` e `AutorizacaoEndpointsTests`. Fechada na F2 (commits `5109fcc`, `27ccd97`, `afc5587`; ver ADR-003). | F2 ✅ |
 
 ## 3. Persistência — 20 pts
 

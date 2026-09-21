@@ -33,10 +33,10 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 
-    <!-- Mantem o grafo do Microsoft.IdentityModel em 8.3.1: o JwtBearer 8.0.11 declara
-         7.1.2 nos pacotes Protocols e Protocols.OpenIdConnect, e o resto do grafo
-         (Tokens, JsonWebTokens, Logging) fica em 8.3.1. Convivem em execucao — a
-         prova e o AutenticacaoJwtTests. -->
+    <!-- Fixa a cadeia do Microsoft.IdentityModel em 8.3.1. O JwtBearer 8.0.11 (usado em
+         AutenticacaoJwtExtensions) traz Protocols.OpenIdConnect 7.1.2; com esta referencia direta o
+         restante do grafo (Tokens, JsonWebTokens, Jwt) resolve em 8.3.1, e a convivencia foi provada
+         em execucao (ADR-003, F2). Os testes tambem montam tokens com o JwtSecurityTokenHandler daqui. -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
   </ItemGroup>
 

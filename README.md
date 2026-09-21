@@ -749,27 +749,51 @@ builder.Property(p => p.Id)
 ## Documentação das Rotas
 
 > **Base path:** `/api/v1/`  
-> Toda resposta de endpoint vem em `application/json`.
+> Toda resposta de endpoint vem em `application/json`; as respostas de **erro** vêm em `application/problem+json`, com o campo `error` (e, em falha de servidor, `referencia`).
 
 ### 🔐 Autenticação
 
-Os endpoints principais (`/produtos`, `/lembretes`, `/eventos-pet`, `/sugestoes-produto`) exigem o header `X-Api-Key` — sem ele, ou com valor incorreto, a API responde `401 Unauthorized`.
+Os endpoints de negócio exigem **duas credenciais**: `Authorization: Bearer <access token>` (emitido pela API Java no login) **e** o header `X-Api-Key`. Sem o Bearer a resposta é `401 Unauthorized`; com um perfil sem permissão, `403 Forbidden`. A `X-Api-Key` ausente ou errada também devolve `401`.
+
+| Endpoints | Quem acessa |
+|---|---|
+| Lembretes, Eventos Pet, Sugestões de Produto, Saúde Preditiva, Widget, `GET` de Produtos | qualquer usuário autenticado |
+| `POST`/`PUT`/`DELETE` de Produtos | `ADMIN` ou `VETERINARIO` |
+| Telegram | chaves próprias (`Api:ApiKey` / `Telegram:ApiKey`), como antes |
+| `/health*`, `/metrics`, `/swagger` | anônimos |
+
+Só o **access token** vale: o *refresh token* (7 dias) é recusado.
+
+| Variável de ambiente | Para quê |
+|---|---|
+| `Jwt__Secret` | o **mesmo** valor de `JWT_SECRET` da API Java (base64; a chave é o valor *decodificado*) |
+| `Jwt__Emissor`, `Jwt__Publico` | opcionais; padrões `clyvovet-api-java` e `clyvovet` |
+| `Auth__ExigirToken` | `false` desliga a exigência do Bearer (alavanca de emergência); padrão `true` |
 
 ```bash
 dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
+dotnet user-secrets set "Jwt:Secret" "O_MESMO_JWT_SECRET_DA_API_JAVA"
 ```
 
 ```bash
-curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
+curl http://localhost:5191/api/v1/lembretes \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI"
 ```
 
-No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a chave uma única vez — a partir daí ela é aplicada automaticamente em toda chamada feita por ali.
+No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a `X-Api-Key` e o token do esquema `Bearer` (só o token: o Swagger acrescenta o prefixo) uma única vez — a partir daí ambos são aplicados automaticamente em toda chamada feita por ali.
 
 > O **envio** do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`), porque manda mensagem para qualquer `chatId`. As ações de **vínculo** do tutor (`link`, `vinculo`) usam esta `Api:ApiKey` — detalhes na seção correspondente, mais abaixo.
 
-#### Esta API não tem usuário nem perfil
+#### Checklist de deploy (Render)
 
-Procurando as **credenciais de teste do tutor, do veterinário ou do admin**? Elas não existem aqui. Esta API se autentica por **chave de serviço**, não por pessoa: quem chama é o app, e a chave é a mesma para todo mundo. Não há login, não há JWT, não há papel — e por isso também não há o que separar por perfil nas respostas.
+1. Defina `Jwt__Secret` no serviço **antes** do deploy, com o mesmo valor do `JWT_SECRET` da API Java. Sem ele a aplicação sobe, registra um `Warning` e **todas as rotas protegidas respondem 401**.
+2. Confirme nos logs da subida que **não** há a mensagem "Jwt:Secret não configurado".
+3. Teste `GET /health/live` (200) e uma rota protegida sem token (401) e com token (200).
+4. Rollback rápido, sem redeploy: `Auth__ExigirToken=false`.
+
+#### Quem faz o login: a API Java
+
+Procurando as **credenciais de teste do tutor, do veterinário ou do admin**? Elas não existem aqui. Esta API **não emite** token nem tem tela de login: ela **valida** o access token que a API Java emite (o mesmo `Jwt__Secret` nos dois lados) e lê dele o perfil e o tutor. Para chamar as rotas protegidas, faça login na API Java e use o access token da resposta.
 
 Os quatro perfis (`TUTOR`, `VETERINARIO`, `ADMIN_CLINICA`, `ADMIN`) vivem na **API Java**, que é a dona do cadastro, das sessões e das autorizações. As contas de desenvolvimento estão documentadas lá:
 
