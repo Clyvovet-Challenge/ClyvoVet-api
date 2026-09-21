@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using ClyvoVet.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -95,19 +97,20 @@ public class AutorizacaoEndpointsTests
     }
 
     [Fact]
-    public async Task Health_SemToken_NaoExigeAutenticacao()
+    public void Health_Completo_NaoTemAutorizacaoNoEndpoint()
     {
         // Arrange
-        var cliente = _fixture.Server.CreateClient();
+        var endpoints = _fixture.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>();
 
         // Act
-        var resposta = await cliente.GetAsync("/health");
+        var health = endpoints.Single(e => e.RoutePattern.RawText == "/health");
 
         // Assert
-        // Em teste o check do Telegram chama a Bot API com token falso e o /health completo vira 503
-        // (A8). O que importa aqui é que a rota é anônima.
-        Assert.NotEqual(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.NotEqual(HttpStatusCode.Forbidden, resposta.StatusCode);
+        // Não executa o check: o do Telegram chama a Bot API de verdade (A8), e com a rede lenta uma
+        // chamada aqui prendia a suíte por até ~100 s. Que a rota é anônima é o que importa; que
+        // nenhuma política global a derruba já é provado por /health/live e /health/ready
+        // respondendo 200 sem token.
+        Assert.Empty(health.Metadata.OfType<IAuthorizeData>());
     }
 }
 
