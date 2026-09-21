@@ -1,13 +1,10 @@
-using ClyvoVet.Api.Errors;
 using ClyvoVet.Api.Extensions;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;
 using ClyvoVet.Api.Security;
 using ClyvoVet.Application;
 using ClyvoVet.Application.Security;
-using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Infrastructure;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
@@ -41,6 +38,7 @@ builder.Services.AddCors(options =>
         .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddControllers();
+builder.Services.AddTratamentoDeExcecoes();
 builder.Services.AddDocumentacaoApi();
 
 builder.Services.AddApplication();
@@ -71,50 +69,8 @@ app.UseSerilogRequestLogging();
 
 app.UseDocumentacaoApi();
 
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-
-        context.Response.ContentType = "application/json";
-
-        // A decisao vive em MapaDeErro, fora deste lambda, para poder ser
-        // testada: o caso do 409 depende de chave estrangeira real, e os testes
-        // de integracao rodam em InMemory, que nao aplica FK.
-        context.Response.StatusCode = MapaDeErro.Status(exception);
-
-        var message = MapaDeErro.Mensagem(exception);
-
-        // O mesmo id que o CorrelationIdMiddleware já colocou no header e que o
-        // Serilog imprime em cada linha desta requisição.
-        var correlationId = context.Response.Headers["X-Correlation-Id"].ToString();
-        var referencia = MapaDeErro.Referencia(exception, correlationId);
-
-        switch (exception)
-        {
-            case NotFoundException or BadRequestException or SemTutorNoTokenException:
-                Log.Warning("Requisição inválida em {Path}: {Message}", context.Request.Path, message);
-                break;
-            default:
-                Log.Error(exception, "Erro não tratado em {Path}", context.Request.Path);
-                break;
-        }
-
-        // `error` continua onde estava: é o que o aplicativo lê hoje, e mexer
-        // nele quebraria a tela sem ganho nenhum. `referencia` entra ao lado, e
-        // só existe quando é falha de servidor — é o campo que permite ao
-        // usuário dizer QUAL erro aconteceu, com o mesmo nome que a API Java usa.
-        if (referencia is null)
-        {
-            await context.Response.WriteAsJsonAsync(new { error = message });
-        }
-        else
-        {
-            await context.Response.WriteAsJsonAsync(new { error = message, referencia });
-        }
-    });
-});
+// A decisão de status e mensagem vive no MapaDeErro; o tratador só escreve a resposta.
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
