@@ -1,7 +1,9 @@
+using System.Linq.Expressions;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Infrastructure.Repositories;
@@ -15,7 +17,27 @@ public class LembreteRepository : ILembreteRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Lembrete>> GetAllAsync(int page, int pageSize, string? animalId, TipoLembreteEnum? tipo, StatusLembreteEnum? status, string? tutorId = null)
+    /// <summary>
+    /// Os campos aceitos em <c>ordenarPor</c> (camelCase, sem distinguir caixa). Acompanha os campos
+    /// escalares do <c>LembreteResponse</c> — o <c>CamposOrdenaveisTests</c> trava isso.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, Expression<Func<Lembrete, object?>>> CamposOrdenaveis =
+        new Dictionary<string, Expression<Func<Lembrete, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["animalId"] = l => l.AnimalId,
+            ["nomeAnimal"] = l => l.Animal.Nome,
+            ["titulo"] = l => l.Titulo,
+            ["descricao"] = l => l.Descricao,
+            ["tipo"] = l => l.Tipo,
+            ["agendadoEm"] = l => l.AgendadoEm,
+            ["recorrente"] = l => l.Recorrente,
+            ["intervaloDias"] = l => l.IntervaloDias,
+            ["repetirAte"] = l => l.RepetirAte,
+            ["status"] = l => l.Status,
+            ["criadoEm"] = l => l.CriadoEm,
+        };
+
+    public async Task<PaginaDeResultados<Lembrete>> GetAllAsync(ConsultaPaginada consulta, string? animalId, TipoLembreteEnum? tipo, StatusLembreteEnum? status, string? tutorId = null)
     {
         var query = _context.Lembretes
             .Include(l => l.Animal)
@@ -37,10 +59,15 @@ public class LembreteRepository : ILembreteRepository
         if (status.HasValue)
             query = query.Where(l => l.Status == status.Value);
 
-        var consulta = query
-            .OrderBy(l => l.AgendadoEm);
+        // O total conta a consulta JÁ filtrada (inclusive pelo recorte de dono) e ANTES do recorte
+        // de página: é ele que permite montar o link `last` e o X-Total-Count.
+        var total = await query.CountAsync();
 
-        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
+        var ordenada = Ordenacao.Aplicar(query, consulta, CamposOrdenaveis,
+            q => q.OrderBy(l => l.AgendadoEm), l => l.Id);
+
+        var itens = await Paginacao.Aplicar(ordenada, consulta.Page, consulta.PageSize).ToListAsync();
+        return new PaginaDeResultados<Lembrete>(itens, total, consulta.Page, consulta.PageSize);
     }
 
     public async Task<Lembrete?> GetByIdAsync(string id)

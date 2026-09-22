@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
@@ -53,12 +54,18 @@ public class LembreteController : ControllerBase
             throw new NotFoundException($"Lembrete {id} nao encontrado.");
     }
 
-    /// <summary>Lista lembretes com paginação e filtros opcionais.</summary>
+    /// <summary>Lista lembretes com paginação, ordenação e filtros opcionais.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="animalId">Filtra pelo UUID do animal.</param>
     /// <param name="status">Filtro: <c>Pendente | Enviado | Cancelado</c></param>
     /// <param name="tipo">Filtro: <c>Vacina | Medicamento | Consulta | Higiene | Outro</c></param>
+    /// <param name="ordenarPor">
+    /// Campo de ordenação (camelCase): <c>animalId | nomeAnimal | titulo | descricao | tipo | agendadoEm |
+    /// recorrente | intervaloDias | repetirAte | status | criadoEm</c>. Omitido, mantém a ordem de sempre
+    /// (<c>agendadoEm</c>). Campo fora da lista responde 400.
+    /// </param>
+    /// <param name="direcao"><c>asc</c> (padrão) ou <c>desc</c>. Ignorada sem <c>ordenarPor</c>.</param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -67,12 +74,11 @@ public class LembreteController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? animalId = null,
         [FromQuery] StatusLembreteEnum? status = null,
-        [FromQuery] TipoLembreteEnum? tipo = null)
+        [FromQuery] TipoLembreteEnum? tipo = null,
+        [FromQuery] string? ordenarPor = null,
+        [FromQuery] string? direcao = null)
     {
-        if (page < 1)
-            return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
-        if (pageSize < 1 || pageSize > 100)
-            return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+        var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
         // FiltroDeListagem() devolve null quando o recorte esta desligado (sem
         // filtro, comportamento de sempre) e LANCA quando esta ligado sem tutor no
@@ -80,8 +86,8 @@ public class LembreteController : ControllerBase
         // recorte ligado -- que seria justamente o bug de "filtro opcional"
         // devolvendo a base inteira para ADMIN, VETERINARIO e para quem so mandou
         // a X-Api-Key.
-        var result = await _service.GetAllAsync(page, pageSize, animalId, status, tipo, _escopo.FiltroDeListagem());
-        return Ok(result);
+        var pagina = await _service.GetAllAsync(consulta, animalId, status, tipo, _escopo.FiltroDeListagem());
+        return this.RespostaDeListagem(pagina);
     }
 
     /// <summary>Retorna um lembrete pelo ID (UUID).</summary>

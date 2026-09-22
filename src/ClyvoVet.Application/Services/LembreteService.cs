@@ -20,10 +20,10 @@ public class LembreteService : ILembreteService
         _animalRepository = animalRepository;
     }
 
-    public async Task<IEnumerable<LembreteResponse>> GetAllAsync(int page, int pageSize, string? animalId, StatusLembreteEnum? status, TipoLembreteEnum? tipo, string? tutorId = null)
+    public async Task<PaginaDeResultados<LembreteResponse>> GetAllAsync(ConsultaPaginada consulta, string? animalId, StatusLembreteEnum? status, TipoLembreteEnum? tipo, string? tutorId = null)
     {
-        var lembretes = await _repository.GetAllAsync(page, pageSize, animalId, tipo, status, tutorId);
-        return lembretes.Select(MapToResponse);
+        var pagina = await _repository.GetAllAsync(consulta, animalId, tipo, status, tutorId);
+        return pagina.Mapear(MapToResponse);
     }
 
     public async Task<LembreteResponse> GetByIdAsync(string id)

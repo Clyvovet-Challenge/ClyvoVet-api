@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
@@ -108,26 +109,27 @@ public class LembreteServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_RepositorioRetornaLembretes_RetornaListaMapeada()
+    public async Task GetAllAsync_RepositorioRetornaLembretes_RetornaPaginaMapeadaComOTotal()
     {
         // Arrange
         var lembretes = new List<Lembrete>
         {
             new() { Id = "1", AnimalId = "animal-1", Titulo = "Vacina Antirrábica", Tipo = TipoLembreteEnum.Vacina, Status = StatusLembreteEnum.Pendente }
         };
+        var consulta = new ConsultaPaginada(1, 10);
         _repositoryMock
-            // O ultimo argumento e o recorte por tutor. Arvore de expressao nao
-            // aceita argumento opcional, entao ele vai explicito: null = sem recorte,
-            // que e o comportamento com Api:EscopoPorTutor desligado.
-            .Setup(r => r.GetAllAsync(1, 10, "animal-1", TipoLembreteEnum.Vacina, StatusLembreteEnum.Pendente, null))
-            .ReturnsAsync(lembretes);
+            // O último argumento é o recorte por tutor. Árvore de expressão não aceita argumento
+            // opcional, então ele vai explícito: null = sem recorte (Api:EscopoPorTutor desligado).
+            .Setup(r => r.GetAllAsync(consulta, "animal-1", TipoLembreteEnum.Vacina, StatusLembreteEnum.Pendente, null))
+            .ReturnsAsync(new PaginaDeResultados<Lembrete>(lembretes, 37, 1, 10));
 
         // Act
-        var result = await _service.GetAllAsync(1, 10, "animal-1", StatusLembreteEnum.Pendente, TipoLembreteEnum.Vacina);
+        var result = await _service.GetAllAsync(consulta, "animal-1", StatusLembreteEnum.Pendente, TipoLembreteEnum.Vacina);
 
         // Assert
-        var item = Assert.Single(result);
+        var item = Assert.Single(result.Itens);
         Assert.Equal("Vacina Antirrábica", item.Titulo);
+        Assert.Equal(37, result.Total);
     }
 
     [Fact]
