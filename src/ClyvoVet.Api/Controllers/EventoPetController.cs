@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
@@ -23,12 +24,18 @@ public class EventoPetController : ControllerBase
 
     public EventoPetController(IEventoPetService service) => _service = service;
 
-    /// <summary>Lista eventos pet com paginação e filtros opcionais.</summary>
+    /// <summary>Lista eventos pet com paginação, ordenação e filtros opcionais.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="cidade">Filtro por cidade (case-insensitive).</param>
     /// <param name="tipo">Filtro: <c>Vacinacao | Feira | Castracao | Workshop | Outro</c></param>
     /// <param name="especieAlvo">Filtro: <c>Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino</c></param>
+    /// <param name="ordenarPor">
+    /// Campo de ordenação (camelCase): <c>titulo | descricao | tipo | rua | numero | bairro | cidade | estado |
+    /// cep | dataInicio | dataFim | especieAlvo | organizador | gratuito | linkInscricao | ativo | criadoEm</c>.
+    /// Omitido, mantém a ordem de sempre (<c>dataInicio</c>). Campo fora da lista responde 400.
+    /// </param>
+    /// <param name="direcao"><c>asc</c> (padrão) ou <c>desc</c>. Ignorada sem <c>ordenarPor</c>.</param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -37,15 +44,14 @@ public class EventoPetController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? cidade = null,
         [FromQuery] TipoEventoPetEnum? tipo = null,
-        [FromQuery] EspecieEnum? especieAlvo = null)
+        [FromQuery] EspecieEnum? especieAlvo = null,
+        [FromQuery] string? ordenarPor = null,
+        [FromQuery] string? direcao = null)
     {
-        if (page < 1)
-            return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
-        if (pageSize < 1 || pageSize > 100)
-            return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+        var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
-        var result = await _service.GetAllAsync(page, pageSize, cidade, tipo, especieAlvo);
-        return Ok(result);
+        var pagina = await _service.GetAllAsync(consulta, cidade, tipo, especieAlvo);
+        return this.RespostaDeListagem(pagina);
     }
 
     /// <summary>Retorna um evento pet pelo ID (UUID).</summary>

@@ -1,7 +1,9 @@
+using System.Linq.Expressions;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClyvoVet.Infrastructure.Repositories;
@@ -15,7 +17,33 @@ public class EventoPetRepository : IEventoPetRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<EventoPet>> GetAllAsync(int page, int pageSize, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
+    /// <summary>
+    /// Os campos aceitos em <c>ordenarPor</c> (camelCase, sem distinguir caixa). Acompanha os campos
+    /// escalares do <c>EventoPetResponse</c> — o <c>CamposOrdenaveisTests</c> trava isso.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, Expression<Func<EventoPet, object?>>> CamposOrdenaveis =
+        new Dictionary<string, Expression<Func<EventoPet, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["titulo"] = e => e.Titulo,
+            ["descricao"] = e => e.Descricao,
+            ["tipo"] = e => e.Tipo,
+            ["rua"] = e => e.Rua,
+            ["numero"] = e => e.Numero,
+            ["bairro"] = e => e.Bairro,
+            ["cidade"] = e => e.Cidade,
+            ["estado"] = e => e.Estado,
+            ["cep"] = e => e.Cep,
+            ["dataInicio"] = e => e.DataInicio,
+            ["dataFim"] = e => e.DataFim,
+            ["especieAlvo"] = e => e.EspecieAlvo,
+            ["organizador"] = e => e.Organizador,
+            ["gratuito"] = e => e.Gratuito,
+            ["linkInscricao"] = e => e.LinkInscricao,
+            ["ativo"] = e => e.Ativo,
+            ["criadoEm"] = e => e.CriadoEm,
+        };
+
+    public async Task<PaginaDeResultados<EventoPet>> GetAllAsync(ConsultaPaginada consulta, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
     {
         var query = _context.EventosPet.AsQueryable();
 
@@ -28,10 +56,13 @@ public class EventoPetRepository : IEventoPetRepository
         if (especieAlvo.HasValue)
             query = query.Where(e => e.EspecieAlvo == especieAlvo.Value);
 
-        var consulta = query
-            .OrderBy(e => e.DataInicio);
+        var total = await query.CountAsync();
 
-        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
+        var ordenada = Ordenacao.Aplicar(query, consulta, CamposOrdenaveis,
+            q => q.OrderBy(e => e.DataInicio), e => e.Id);
+
+        var itens = await Paginacao.Aplicar(ordenada, consulta.Page, consulta.PageSize).ToListAsync();
+        return new PaginaDeResultados<EventoPet>(itens, total, consulta.Page, consulta.PageSize);
     }
 
     public async Task<EventoPet?> GetByIdAsync(string id)

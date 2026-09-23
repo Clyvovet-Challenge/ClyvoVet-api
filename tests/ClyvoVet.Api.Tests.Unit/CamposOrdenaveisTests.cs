@@ -50,4 +50,15 @@ public class CamposOrdenaveisTests
         using var db = ContextoMysql();
         TodosGeramOrderBy(db.Lembretes.Include(l => l.Animal), LembreteRepository.CamposOrdenaveis);
     }
+
+    [Fact]
+    public void EventoPet_CamposOrdenaveis_SaoOsCamposEscalaresDoDto() =>
+        BatemComOsCamposDoDto<EventoPetResponse>(EventoPetRepository.CamposOrdenaveis.Keys);
+
+    [Fact]
+    public void EventoPet_CamposOrdenaveis_TraduzemParaOrderByNoMysql()
+    {
+        using var db = ContextoMysql();
+        TodosGeramOrderBy(db.EventosPet, EventoPetRepository.CamposOrdenaveis);
+    }
 }

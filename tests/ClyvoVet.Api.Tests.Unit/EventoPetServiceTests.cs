@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
@@ -19,7 +20,7 @@ public class EventoPetServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_RepositorioRetornaEventos_RetornaListaMapeada()
+    public async Task GetAllAsync_RepositorioRetornaEventos_RetornaPaginaMapeadaComOTotal()
     {
         // Arrange
         var eventos = new List<EventoPet>
@@ -33,16 +34,18 @@ public class EventoPetServiceTests
                 EspecieAlvo = EspecieEnum.Todos
             }
         };
+        var consulta = new ConsultaPaginada(1, 10);
         _repositoryMock
-            .Setup(r => r.GetAllAsync(1, 10, null, null, null))
-            .ReturnsAsync(eventos);
+            .Setup(r => r.GetAllAsync(consulta, null, null, null))
+            .ReturnsAsync(new PaginaDeResultados<EventoPet>(eventos, 8, 1, 10));
 
         // Act
-        var result = await _service.GetAllAsync(1, 10, null, null, null);
+        var result = await _service.GetAllAsync(consulta, null, null, null);
 
         // Assert
-        var resultList = Assert.Single(result);
-        Assert.Equal("Feira de Adoção", resultList.Titulo);
+        var item = Assert.Single(result.Itens);
+        Assert.Equal("Feira de Adoção", item.Titulo);
+        Assert.Equal(8, result.Total);
     }
 
     [Fact]

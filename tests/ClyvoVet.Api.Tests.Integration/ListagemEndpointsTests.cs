@@ -28,6 +28,7 @@ public class ListagemEndpointsTests
 
     [Theory]
     [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
     public async Task GetAll_SemParametrosNovos_DevolveArrayComTotalELink(string rota)
     {
         // Act
@@ -44,6 +45,7 @@ public class ListagemEndpointsTests
 
     [Theory]
     [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
     public async Task GetAll_OrdenarPorCampoInvalido_RetornaBadRequestComErrorEOsPermitidos(string rota)
     {
         var resposta = await _client.GetAsync($"{rota}?ordenarPor=senha");
@@ -54,6 +56,7 @@ public class ListagemEndpointsTests
 
     [Theory]
     [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
     public async Task GetAll_DirecaoInvalidaComOrdenarPor_RetornaBadRequest(string rota)
     {
         var resposta = await _client.GetAsync($"{rota}?ordenarPor=criadoEm&direcao=sideways");
@@ -64,6 +67,7 @@ public class ListagemEndpointsTests
 
     [Theory]
     [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
     public async Task GetAll_DirecaoSemOrdenarPor_EhIgnorada(string rota)
     {
         var resposta = await _client.GetAsync($"{rota}?direcao=sideways");
@@ -73,6 +77,7 @@ public class ListagemEndpointsTests
 
     [Theory]
     [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
     public async Task GetAll_PaginaAlemDoFim_RetornaOkComListaVaziaETotal(string rota)
     {
         var resposta = await _client.GetAsync($"{rota}?page=100000&pageSize=10");

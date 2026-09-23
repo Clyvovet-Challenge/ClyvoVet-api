@@ -18,10 +18,10 @@ public class EventoPetService : IEventoPetService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<EventoPetResponse>> GetAllAsync(int page, int pageSize, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
+    public async Task<PaginaDeResultados<EventoPetResponse>> GetAllAsync(ConsultaPaginada consulta, string? cidade, TipoEventoPetEnum? tipo, EspecieEnum? especieAlvo)
     {
-        var eventos = await _repository.GetAllAsync(page, pageSize, cidade, tipo, especieAlvo);
-        return eventos.Select(MapToResponse);
+        var pagina = await _repository.GetAllAsync(consulta, cidade, tipo, especieAlvo);
+        return pagina.Mapear(MapToResponse);
     }
 
     public async Task<EventoPetResponse> GetByIdAsync(string id)
