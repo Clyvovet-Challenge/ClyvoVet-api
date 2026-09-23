@@ -1,6 +1,6 @@
 namespace ClyvoVet.Application.DTOs.Response;
 
-public class SugestaoProdutoResponse
+public class SugestaoProdutoResponse : RespostaHateoas
 {
     public string Id { get; set; } = null!;
     public string AnimalId { get; set; } = null!;

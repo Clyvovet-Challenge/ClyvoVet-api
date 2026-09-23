@@ -16,7 +16,7 @@ namespace ClyvoVet.Application.DTOs.Response;
 /// só ampliaria o estrago de um token vazado.
 /// </para>
 /// </summary>
-public class TelegramVinculoResponse
+public class TelegramVinculoResponse : RespostaHateoas
 {
     /// <summary>Se há uma conversa do Telegram ligada a este tutor.</summary>
     public bool Vinculado { get; set; }

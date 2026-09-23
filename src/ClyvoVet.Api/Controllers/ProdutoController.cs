@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
@@ -21,8 +22,13 @@ namespace ClyvoVet.Api.Controllers;
 public class ProdutoController : ControllerBase
 {
     private readonly IProdutoService _service;
+    private readonly GeradorDeLinks _links;
 
-    public ProdutoController(IProdutoService service) => _service = service;
+    public ProdutoController(IProdutoService service, GeradorDeLinks links)
+    {
+        _service = service;
+        _links = links;
+    }
 
     /// <summary>Lista produtos com paginação e filtros opcionais.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
@@ -68,6 +74,7 @@ public class ProdutoController : ControllerBase
         var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
         var pagina = await _service.GetAllAsync(consulta, categoria, especieIndicada, ativo, porteIndicado);
+        foreach (var item in pagina.Itens) _links.Produto(item);
         return this.RespostaDeListagem(pagina);
     }
 
@@ -79,6 +86,7 @@ public class ProdutoController : ControllerBase
     public async Task<IActionResult> GetById(string id)
     {
         var result = await _service.GetByIdAsync(id);
+        _links.Produto(result);
         return Ok(result);
     }
 

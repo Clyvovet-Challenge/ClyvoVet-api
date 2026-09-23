@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
@@ -42,11 +43,13 @@ public class WidgetSaudePreditivaController : ControllerBase
 {
     private readonly IWidgetSaudePreditivaService _service;
     private readonly EscopoDoTutor _escopo;
+    private readonly GeradorDeLinks _links;
 
-    public WidgetSaudePreditivaController(IWidgetSaudePreditivaService service, EscopoDoTutor escopo)
+    public WidgetSaudePreditivaController(IWidgetSaudePreditivaService service, EscopoDoTutor escopo, GeradorDeLinks links)
     {
         _service = service;
         _escopo = escopo;
+        _links = links;
     }
 
     /// <summary>Retorna o card de saúde preditiva de um animal pelo ID.</summary>
@@ -64,6 +67,7 @@ public class WidgetSaudePreditivaController : ControllerBase
             throw new NotFoundException($"Animal {animalId} nao encontrado.");
 
         var result = await _service.GetPredisposicoesAsync(animalId);
+        _links.Widget(result, animalId);
         return Ok(result);
     }
 }

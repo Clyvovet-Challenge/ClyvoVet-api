@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
@@ -25,11 +26,13 @@ public class LembreteController : ControllerBase
 {
     private readonly ILembreteService _service;
     private readonly EscopoDoTutor _escopo;
+    private readonly GeradorDeLinks _links;
 
-    public LembreteController(ILembreteService service, EscopoDoTutor escopo)
+    public LembreteController(ILembreteService service, EscopoDoTutor escopo, GeradorDeLinks links)
     {
         _service = service;
         _escopo = escopo;
+        _links = links;
     }
 
     /// <summary>
@@ -87,6 +90,7 @@ public class LembreteController : ControllerBase
         // devolvendo a base inteira para ADMIN, VETERINARIO e para quem so mandou
         // a X-Api-Key.
         var pagina = await _service.GetAllAsync(consulta, animalId, status, tipo, _escopo.FiltroDeListagem());
+        foreach (var item in pagina.Itens) _links.Lembrete(item);
         return this.RespostaDeListagem(pagina);
     }
 
@@ -102,6 +106,7 @@ public class LembreteController : ControllerBase
         if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(result.AnimalId))
             throw new NotFoundException($"Lembrete {id} nao encontrado.");
 
+        _links.Lembrete(result);
         return Ok(result);
     }
 

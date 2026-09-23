@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Exceptions;
@@ -25,11 +26,13 @@ public class SugestaoProdutoController : ControllerBase
 {
     private readonly ISugestaoProdutoService _service;
     private readonly EscopoDoTutor _escopo;
+    private readonly GeradorDeLinks _links;
 
-    public SugestaoProdutoController(ISugestaoProdutoService service, EscopoDoTutor escopo)
+    public SugestaoProdutoController(ISugestaoProdutoService service, EscopoDoTutor escopo, GeradorDeLinks links)
     {
         _service = service;
         _escopo = escopo;
+        _links = links;
     }
 
     /// <summary>404 se a sugestao existente nao for de um animal do tutor.</summary>
@@ -67,6 +70,7 @@ public class SugestaoProdutoController : ControllerBase
         var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
         var pagina = await _service.GetAllAsync(consulta, animalId, _escopo.FiltroDeListagem(), ativo);
+        foreach (var item in pagina.Itens) _links.Sugestao(item);
         return this.RespostaDeListagem(pagina);
     }
 
@@ -82,6 +86,7 @@ public class SugestaoProdutoController : ControllerBase
         if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(result.AnimalId))
             throw new NotFoundException($"Sugestao {id} nao encontrada.");
 
+        _links.Sugestao(result);
         return Ok(result);
     }
 

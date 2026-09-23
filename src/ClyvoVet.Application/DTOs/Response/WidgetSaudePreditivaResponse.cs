@@ -1,6 +1,6 @@
 namespace ClyvoVet.Application.DTOs.Response;
 
-public class WidgetSaudePreditivaResponse
+public class WidgetSaudePreditivaResponse : RespostaHateoas
 {
     public string AnimalId { get; set; } = null!;
     public string NomeAnimal { get; set; } = null!;

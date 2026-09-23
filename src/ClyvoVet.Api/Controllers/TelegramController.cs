@@ -3,6 +3,7 @@ using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Api.Filters;
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -47,19 +48,22 @@ public class TelegramController : ControllerBase
     private readonly VinculosPendentesDeTelegram _convites;
     private readonly EscopoDoTutor _escopo;
     private readonly ITutorTelegramRepository _vinculos;
+    private readonly GeradorDeLinks _links;
 
     public TelegramController(
         ITelegramService service,
         IConfiguration configuration,
         VinculosPendentesDeTelegram convites,
         EscopoDoTutor escopo,
-        ITutorTelegramRepository vinculos)
+        ITutorTelegramRepository vinculos,
+        GeradorDeLinks links)
     {
         _service = service;
         _configuration = configuration;
         _convites = convites;
         _escopo = escopo;
         _vinculos = vinculos;
+        _links = links;
     }
 
     /// <summary>Envia uma mensagem de Telegram para o chatId informado.</summary>
@@ -105,7 +109,9 @@ public class TelegramController : ControllerBase
         var botUsername = _configuration["Telegram:BotUsername"];
         var token = _convites.Gerar(tutorId);
         var link = $"https://t.me/{botUsername}?start={token}";
-        return Ok(new TelegramLinkResponse { Link = link });
+        var resposta = new TelegramLinkResponse { Link = link };
+        _links.TelegramLink(resposta, tutorId);
+        return Ok(resposta);
     }
     /// <summary>Diz se este tutor ja tem uma conversa do Telegram ligada.</summary>
     /// <remarks>
@@ -132,11 +138,13 @@ public class TelegramController : ControllerBase
 
         var vinculo = await _vinculos.ObterVinculoAsync(tutorId);
 
-        return Ok(new TelegramVinculoResponse
+        var resposta = new TelegramVinculoResponse
         {
             Vinculado = vinculo is not null,
             Desde = vinculo?.CriadoEm,
-        });
+        };
+        _links.TelegramVinculo(resposta, tutorId);
+        return Ok(resposta);
     }
 
     /// <summary>Desliga o Telegram deste tutor.</summary>

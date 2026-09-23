@@ -4,7 +4,7 @@ namespace ClyvoVet.Application.DTOs.Response;
 /// O parecer de saúde preditiva que a home do app renderiza. Mesmo formato
 /// para os dois caminhos de geração — <see cref="Origem"/> diz qual foi.
 /// </summary>
-public class SaudePreditivaResponse
+public class SaudePreditivaResponse : RespostaHateoas
 {
     public string AnimalId { get; set; } = null!;
     public string NomeAnimal { get; set; } = null!;

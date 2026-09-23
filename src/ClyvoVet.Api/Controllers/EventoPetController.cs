@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
@@ -21,8 +22,13 @@ namespace ClyvoVet.Api.Controllers;
 public class EventoPetController : ControllerBase
 {
     private readonly IEventoPetService _service;
+    private readonly GeradorDeLinks _links;
 
-    public EventoPetController(IEventoPetService service) => _service = service;
+    public EventoPetController(IEventoPetService service, GeradorDeLinks links)
+    {
+        _service = service;
+        _links = links;
+    }
 
     /// <summary>Lista eventos pet com paginação, ordenação e filtros opcionais.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
@@ -51,6 +57,7 @@ public class EventoPetController : ControllerBase
         var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
         var pagina = await _service.GetAllAsync(consulta, cidade, tipo, especieAlvo);
+        foreach (var item in pagina.Itens) _links.EventoPet(item);
         return this.RespostaDeListagem(pagina);
     }
 
@@ -62,6 +69,7 @@ public class EventoPetController : ControllerBase
     public async Task<IActionResult> GetById(string id)
     {
         var result = await _service.GetByIdAsync(id);
+        _links.EventoPet(result);
         return Ok(result);
     }
 

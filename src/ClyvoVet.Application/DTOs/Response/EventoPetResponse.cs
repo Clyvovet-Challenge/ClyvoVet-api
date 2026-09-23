@@ -2,7 +2,7 @@ using ClyvoVet.Domain.Enums;
 
 namespace ClyvoVet.Application.DTOs.Response;
 
-public class EventoPetResponse
+public class EventoPetResponse : RespostaHateoas
 {
     public string Id { get; set; } = null!;
     public string Titulo { get; set; } = null!;

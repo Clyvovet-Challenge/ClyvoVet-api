@@ -1,4 +1,5 @@
 using ClyvoVet.Api.Extensions;
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.HealthChecks;
 using ClyvoVet.Api.Middleware;
 using ClyvoVet.Api.Security;
@@ -59,6 +60,9 @@ builder.Services.AddAutenticacaoJwt();
 // primeiro request, e nao no startup: o app sobe verde e so quebra quando alguem chama.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioAtual, UsuarioAtualHttp>();
+
+// Monta os href do HATEOAS a partir do nome da ação; precisa do HttpContext atual, por isso é scoped.
+builder.Services.AddScoped<GeradorDeLinks>();
 
 var app = builder.Build();
 

@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
@@ -34,11 +35,13 @@ public class SaudePreditivaController : ControllerBase
 {
     private readonly ISaudePreditivaService _service;
     private readonly EscopoDoTutor _escopo;
+    private readonly GeradorDeLinks _links;
 
-    public SaudePreditivaController(ISaudePreditivaService service, EscopoDoTutor escopo)
+    public SaudePreditivaController(ISaudePreditivaService service, EscopoDoTutor escopo, GeradorDeLinks links)
     {
         _service = service;
         _escopo = escopo;
+        _links = links;
     }
 
     /// <summary>Retorna o parecer de saúde preditiva de um animal pelo ID.</summary>
@@ -54,6 +57,7 @@ public class SaudePreditivaController : ControllerBase
             throw new NotFoundException($"Animal {animalId} nao encontrado.");
 
         var result = await _service.GetParecerAsync(animalId, cancellationToken);
+        _links.SaudePreditiva(result, animalId);
         return Ok(result);
     }
 }
