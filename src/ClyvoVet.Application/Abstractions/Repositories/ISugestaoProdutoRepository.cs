@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Domain.Entities;
 
 namespace ClyvoVet.Application.Abstractions.Repositories;
@@ -8,7 +9,7 @@ public interface ISugestaoProdutoRepository
     /// Quando informado, devolve apenas sugestoes de animais deste tutor. Nulo
     /// significa sem recorte.
     /// </param>
-    Task<IEnumerable<SugestaoProduto>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null, bool? ativo = null);
+    Task<PaginaDeResultados<SugestaoProduto>> GetAllAsync(ConsultaPaginada consulta, string? animalId, string? tutorId = null, bool? ativo = null);
     Task<SugestaoProduto?> GetByIdAsync(string id);
     Task<SugestaoProduto> CreateAsync(SugestaoProduto sugestao);
     Task<SugestaoProduto?> UpdateAsync(string id, SugestaoProduto sugestao);

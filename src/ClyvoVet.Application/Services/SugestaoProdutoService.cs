@@ -21,10 +21,10 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         _produtoRepository = produtoRepository;
     }
 
-    public async Task<IEnumerable<SugestaoProdutoResponse>> GetAllAsync(int page, int pageSize, string? animalId, string? tutorId = null, bool? ativo = null)
+    public async Task<PaginaDeResultados<SugestaoProdutoResponse>> GetAllAsync(ConsultaPaginada consulta, string? animalId, string? tutorId = null, bool? ativo = null)
     {
-        var sugestoes = await _repository.GetAllAsync(page, pageSize, animalId, tutorId, ativo);
-        return sugestoes.Select(MapToResponse);
+        var pagina = await _repository.GetAllAsync(consulta, animalId, tutorId, ativo);
+        return pagina.Mapear(MapToResponse);
     }
 
     public async Task<SugestaoProdutoResponse> GetByIdAsync(string id)

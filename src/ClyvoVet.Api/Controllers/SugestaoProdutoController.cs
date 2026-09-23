@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
@@ -41,10 +42,17 @@ public class SugestaoProdutoController : ControllerBase
             throw new NotFoundException($"Sugestao {id} nao encontrada.");
     }
 
-    /// <summary>Lista sugestões com paginação e filtro opcional por animal.</summary>
+    /// <summary>Lista sugestões com paginação, ordenação e filtros opcionais.</summary>
     /// <param name="page">Número da página (padrão: 1).</param>
     /// <param name="pageSize">Itens por página — máx. 100 (padrão: 10).</param>
     /// <param name="animalId">Filtra pelo UUID do animal.</param>
+    /// <param name="ativo">Filtra por sugestão ativa. Omitido, traz ativas e inativas.</param>
+    /// <param name="ordenarPor">
+    /// Campo de ordenação (camelCase): <c>animalId | nomeAnimal | produtoId | nomeProduto | justificativa |
+    /// dataSugestao | ativo | criadoEm</c>. Omitido, mantém a ordem de sempre (<c>dataSugestao</c>,
+    /// da mais recente para a mais antiga). Campo fora da lista responde 400.
+    /// </param>
+    /// <param name="direcao"><c>asc</c> (padrão) ou <c>desc</c>. Ignorada sem <c>ordenarPor</c>.</param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,15 +60,14 @@ public class SugestaoProdutoController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? animalId = null,
-        [FromQuery] bool? ativo = null)
+        [FromQuery] bool? ativo = null,
+        [FromQuery] string? ordenarPor = null,
+        [FromQuery] string? direcao = null)
     {
-        if (page < 1)
-            return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
-        if (pageSize < 1 || pageSize > 100)
-            return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+        var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
-        var result = await _service.GetAllAsync(page, pageSize, animalId, _escopo.FiltroDeListagem(), ativo);
-        return Ok(result);
+        var pagina = await _service.GetAllAsync(consulta, animalId, _escopo.FiltroDeListagem(), ativo);
+        return this.RespostaDeListagem(pagina);
     }
 
     /// <summary>Retorna uma sugestão de produto pelo ID (UUID).</summary>

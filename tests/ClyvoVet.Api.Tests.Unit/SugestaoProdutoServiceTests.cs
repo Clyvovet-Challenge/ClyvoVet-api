@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Domain.Entities;
@@ -23,26 +24,27 @@ public class SugestaoProdutoServiceTests
     private static Produto CriarProduto() => new() { Id = "produto-1", Nome = "Ração" };
 
     [Fact]
-    public async Task GetAllAsync_RepositorioRetornaSugestoes_RetornaListaMapeada()
+    public async Task GetAllAsync_RepositorioRetornaSugestoes_RetornaPaginaMapeadaComOTotal()
     {
         // Arrange
         var sugestoes = new List<SugestaoProduto>
         {
             new() { Id = "1", AnimalId = "animal-1", ProdutoId = "produto-1", Justificativa = "Recomendado pelo veterinário", Ativo = true }
         };
+        var consulta = new ConsultaPaginada(1, 10);
         _repositoryMock
-            // null no fim e o recorte por tutor ausente, que e o comportamento com
-            // Api:EscopoPorTutor desligado. Arvore de expressao nao aceita
-            // argumento opcional, entao ele vai explicito.
-            .Setup(r => r.GetAllAsync(1, 10, "animal-1", null, null))
-            .ReturnsAsync(sugestoes);
+            // Os dois nulls no fim são o recorte por tutor ausente (Api:EscopoPorTutor desligado) e o
+            // filtro `ativo`. Árvore de expressão não aceita argumento opcional, então vão explícitos.
+            .Setup(r => r.GetAllAsync(consulta, "animal-1", null, null))
+            .ReturnsAsync(new PaginaDeResultados<SugestaoProduto>(sugestoes, 3, 1, 10));
 
         // Act
-        var result = await _service.GetAllAsync(1, 10, "animal-1");
+        var result = await _service.GetAllAsync(consulta, "animal-1");
 
         // Assert
-        var item = Assert.Single(result);
+        var item = Assert.Single(result.Itens);
         Assert.Equal("Recomendado pelo veterinário", item.Justificativa);
+        Assert.Equal(3, result.Total);
     }
 
     [Fact]

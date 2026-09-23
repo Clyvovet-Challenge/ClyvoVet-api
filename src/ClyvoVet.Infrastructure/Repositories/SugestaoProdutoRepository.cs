@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using ClyvoVet.Application.Common;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
@@ -9,14 +11,26 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
 {
     private readonly AppDbContext _context;
 
+    public static readonly IReadOnlyDictionary<string, Expression<Func<SugestaoProduto, object?>>> CamposOrdenaveis =
+        new Dictionary<string, Expression<Func<SugestaoProduto, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["animalId"] = s => s.AnimalId,
+            ["nomeAnimal"] = s => s.Animal.Nome,
+            ["produtoId"] = s => s.ProdutoId,
+            ["nomeProduto"] = s => s.Produto.Nome,
+            ["justificativa"] = s => s.Justificativa,
+            ["dataSugestao"] = s => s.DataSugestao,
+            ["ativo"] = s => s.Ativo,
+            ["criadoEm"] = s => s.CriadoEm,
+        };
+
     public SugestaoProdutoRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IEnumerable<SugestaoProduto>> GetAllAsync(
-        int page,
-        int pageSize,
+    public async Task<PaginaDeResultados<SugestaoProduto>> GetAllAsync(
+        ConsultaPaginada consulta,
         string? animalId,
         string? tutorId = null,
         bool? ativo = null)
@@ -39,10 +53,13 @@ public class SugestaoProdutoRepository : ISugestaoProdutoRepository
         if (ativo.HasValue)
             query = query.Where(s => s.Ativo == ativo.Value);
 
-        var consulta = query
-            .OrderByDescending(s => s.DataSugestao);
+        var total = await query.CountAsync();
 
-        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
+        var ordenada = Ordenacao.Aplicar(query, consulta, CamposOrdenaveis,
+            q => q.OrderByDescending(s => s.DataSugestao), s => s.Id);
+
+        var itens = await Paginacao.Aplicar(ordenada, consulta.Page, consulta.PageSize).ToListAsync();
+        return new PaginaDeResultados<SugestaoProduto>(itens, total, consulta.Page, consulta.PageSize);
     }
 
     public async Task<SugestaoProduto?> GetByIdAsync(string id)
