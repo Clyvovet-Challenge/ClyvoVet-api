@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using ClyvoVet.Application.Common;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
@@ -10,14 +12,26 @@ public class ProdutoRepository : IProdutoRepository
 {
     private readonly AppDbContext _context;
 
+    public static readonly IReadOnlyDictionary<string, Expression<Func<Produto, object?>>> CamposOrdenaveis =
+        new Dictionary<string, Expression<Func<Produto, object?>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nome"] = p => p.Nome,
+            ["descricao"] = p => p.Descricao,
+            ["categoria"] = p => p.Categoria,
+            ["preco"] = p => p.Preco,
+            ["especieIndicada"] = p => p.EspecieIndicada,
+            ["porteIndicado"] = p => p.PorteIndicado,
+            ["ativo"] = p => p.Ativo,
+            ["criadoEm"] = p => p.CriadoEm,
+        };
+
     public ProdutoRepository(AppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IEnumerable<Produto>> GetAllAsync(
-        int page,
-        int pageSize,
+    public async Task<PaginaDeResultados<Produto>> GetAllAsync(
+        ConsultaPaginada consulta,
         CategoriaEnum? categoria,
         EspecieEnum? especieIndicada,
         bool? ativo = null,
@@ -59,10 +73,13 @@ public class ProdutoRepository : IProdutoRepository
         else if (porteIndicado.HasValue)
             query = query.Where(p => p.PorteIndicado == PorteEnum.Todos);
 
-        var consulta = query
-            .OrderBy(p => p.Nome);
+        var total = await query.CountAsync();
 
-        return await Paginacao.Aplicar(consulta, page, pageSize).ToListAsync();
+        var ordenada = Ordenacao.Aplicar(query, consulta, CamposOrdenaveis,
+            q => q.OrderBy(p => p.Nome), p => p.Id);
+
+        var itens = await Paginacao.Aplicar(ordenada, consulta.Page, consulta.PageSize).ToListAsync();
+        return new PaginaDeResultados<Produto>(itens, total, consulta.Page, consulta.PageSize);
     }
 
     public async Task<Produto?> GetByIdAsync(string id)

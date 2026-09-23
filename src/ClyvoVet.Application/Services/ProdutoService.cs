@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Domain.Enums;
@@ -17,10 +18,10 @@ public class ProdutoService : IProdutoService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<ProdutoResponse>> GetAllAsync(int page, int pageSize, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null, PorteEnum? porteIndicado = null)
+    public async Task<PaginaDeResultados<ProdutoResponse>> GetAllAsync(ConsultaPaginada consulta, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null, PorteEnum? porteIndicado = null)
     {
-        var produtos = await _repository.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo, porteIndicado);
-        return produtos.Select(MapToResponse);
+        var pagina = await _repository.GetAllAsync(consulta, categoria, especieIndicada, ativo, porteIndicado);
+        return pagina.Mapear(MapToResponse);
     }
 
     public async Task<ProdutoResponse> GetByIdAsync(string id)

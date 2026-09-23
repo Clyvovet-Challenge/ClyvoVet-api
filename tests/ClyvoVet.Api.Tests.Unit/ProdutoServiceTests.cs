@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
@@ -19,24 +20,26 @@ public class ProdutoServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_RepositorioRetornaProdutos_RetornaListaMapeada()
+    public async Task GetAllAsync_RepositorioRetornaProdutos_RetornaPaginaMapeadaComOTotal()
     {
         // Arrange
         var produtos = new List<Produto>
         {
             new() { Id = "1", Nome = "Ração", Categoria = CategoriaEnum.Racao, EspecieIndicada = EspecieEnum.Cachorro, Ativo = true }
         };
+        var consulta = new ConsultaPaginada(1, 10);
         _repositoryMock
-            // Arvore de expressao nao aceita argumento opcional: o `ativo` vai explicito.
-            .Setup(r => r.GetAllAsync(1, 10, null, null, null, null))
-            .ReturnsAsync(produtos);
+            // Árvore de expressão não aceita argumento opcional: `ativo` e `porteIndicado` vão explícitos.
+            .Setup(r => r.GetAllAsync(consulta, null, null, null, null))
+            .ReturnsAsync(new PaginaDeResultados<Produto>(produtos, 12, 1, 10));
 
         // Act
-        var result = await _service.GetAllAsync(1, 10, null, null);
+        var result = await _service.GetAllAsync(consulta, null, null);
 
         // Assert
-        var resultList = Assert.Single(result);
-        Assert.Equal("Ração", resultList.Nome);
+        var item = Assert.Single(result.Itens);
+        Assert.Equal("Ração", item.Nome);
+        Assert.Equal(12, result.Total);
     }
 
     [Fact]

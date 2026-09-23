@@ -61,4 +61,15 @@ public class CamposOrdenaveisTests
         using var db = ContextoMysql();
         TodosGeramOrderBy(db.EventosPet, EventoPetRepository.CamposOrdenaveis);
     }
+
+    [Fact]
+    public void Produto_CamposOrdenaveis_SaoOsCamposEscalaresDoDto() =>
+        BatemComOsCamposDoDto<ProdutoResponse>(ProdutoRepository.CamposOrdenaveis.Keys);
+
+    [Fact]
+    public void Produto_CamposOrdenaveis_TraduzemParaOrderByNoMysql()
+    {
+        using var db = ContextoMysql();
+        TodosGeramOrderBy(db.Produtos, ProdutoRepository.CamposOrdenaveis);
+    }
 }

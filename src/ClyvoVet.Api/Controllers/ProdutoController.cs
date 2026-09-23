@@ -1,3 +1,4 @@
+using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Api.Filters;
@@ -45,6 +46,12 @@ public class ProdutoController : ControllerBase
     /// vitrine do tutor pede <c>true</c>; a gestão da clínica omite, porque
     /// precisa ver o que desativou para poder reativar.
     /// </param>
+    /// <param name="ordenarPor">
+    /// Campo de ordenação (camelCase): <c>nome | descricao | categoria | preco | especieIndicada |
+    /// porteIndicado | ativo | criadoEm</c>. Omitido, mantém a ordem de sempre (<c>nome</c>). Campo fora
+    /// da lista responde 400.
+    /// </param>
+    /// <param name="direcao"><c>asc</c> (padrão) ou <c>desc</c>. Ignorada sem <c>ordenarPor</c>.</param>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -54,15 +61,14 @@ public class ProdutoController : ControllerBase
         [FromQuery] CategoriaEnum? categoria = null,
         [FromQuery] EspecieEnum? especieIndicada = null,
         [FromQuery] bool? ativo = null,
-        [FromQuery] PorteEnum? porteIndicado = null)
+        [FromQuery] PorteEnum? porteIndicado = null,
+        [FromQuery] string? ordenarPor = null,
+        [FromQuery] string? direcao = null)
     {
-        if (page < 1)
-            return BadRequest(new { error = "O parâmetro 'page' deve ser maior que zero." });
-        if (pageSize < 1 || pageSize > 100)
-            return BadRequest(new { error = "O parâmetro 'pageSize' deve estar entre 1 e 100." });
+        var consulta = ParametrosDeListagem.Montar(page, pageSize, ordenarPor, direcao);
 
-        var result = await _service.GetAllAsync(page, pageSize, categoria, especieIndicada, ativo, porteIndicado);
-        return Ok(result);
+        var pagina = await _service.GetAllAsync(consulta, categoria, especieIndicada, ativo, porteIndicado);
+        return this.RespostaDeListagem(pagina);
     }
 
     /// <summary>Retorna um produto pelo ID (UUID).</summary>
