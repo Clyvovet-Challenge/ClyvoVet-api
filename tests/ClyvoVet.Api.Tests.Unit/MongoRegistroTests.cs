@@ -4,7 +4,9 @@ using ClyvoVet.Infrastructure.Mongo;
 using ClyvoVet.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Moq;
 using MongoDB.Driver;
 
@@ -99,5 +101,28 @@ public class MongoRegistroTests
         var provider = Registrar(new() { ["Mongo:ConnectionString"] = Mongo, ["Mongo:Database"] = configurado }).BuildServiceProvider();
 
         Assert.Equal(esperado, provider.GetRequiredService<IMongoDatabase>().DatabaseNamespace.DatabaseName);
+    }
+
+    private static IReadOnlyCollection<HealthCheckRegistration> ChecksRegistrados(IServiceCollection services) =>
+        services.BuildServiceProvider().GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations
+            .ToList();
+
+    [Fact]
+    public void ChaveDeConexaoPresente_RegistraOCheckMongoSoNaTagExternal()
+    {
+        var checks = ChecksRegistrados(Registrar(new() { ["Mongo:ConnectionString"] = Mongo }));
+
+        var mongo = Assert.Single(checks, c => c.Name == "mongo");
+        // Fora de "ready": cache instável não tira a API de rotação (mesmo raciocínio do Telegram).
+        Assert.Equal(["external"], mongo.Tags.ToArray());
+    }
+
+    [Fact]
+    public void SemChaveDeConexao_NaoRegistraOCheckMongo()
+    {
+        var checks = ChecksRegistrados(Registrar(new()));
+
+        Assert.DoesNotContain(checks, c => c.Name == "mongo");
+        Assert.Contains(checks, c => c.Name == "mysql-database");
     }
 }

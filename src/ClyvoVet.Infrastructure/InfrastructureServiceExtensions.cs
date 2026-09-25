@@ -114,12 +114,17 @@ public static class InfrastructureServiceExtensions
         //
         // A OCI Generative AI NÃO tem sonda de propósito: ela é opcional por design
         // (fallback determinístico) e uma sonda a transformaria em dependência.
-        services.AddHealthChecks()
+        var health = services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>(
                 name: "mysql-database",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: ["ready", "database", "external"])
             .AddCheck<TelegramHealthCheck>("telegram-bot", tags: ["external"]);
+
+        // "mongo" segue o mesmo raciocínio do Telegram: é cache, aparece em /health mas NÃO em
+        // /health/ready, e só existe quando Mongo:ConnectionString está configurada.
+        if (usaMongo)
+            health.AddCheck<MongoHealthCheck>("mongo", tags: ["external"]);
 
         return services;
     }
