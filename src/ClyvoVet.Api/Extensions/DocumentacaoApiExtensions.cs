@@ -106,6 +106,9 @@ public static class DocumentacaoApiExtensions
                 Description  = "Access token emitido pela API Java no login. Cole só o token: o Swagger acrescenta o prefixo Bearer."
             });
             options.DocumentFilter<BearerSecurityDocumentFilter>();
+
+            // Documenta o envelope opcional das listagens (application/vnd.clyvovet.hateoas+json).
+            options.OperationFilter<EnvelopeHateoasOperationFilter>();
         });
 
         return services;

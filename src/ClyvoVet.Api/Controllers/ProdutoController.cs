@@ -6,6 +6,8 @@ using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Services.Interfaces;
 using ClyvoVet.Api.Security;
 using Microsoft.AspNetCore.Authorization;
+using ClyvoVet.Api.Swagger;
+using ClyvoVet.Application.DTOs.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;
@@ -59,8 +61,9 @@ public class ProdutoController : ControllerBase
     /// </param>
     /// <param name="direcao"><c>asc</c> (padrão) ou <c>desc</c>. Ignorada sem <c>ordenarPor</c>.</param>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<ProdutoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ListagemHateoas(typeof(ProdutoResponse))]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,

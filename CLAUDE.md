@@ -31,7 +31,7 @@ dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swa
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (F2 fechada, 20/09/2026): **182 unidade + 142 integração = 324, todos verdes.**
+- Linha de base (F3 fechada, 25/09/2026): **232 unidade + 210 integração = 442, todos verdes.**
 - Segredos locais: `dotnet user-secrets` (o projeto já tem `UserSecretsId`). Em produção,
   variáveis de ambiente do Render. **Nunca** credencial em arquivo versionado.
 

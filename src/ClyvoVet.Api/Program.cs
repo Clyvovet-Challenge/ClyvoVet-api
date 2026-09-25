@@ -35,7 +35,9 @@ builder.Services.AddCors(options =>
         // X-Api-Key porque e como esta API autentica hoje; X-Correlation-Id
         // porque o CorrelationIdMiddleware aceita o id vindo do cliente.
         .WithHeaders("Authorization", "Content-Type", "X-Api-Key", "X-Correlation-Id")
-        .WithExposedHeaders("X-Correlation-Id")
+        // X-Total-Count e Link: o total e a navegação das listagens. Sem expô-los, o navegador
+        // (Expo web) não deixa o JavaScript lê-los, mesmo com a origem permitida.
+        .WithExposedHeaders("X-Correlation-Id", "X-Total-Count", "Link")
         .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddControllers();

@@ -809,6 +809,53 @@ Semeadas pelo `DevDataSeeder` nos perfis Spring `dev`, `h2`, `oracle` e `local` 
 
 ---
 
+### 📄 Paginação, ordenação e navegação (HATEOAS)
+
+As listagens (`/lembretes`, `/eventos-pet`, `/produtos`, `/sugestoes-produto`) aceitam:
+
+| Parâmetro | Para quê |
+|---|---|
+| `page`, `pageSize` | página (a partir de 1) e tamanho (1 a 100; padrão 10) |
+| `ordenarPor` | campo de ordenação em camelCase (a lista de cada recurso está no Swagger). Campo fora da lista → `400`. Sem ele, vale a ordem de sempre |
+| `direcao` | `asc` (padrão) ou `desc`; ignorada sem `ordenarPor` |
+
+**Resposta padrão.** O corpo continua sendo um **array JSON** (é o que o app móvel lê). O total e a navegação vão nos
+cabeçalhos `X-Total-Count` e `Link` (RFC 8288), e cada item traz `_links`:
+
+```bash
+curl -i "http://localhost:5191/api/v1/produtos?pageSize=2&ordenarPor=preco&direcao=desc" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI"
+```
+
+```text
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Total-Count: 42
+Link: </api/v1/produtos?ordenarPor=preco&direcao=desc&page=1&pageSize=2>; rel="first", </api/v1/produtos?ordenarPor=preco&direcao=desc&page=2&pageSize=2>; rel="next", </api/v1/produtos?ordenarPor=preco&direcao=desc&page=21&pageSize=2>; rel="last"
+
+[{ "id": "…", "nome": "…", "_links": { "self": { "href": "/api/v1/produtos/…", "method": "GET" },
+   "atualizar": { "href": "/api/v1/produtos/…", "method": "PUT" }, "excluir": { "href": "/api/v1/produtos/…", "method": "DELETE" },
+   "colecao": { "href": "/api/v1/produtos", "method": "GET" } } }, …]
+```
+
+**Envelope opcional.** Com `Accept: application/vnd.clyvovet.hateoas+json` a listagem devolve o envelope completo:
+
+```bash
+curl "http://localhost:5191/api/v1/produtos?pageSize=2" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI" \
+  -H "Accept: application/vnd.clyvovet.hateoas+json"
+```
+
+```json
+{ "itens": [ … ], "page": 1, "pageSize": 2, "total": 42,
+  "_links": { "self": {…}, "first": {…}, "next": {…}, "last": {…} } }
+```
+
+`prev` e `next` só aparecem quando existem, e os links preservam os filtros, `ordenarPor` e `direcao`. Quem não pedir o envelope
+recebe o array de sempre.
+
+---
+
 ### 🛒 Produtos — `/api/v1/produtos`
 
 Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).

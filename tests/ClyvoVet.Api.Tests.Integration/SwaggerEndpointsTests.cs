@@ -140,4 +140,29 @@ public class SwaggerEndpointsTests
         // Assert
         Assert.Contains("repete sem fim previsto", json);
     }
+
+    [Theory]
+    [InlineData("/api/v1/lembretes")]
+    [InlineData("/api/v1/eventos-pet")]
+    [InlineData("/api/v1/produtos")]
+    [InlineData("/api/v1/sugestoes-produto")]
+    public async Task GetSwaggerJson_ListagemDeclaraAsDuasMidiasEOsParametrosDeOrdenacao(string rota)
+    {
+        // Arrange
+        var resposta = await _client.GetAsync("/swagger/v1/swagger.json");
+        var documento = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+
+        // Act
+        var get = documento.RootElement.GetProperty("paths").GetProperty(rota).GetProperty("get");
+        var conteudo = get.GetProperty("responses").GetProperty("200").GetProperty("content");
+        var parametros = get.GetProperty("parameters").EnumerateArray().Select(p => p.GetProperty("name").GetString()).ToList();
+
+        // Assert
+        // O JSON puro continua sendo o array (o que o app lê); o envelope é a outra mídia, com schema próprio.
+        Assert.Equal("array", conteudo.GetProperty("application/json").GetProperty("schema").GetProperty("type").GetString());
+        Assert.True(conteudo.TryGetProperty("application/vnd.clyvovet.hateoas+json", out var envelope));
+        Assert.True(envelope.GetProperty("schema").TryGetProperty("$ref", out _));
+        Assert.Contains("ordenarPor", parametros);
+        Assert.Contains("direcao", parametros);
+    }
 }
