@@ -1,0 +1,18 @@
+# Só o MongoDB de desenvolvimento (cache do parecer de IA, F4). O MySQL vem do stack da API Java.
+# Preso a 127.0.0.1: este Mongo não tem autenticação, então não pode escutar a rede inteira.
+services:
+  mongo:
+    image: mongo:7
+    container_name: clyvovet-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-dados:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-dados:
