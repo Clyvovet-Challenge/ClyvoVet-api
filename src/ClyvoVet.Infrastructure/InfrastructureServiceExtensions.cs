@@ -4,6 +4,7 @@ using ClyvoVet.Infrastructure.Background;
 using ClyvoVet.Infrastructure.Data;
 using ClyvoVet.Infrastructure.External;
 using ClyvoVet.Infrastructure.HealthChecks;
+using ClyvoVet.Infrastructure.Mongo;
 using ClyvoVet.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -74,7 +75,12 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IPredisposicaoSaudeRepository, PredisposicaoSaudeRepository>();
         services.AddScoped<ITutorTelegramRepository, TutorTelegramRepository>();
         services.AddScoped<IBaseDoencaRepository, BaseDoencaRepository>();
-        services.AddScoped<IParecerIaRepository, ParecerIaRepository>();
+
+        // O parecer de IA é um cache: com Mongo:ConnectionString ele vai para o MongoDB (ADR-002);
+        // sem ela (produção hoje, e o ambiente Testing) continua na tabela do MySQL.
+        var usaMongo = services.AddMongoSeConfigurado(configuration, environment);
+        if (!usaMongo)
+            services.AddScoped<IParecerIaRepository, ParecerIaRepository>();
 
         // OCI Generative AI via HttpClient tipado. Sem credencial no ambiente o
         // cliente nasce com Configurado=false e a saude preditiva responde pelas
