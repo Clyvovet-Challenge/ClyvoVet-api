@@ -1,5 +1,4 @@
 using ClyvoVet.Api.Hateoas;
-using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
@@ -53,8 +52,7 @@ public class SaudePreditivaController : ControllerBase
     {
         // Mesma regra do widget: isto é dado de saúde do animal de alguém.
         // 404 e não 403 para não confirmar a existência de animal alheio.
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(animalId))
-            throw new NotFoundException($"Animal {animalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(animalId, $"Animal {animalId} nao encontrado.");
 
         var result = await _service.GetParecerAsync(animalId, cancellationToken);
         _links.SaudePreditiva(result, animalId);

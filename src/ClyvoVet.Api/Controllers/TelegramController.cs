@@ -103,7 +103,7 @@ public class TelegramController : ControllerBase
         // traz um token de tutor só pode gerar convite para si mesmo. Com o recorte
         // desligado (o padrao), a X-Api-Key continua sendo a unica barreira -- que e
         // exatamente o contrato ja documentado em EscopoDoTutor, e nao se muda aqui.
-        if (_escopo.Ativo && !string.Equals(_escopo.TutorId, tutorId, StringComparison.Ordinal))
+        if (!_escopo.PermiteTutor(tutorId))
             return Forbid();
 
         var botUsername = _configuration["Telegram:BotUsername"];
@@ -133,7 +133,7 @@ public class TelegramController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Vinculo(string tutorId)
     {
-        if (_escopo.Ativo && !string.Equals(_escopo.TutorId, tutorId, StringComparison.Ordinal))
+        if (!_escopo.PermiteTutor(tutorId))
             return Forbid();
 
         var vinculo = await _vinculos.ObterVinculoAsync(tutorId);
@@ -167,7 +167,7 @@ public class TelegramController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Desvincular(string tutorId)
     {
-        if (_escopo.Ativo && !string.Equals(_escopo.TutorId, tutorId, StringComparison.Ordinal))
+        if (!_escopo.PermiteTutor(tutorId))
             return Forbid();
 
         await _vinculos.DesvincularAsync(tutorId);

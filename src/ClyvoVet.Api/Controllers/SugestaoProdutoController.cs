@@ -1,7 +1,6 @@
 using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
-using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
@@ -43,8 +42,7 @@ public class SugestaoProdutoController : ControllerBase
         if (!_escopo.Ativo) return;
 
         var sugestao = await _service.GetByIdAsync(id);   // ja lanca 404 se nao existe
-        if (!await _escopo.AnimalEDoTutorAsync(sugestao.AnimalId))
-            throw new NotFoundException($"Sugestao {id} nao encontrada.");
+        await _escopo.ExigirAnimalDoTutorAsync(sugestao.AnimalId, $"Sugestao {id} nao encontrada.");
     }
 
     /// <summary>Lista sugestões com paginação, ordenação e filtros opcionais.</summary>
@@ -86,8 +84,7 @@ public class SugestaoProdutoController : ControllerBase
     {
         var result = await _service.GetByIdAsync(id);
 
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(result.AnimalId))
-            throw new NotFoundException($"Sugestao {id} nao encontrada.");
+        await _escopo.ExigirAnimalDoTutorAsync(result.AnimalId, $"Sugestao {id} nao encontrada.");
 
         _links.Sugestao(result);
         return Ok(result);
@@ -104,8 +101,7 @@ public class SugestaoProdutoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] SugestaoProdutoRequest request)
     {
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
-            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(request.AnimalId, $"Animal {request.AnimalId} nao encontrado.");
 
         var result = await _service.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
@@ -123,8 +119,7 @@ public class SugestaoProdutoController : ControllerBase
         // transferir a sugestao para fora, ou sequestrar a alheia.
         await ExigirPropriedadeAsync(id);
 
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
-            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(request.AnimalId, $"Animal {request.AnimalId} nao encontrado.");
 
         var result = await _service.UpdateAsync(id, request);
         return Ok(result);

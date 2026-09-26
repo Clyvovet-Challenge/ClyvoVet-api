@@ -1,5 +1,4 @@
 using ClyvoVet.Api.Hateoas;
-using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
@@ -63,8 +62,7 @@ public class WidgetSaudePreditivaController : ControllerBase
         // ha listagem a filtrar, ha um recurso a autorizar. O que este endpoint
         // devolve e um retrato de saude por raca e idade: dado de saude do animal
         // de alguem, e nao catalogo publico.
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(animalId))
-            throw new NotFoundException($"Animal {animalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(animalId, $"Animal {animalId} nao encontrado.");
 
         var result = await _service.GetPredisposicoesAsync(animalId);
         _links.Widget(result, animalId);

@@ -1,6 +1,7 @@
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Domain.Entities;
+using ClyvoVet.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Moq;
 
@@ -69,5 +70,54 @@ public class EscopoDoTutorTests
 
         // Assert
         Assert.False(resultado);
+    }
+
+    [Fact]
+    public async Task ExigirAnimalDoTutorAsync_AnimalDeOutroTutor_Lanca404ComAMensagemDaRota()
+    {
+        // Arrange
+        var animais = new Mock<IAnimalRepository>();
+        animais.Setup(a => a.GetByIdAsync("animal-1"))
+            .ReturnsAsync(new Animal { Id = "animal-1", TutorId = "tutor-2" });
+        var escopo = Criar("true", new IdentidadeDoChamador("u1", "tutor-1", "TUTOR"), animais);
+
+        // Act
+        var excecao = await Assert.ThrowsAsync<NotFoundException>(
+            () => escopo.ExigirAnimalDoTutorAsync("animal-1", "Lembrete l-1 nao encontrado."));
+
+        // Assert
+        Assert.Equal("Lembrete l-1 nao encontrado.", excecao.Message);
+    }
+
+    [Fact]
+    public async Task ExigirAnimalDoTutorAsync_RecorteDesligado_NaoConsultaNemLanca()
+    {
+        // Arrange
+        var animais = new Mock<IAnimalRepository>();
+        var escopo = Criar(flag: null, identidade: null, animais);
+
+        // Act
+        await escopo.ExigirAnimalDoTutorAsync("animal-1", "nao deveria lancar");
+
+        // Assert
+        animais.Verify(a => a.GetByIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null, null, "tutor-1", true)]            // recorte desligado: a X-Api-Key é a barreira
+    [InlineData("true", "tutor-1", "tutor-1", true)]     // o próprio tutor
+    [InlineData("true", "tutor-1", "tutor-2", false)]    // outro tutor
+    [InlineData("true", null, "tutor-1", false)]         // ADMIN/VETERINARIO: nulo nega
+    public void PermiteTutor_ComparaOTutorDoTokenComODaRota(
+        string? flag, string? tutorDoToken, string tutorDaRota, bool esperado)
+    {
+        // Arrange
+        var escopo = Criar(flag, new IdentidadeDoChamador("u1", tutorDoToken, "TUTOR"));
+
+        // Act
+        var permitido = escopo.PermiteTutor(tutorDaRota);
+
+        // Assert
+        Assert.Equal(esperado, permitido);
     }
 }

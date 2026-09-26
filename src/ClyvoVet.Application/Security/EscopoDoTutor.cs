@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Domain.Exceptions;
 
 namespace ClyvoVet.Application.Security;
 
@@ -100,6 +101,24 @@ public class EscopoDoTutor(
         var animal = await animais.GetByIdAsync(animalId);
         return animal is not null && animal.TutorId == tutor;
     }
+
+    /// <summary>
+    /// A forma que os controllers usam: animal que não é do tutor vira 404 com a mensagem
+    /// da rota (o recurso pedido, não o animal). Com o recorte desligado, não faz nada.
+    /// </summary>
+    public async Task ExigirAnimalDoTutorAsync(string? animalId, string mensagemDeNaoEncontrado)
+    {
+        if (!await AnimalEDoTutorAsync(animalId))
+            throw new NotFoundException(mensagemDeNaoEncontrado);
+    }
+
+    /// <summary>
+    /// Se a requisição pode agir em nome deste tutor. Para rotas cujo recurso É o tutor
+    /// (convite e vínculo do Telegram): lá o id já é conhecido de quem chama, então a
+    /// resposta é 403, e não o 404 dos recursos de outro tutor. Sem tutor no token, nega.
+    /// </summary>
+    public bool PermiteTutor(string tutorId) =>
+        !Ativo || string.Equals(TutorId, tutorId, StringComparison.Ordinal);
 }
 
 /// <summary>

@@ -2,7 +2,6 @@ using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Api.Listagem;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Domain.Enums;
-using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
@@ -55,8 +54,7 @@ public class LembreteController : ControllerBase
         if (!_escopo.Ativo) return;
 
         var lembrete = await _service.GetByIdAsync(id);   // ja lanca 404 se nao existe
-        if (!await _escopo.AnimalEDoTutorAsync(lembrete.AnimalId))
-            throw new NotFoundException($"Lembrete {id} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(lembrete.AnimalId, $"Lembrete {id} nao encontrado.");
     }
 
     /// <summary>Lista lembretes com paginação, ordenação e filtros opcionais.</summary>
@@ -106,8 +104,7 @@ public class LembreteController : ControllerBase
     {
         var result = await _service.GetByIdAsync(id);
 
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(result.AnimalId))
-            throw new NotFoundException($"Lembrete {id} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(result.AnimalId, $"Lembrete {id} nao encontrado.");
 
         _links.Lembrete(result);
         return Ok(result);
@@ -129,8 +126,7 @@ public class LembreteController : ControllerBase
         // agenda uma NOTIFICACAO. Sem ele aqui, qualquer portador da X-Api-Key
         // marcaria lembrete no animal de outro tutor -- e o dono receberia o
         // WhatsApp ou o Telegram sem nunca ter pedido.
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
-            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(request.AnimalId, $"Animal {request.AnimalId} nao encontrado.");
 
         var result = await _service.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
@@ -155,8 +151,7 @@ public class LembreteController : ControllerBase
         // fecham as duas metades.
         await ExigirPropriedadeDoLembreteAsync(id);
 
-        if (_escopo.Ativo && !await _escopo.AnimalEDoTutorAsync(request.AnimalId))
-            throw new NotFoundException($"Animal {request.AnimalId} nao encontrado.");
+        await _escopo.ExigirAnimalDoTutorAsync(request.AnimalId, $"Animal {request.AnimalId} nao encontrado.");
 
         var result = await _service.UpdateAsync(id, request);
         return Ok(result);
