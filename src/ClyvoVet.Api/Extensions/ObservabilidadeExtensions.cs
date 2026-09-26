@@ -3,6 +3,8 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using Serilog.Formatting;
+using Serilog.Formatting.Compact;
 
 namespace ClyvoVet.Api.Extensions;
 
@@ -10,20 +12,33 @@ public static class ObservabilidadeExtensions
 {
     private const string NomeDoServico = "ClyvoVet.Api";
 
+    private const string TemplateLog =
+        "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}";
+
+    /// <summary>
+    /// O formatador JSON do console, ou <c>null</c> em Development — lá o template legível continua,
+    /// com as cores do terminal. Fora dele o console é o log que o Render e a Azure guardam: uma linha
+    /// de JSON por evento deixa CorrelationId, StatusCode e afins pesquisáveis como campos.
+    /// </summary>
+    public static ITextFormatter? FormatadorJsonDoConsole(IHostEnvironment ambiente) =>
+        ambiente.IsDevelopment() ? null : new CompactJsonFormatter();
+
     public static WebApplicationBuilder AddObservabilidade(this WebApplicationBuilder builder)
     {
         // Configuração estática (em vez do padrão bootstrap-logger/ReloadableLogger): evita o erro
         // "the logger is already frozen" quando o host é construído mais de uma vez no mesmo
         // processo, como acontece com WebApplicationFactory nos testes de integração.
-        const string TemplateLog =
-            "[{Timestamp:HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}";
-
         var configuracaoLog = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
-            .Enrich.WithProperty("Application", NomeDoServico)
-            .WriteTo.Console(outputTemplate: TemplateLog);
+            .Enrich.WithProperty("Application", NomeDoServico);
+
+        var formatadorJson = FormatadorJsonDoConsole(builder.Environment);
+        if (formatadorJson is null)
+            configuracaoLog.WriteTo.Console(outputTemplate: TemplateLog);
+        else
+            configuracaoLog.WriteTo.Console(formatadorJson);
 
         // SINK DE ARQUIVO SO EM DESENVOLVIMENTO
         // O requisito da disciplina pede "saida para console/arquivo". O console atende a
@@ -37,7 +52,7 @@ public static class ObservabilidadeExtensions
         // captura o log e o console, via "Log stream" e Application Insights.
         //
         // O ambiente de teste e "Testing" (IntegrationTestFixture), entao a suite tambem
-        // nao escreve arquivo -- 113 testes nao deixam rastro em disco.
+        // nao escreve arquivo -- a suite nao deixa rastro em disco.
         if (builder.Environment.IsDevelopment())
         {
             configuracaoLog.WriteTo.File(
