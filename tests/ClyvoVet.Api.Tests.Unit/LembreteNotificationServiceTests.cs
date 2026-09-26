@@ -181,7 +181,7 @@ public class LembreteNotificationServiceTests
     {
         var agora = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
 
-        var (proxima, terminou) = LembreteNotificationService.AvancarSerie(
+        var (proxima, terminou) = ClyvoVet.Domain.Entities.Lembrete.AvancarSerie(
             agendadoEm: agora.AddMinutes(30), intervaloDias: 7, repetirAte: null, agora: agora);
 
         Assert.False(terminou);
@@ -198,7 +198,7 @@ public class LembreteNotificationServiceTests
         var inicio = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc);
 
         // Antibiotico de 10 dias, uma dose por dia: no dia 20 a serie acaba.
-        var (_, terminou) = LembreteNotificationService.AvancarSerie(
+        var (_, terminou) = ClyvoVet.Domain.Entities.Lembrete.AvancarSerie(
             agendadoEm: inicio.AddDays(10), intervaloDias: 1,
             repetirAte: inicio.AddDays(10), agora: agora);
 
@@ -216,7 +216,7 @@ public class LembreteNotificationServiceTests
     {
         var agora = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
 
-        var (proxima, terminou) = LembreteNotificationService.AvancarSerie(
+        var (proxima, terminou) = ClyvoVet.Domain.Entities.Lembrete.AvancarSerie(
             agendadoEm: agora.AddDays(-30), intervaloDias: 1, repetirAte: null, agora: agora);
 
         Assert.False(terminou);
@@ -234,7 +234,7 @@ public class LembreteNotificationServiceTests
     {
         var agora = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
 
-        var (_, terminou) = LembreteNotificationService.AvancarSerie(
+        var (_, terminou) = ClyvoVet.Domain.Entities.Lembrete.AvancarSerie(
             agendadoEm: agora.AddDays(-30), intervaloDias: 1,
             repetirAte: agora.AddDays(-20), agora: agora);
 
@@ -251,7 +251,7 @@ public class LembreteNotificationServiceTests
     {
         var agora = DateTime.UtcNow;
 
-        var (_, terminou) = LembreteNotificationService.AvancarSerie(
+        var (_, terminou) = ClyvoVet.Domain.Entities.Lembrete.AvancarSerie(
             agendadoEm: agora, intervaloDias: 0, repetirAte: null, agora: agora);
 
         Assert.True(terminou);
