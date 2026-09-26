@@ -357,4 +357,145 @@ public class SaudePreditivaServiceTests
         Assert.Contains("Bolinha", parecer.Resumo!);
         Assert.Contains("checkup preventivo", parecer.Resumo!);
     }
+
+    // ---- F5: comportamentos que a medição de cobertura mostrou sem teste ----
+
+    [Fact]
+    public async Task CacheCorrompido_DevolveParecerVazioSemRegenerar()
+    {
+        // Arrange
+        _animais.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(Bolinha());
+        _pareceres.Setup(r => r.GetByAnimalIdAsync("animal-1")).ReturnsAsync(new ParecerIa
+        {
+            Id = "p1", AnimalId = "animal-1", Origem = "IA", Modelo = "meta.llama-3.3-70b-instruct",
+            Conteudo = "isto não é json",
+            GeradoEm = DateTime.UtcNow.AddDays(-1),
+            ValidoAte = DateTime.UtcNow.AddDays(6),
+        });
+
+        // Act
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        // Assert
+        // Cache ilegível não derruba a home: volta vazio, marcado como base limitada, e o
+        // próximo ciclo (quando vencer) regenera.
+        Assert.Empty(parecer.Riscos);
+        Assert.True(parecer.BaseLimitada);
+        _pareceres.Verify(r => r.SalvarAsync(It.IsAny<ParecerIa>()), Times.Never);
+        _ia.Verify(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void TentarLerRespostaDaIa_ChavesComJsonInvalidoDentro_DevolveNulo()
+    {
+        // Arrange
+        const string texto = "Segue o parecer: { riscos: [mastocitoma, alto] }";
+
+        // Act
+        var conteudo = SaudePreditivaService.TentarLerRespostaDaIa(texto);
+
+        // Assert
+        Assert.Null(conteudo);
+    }
+
+    [Fact]
+    public async Task RacaSemDadosNaBase_UsaOAgregadoDaEspecie()
+    {
+        // Arrange
+        var shihTzu = Bolinha();
+        shihTzu.Raca = "Shih Tzu";
+        shihTzu.RacaCatalogo!.Chave = "shih-tzu";
+        _animais.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(shihTzu);
+        _pareceres.Setup(r => r.GetByAnimalIdAsync("animal-1")).ReturnsAsync((ParecerIa?)null);
+        _base.Setup(r => r.GetByEspecieAsync("CAO")).ReturnsAsync(
+        [
+            Linha("labrador-retriever", "MCT", "Mastocitoma", "ONCOLOGICA", 306),
+            Linha("golden-retriever", "MCT", "Mastocitoma", "ONCOLOGICA", 10),
+            Linha("golden-retriever", "lymphoma", "Linfoma", "ONCOLOGICA", 40),
+        ]);
+        _tutorTelegram.Setup(r => r.GetChatIdByTutorIdAsync(It.IsAny<string>())).ReturnsAsync((long?)null);
+        _ia.SetupGet(i => i.Configurado).Returns(false);
+
+        // Act
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        // Assert
+        // Sem linha da raça, a mesma doença de raças diferentes é somada (306 + 10).
+        Assert.Equal(2, parecer.Riscos.Count);
+        Assert.Equal("Mastocitoma", parecer.Riscos[0].Doenca);
+        Assert.Equal("316 casos registrados na espécie na base de referência.", parecer.Riscos[0].Justificativa);
+    }
+
+    [Fact]
+    public void Convite_ComIdadeSemRaca_BaseiaSoNaIdade()
+    {
+        // Arrange
+        var semRaca = Bolinha();
+        semRaca.Raca = null;
+        semRaca.RacaCatalogo = null;
+
+        // Act
+        var frase = SaudePreditivaService.MontarConvite(semRaca, "Mastocitoma");
+
+        // Assert
+        Assert.Contains("Pela idade de Bolinha", frase);
+        Assert.DoesNotContain("raça", frase);
+    }
+
+    [Theory]
+    [InlineData("CARDIACA", "Ausculta cardíaca anual")]
+    [InlineData("HEPATICA/VASCULAR", "função hepática")]
+    [InlineData("NEUROLOGICA", "avaliação neurológica")]
+    [InlineData("GASTROINTESTINAL", "diarreia persistente")]
+    [InlineData("RENAL", "Creatinina e exame de urina")]
+    [InlineData("ENDOCRINA", "Glicemia e T4")]
+    [InlineData("METABOLICA", "Painel bioquímico")]
+    [InlineData("OFTALMOLOGICA", "Avaliação oftálmica")]
+    [InlineData("INFECCIOSA", "Vacinação em dia")]
+    [InlineData("CATEGORIA_NOVA", "Manter o checkup veterinário anual")]
+    public async Task Regras_RecomendacaoSegueACategoriaDaDoenca(string categoria, string trechoEsperado)
+    {
+        // Arrange
+        _animais.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(Bolinha());
+        _pareceres.Setup(r => r.GetByAnimalIdAsync("animal-1")).ReturnsAsync((ParecerIa?)null);
+        _base.Setup(r => r.GetByEspecieAsync("CAO")).ReturnsAsync(
+            [Linha("labrador-retriever", "X", "Doença de teste", categoria, 5)]);
+        _tutorTelegram.Setup(r => r.GetChatIdByTutorIdAsync(It.IsAny<string>())).ReturnsAsync((long?)null);
+        _ia.SetupGet(i => i.Configurado).Returns(false);
+
+        // Act
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        // Assert
+        Assert.Contains(trechoEsperado, Assert.Single(parecer.Recomendacoes));
+    }
+
+    [Fact]
+    public async Task IaComBaseLimitada_PromptAvisaOModelo()
+    {
+        // Arrange
+        var piu = Bolinha();
+        piu.Especie = "Passaro";
+        piu.Raca = null;
+        piu.RacaCatalogo = null;
+        _animais.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(piu);
+        _pareceres.Setup(r => r.GetByAnimalIdAsync("animal-1")).ReturnsAsync((ParecerIa?)null);
+        _base.Setup(r => r.GetByEspecieAsync("AVE")).ReturnsAsync([]);
+        _tutorTelegram.Setup(r => r.GetChatIdByTutorIdAsync(It.IsAny<string>())).ReturnsAsync((long?)null);
+        string? prompt = null;
+        _ia.SetupGet(i => i.Configurado).Returns(true);
+        _ia.SetupGet(i => i.ModelId).Returns("meta.llama-3.3-70b-instruct");
+        _ia.Setup(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((texto, _) => prompt = texto)
+            .ReturnsAsync("""{"riscos":[{"doenca":"Clamidiose","nivel":"BAIXO"}],"recomendacoes":["Checkup"],"resumo":"ok"}""");
+
+        // Act
+        var parecer = await Servico().GetParecerAsync("animal-1");
+
+        // Assert
+        // Base limitada vai para o modelo como instrução, não só para o card.
+        Assert.Contains("AVISO: a base cobre pouco esta espécie/raça", prompt);
+        Assert.Equal("IA", parecer.Origem);
+        Assert.True(parecer.BaseLimitada);
+    }
 }
