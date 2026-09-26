@@ -1,0 +1,42 @@
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.DTOs.Response;
+using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+
+namespace ClyvoVet.Application.Services;
+
+/// <summary>
+/// Os casos de uso do vínculo com o Telegram, que antes moravam no controller.
+///
+/// <para>
+/// O controller falava direto com o repositório e montava o deep link; era o único
+/// da API a pular a camada de serviço. A checagem de escopo e os <c>_links</c>
+/// continuam lá, porque decidir entre 403 e 200 e gerar URL de rota são assuntos de
+/// HTTP.
+/// </para>
+/// </summary>
+public class VinculoTelegramService(
+    IConfiguration configuracao,
+    VinculosPendentesDeTelegram convites,
+    ITutorTelegramRepository vinculos) : IVinculoTelegramService
+{
+    public TelegramLinkResponse GerarLink(string tutorId)
+    {
+        var botUsername = configuracao["Telegram:BotUsername"];
+        var token = convites.Gerar(tutorId);
+        return new TelegramLinkResponse { Link = $"https://t.me/{botUsername}?start={token}" };
+    }
+
+    public async Task<TelegramVinculoResponse> ObterVinculoAsync(string tutorId)
+    {
+        var vinculo = await vinculos.ObterVinculoAsync(tutorId);
+        return new TelegramVinculoResponse
+        {
+            Vinculado = vinculo is not null,
+            Desde = vinculo?.CriadoEm,
+        };
+    }
+
+    public Task DesvincularAsync(string tutorId) => vinculos.DesvincularAsync(tutorId);
+}

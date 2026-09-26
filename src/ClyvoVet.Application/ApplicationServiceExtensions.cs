@@ -15,6 +15,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IEventoPetService,            EventoPetService>();
         services.AddScoped<IWidgetSaudePreditivaService, WidgetSaudePreditivaService>();
         services.AddScoped<ISaudePreditivaService,       SaudePreditivaService>();
+        services.AddScoped<IVinculoTelegramService,      VinculoTelegramService>();
 
         services.AddScoped<EscopoDoTutor>();
 

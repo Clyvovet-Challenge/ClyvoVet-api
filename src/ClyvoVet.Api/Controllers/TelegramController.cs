@@ -1,7 +1,5 @@
 using ClyvoVet.Application.Abstractions.External;
-using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.DTOs.Request;
-using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Hateoas;
 using ClyvoVet.Application.Security;
@@ -44,25 +42,19 @@ namespace ClyvoVet.Api.Controllers;
 public class TelegramController : ControllerBase
 {
     private readonly ITelegramService _service;
-    private readonly IConfiguration _configuration;
-    private readonly VinculosPendentesDeTelegram _convites;
+    private readonly IVinculoTelegramService _vinculos;
     private readonly EscopoDoTutor _escopo;
-    private readonly ITutorTelegramRepository _vinculos;
     private readonly GeradorDeLinks _links;
 
     public TelegramController(
         ITelegramService service,
-        IConfiguration configuration,
-        VinculosPendentesDeTelegram convites,
+        IVinculoTelegramService vinculos,
         EscopoDoTutor escopo,
-        ITutorTelegramRepository vinculos,
         GeradorDeLinks links)
     {
         _service = service;
-        _configuration = configuration;
-        _convites = convites;
-        _escopo = escopo;
         _vinculos = vinculos;
+        _escopo = escopo;
         _links = links;
     }
 
@@ -106,10 +98,7 @@ public class TelegramController : ControllerBase
         if (!_escopo.PermiteTutor(tutorId))
             return Forbid();
 
-        var botUsername = _configuration["Telegram:BotUsername"];
-        var token = _convites.Gerar(tutorId);
-        var link = $"https://t.me/{botUsername}?start={token}";
-        var resposta = new TelegramLinkResponse { Link = link };
+        var resposta = _vinculos.GerarLink(tutorId);
         _links.TelegramLink(resposta, tutorId);
         return Ok(resposta);
     }
@@ -136,13 +125,7 @@ public class TelegramController : ControllerBase
         if (!_escopo.PermiteTutor(tutorId))
             return Forbid();
 
-        var vinculo = await _vinculos.ObterVinculoAsync(tutorId);
-
-        var resposta = new TelegramVinculoResponse
-        {
-            Vinculado = vinculo is not null,
-            Desde = vinculo?.CriadoEm,
-        };
+        var resposta = await _vinculos.ObterVinculoAsync(tutorId);
         _links.TelegramVinculo(resposta, tutorId);
         return Ok(resposta);
     }
