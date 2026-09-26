@@ -265,6 +265,7 @@ desenvolvimento local; ele não produz o artefato publicado.)
 | .NET / ASP.NET Core | 8.0 | Framework da API |
 | Entity Framework Core | 8.0.11 | ORM (Database-First, sem migrations) |
 | Pomelo.EntityFrameworkCore.MySql | 8.0.2 | Provider MySQL para EF Core |
+| MongoDB.Driver / MongoDB | 3.12.0 / 7 | Cache NoSQL do parecer de IA (opcional: só com `Mongo:ConnectionString`) |
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
 | Microsoft.OpenApi | 2.12.2 | Modelos OpenAPI (namespace atualizado na v2) |
 | MySQL | 8.0 | Banco de dados (Azure Database for MySQL Flexible Server na nuvem) |
@@ -302,9 +303,10 @@ ClyvoVet-api/
 │   │   │   ├── AppDbContext.cs        → DbContext principal
 │   │   │   └── Configurations/        → Fluent API (mapeamento tabela ↔ modelo)
 │   │   ├── Repositories/              → Acesso ao banco via EF Core
+│   │   ├── Mongo/                     → Cache do parecer de IA no MongoDB (repositório, índice TTL)
 │   │   ├── External/                  → Clientes da OCI Generative AI e do Telegram
 │   │   ├── Background/                → Serviços em segundo plano (lembretes, vínculo do Telegram)
-│   │   └── HealthChecks/              → Check do Telegram
+│   │   └── HealthChecks/              → Checks do Telegram e do MongoDB
 │   └── ClyvoVet.Api/                  → Porta de entrada HTTP
 │       ├── Controllers/               → Recebem requisições HTTP e delegam ao Service
 │       ├── Extensions/                → Observabilidade (Serilog, OpenTelemetry) e documentação (Swagger)
@@ -606,7 +608,7 @@ A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagn
 | `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
 | `GET /health/ready` | Conectividade real com o MySQL (`Database.CanConnectAsync()`) | Readiness probe |
 
-Além do MySQL, `GET /health` também confere a Telegram Bot API (`telegram-bot`, via `GetMe`), fora da tag `ready` de propósito: uma instabilidade nela não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram. A OCI Generative AI **não** tem sonda: ela é opcional por design (fallback determinístico), e uma sonda a transformaria em dependência.
+Além do MySQL, `GET /health` também confere a Telegram Bot API (`telegram-bot`, via `GetMe`), fora da tag `ready` de propósito: uma instabilidade nela não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram. A OCI Generative AI **não** tem sonda: ela é opcional por design (fallback determinístico), e uma sonda a transformaria em dependência. Com `Mongo:ConnectionString` configurada, o `GET /health` confere também o MongoDB (`mongo`, via `ping`), igualmente fora da tag `ready`: é só um cache.
 
 Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
 
@@ -676,6 +678,54 @@ dotnet test ClyvoVet-api.slnx
 - A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o MySQL real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar de banco nenhum, nem local nem na nuvem.
 - `SwaggerEndpointsTests` cobre a geração do documento OpenAPI: que `/swagger/v1/swagger.json` responde, que ele é um documento válido com rotas, e que uma rota protegida por `X-Api-Key` continua declarando o requisito de segurança. Existe porque o Swagger é entregável avaliado e falha nele é 500 em tempo de execução, não erro de compilação — foi o que permitiu subir o `Microsoft.OpenApi` para corrigir a vulnerabilidade GHSA-v5pm-xwqc-g5wc sem apostar que nada quebrou.
 - A maior parte dos testes usa uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para a suíte inteira, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, separada, por dependerem de um Animal com raça e idade específicas.
+
+---
+
+## NoSQL — MongoDB (cache do parecer de IA)
+
+O parecer de saúde preditiva (`GET /api/v1/saude-preditiva/{animalId}`) é gerado por um LLM ou por regras e fica em
+cache por 7 dias, um por animal. Ele é naturalmente um **documento aninhado** (riscos, recomendações, resumo) com
+**validade**, então o MongoDB o guarda como subdocumento, com um **índice TTL** em `validoAte` para o documento
+expirar sozinho. O repositório é escolhido por configuração — a interface (`IParecerIaRepository`), a entidade e o
+serviço não mudam.
+
+| Chave | Para quê |
+|---|---|
+| `Mongo:ConnectionString` | Connection string do MongoDB. **Vazia ou ausente = Mongo desligado** e o cache continua na tabela `t_clyvo_parecer_ia` do MySQL (é o caso de produção hoje) |
+| `Mongo:Database` | Nome do banco (padrão `clyvovet`) |
+
+**Rodando local:**
+
+```bash
+docker compose up -d mongo                                    # mongo:7 em 127.0.0.1:27017
+cd src/ClyvoVet.Api
+dotnet user-secrets set "Mongo:ConnectionString" "mongodb://localhost:27017"
+```
+
+Em produção a connection string vai em variável de ambiente (`Mongo__ConnectionString`), nunca em arquivo versionado.
+
+**O cache nunca derruba a feature.** Mongo fora do ar na leitura = *cache miss* (o parecer é gerado normalmente);
+na escrita = `Warning` no log. O driver espera no máximo 3 s pelo servidor (o padrão dele é 30 s). O ambiente `Testing`
+nunca usa Mongo, mesmo com a chave definida.
+
+**Documento** (coleção `pareceres_ia`, `_id` = id do animal):
+
+```json
+{ "_id": "animal-1", "origem": "IA", "modelo": "meta.llama-3.3-70b-instruct",
+  "conteudo": { "riscos": [ … ], "recomendacoes": [ … ], "resumo": "…", "baseLimitada": false },
+  "geradoEm": "2026-09-25T12:00:00Z", "validoAte": "2026-10-02T12:00:00Z" }
+```
+
+**Testes.** O mapeamento, a resiliência a falhas e o registro por configuração rodam **sem servidor**. Os testes contra um
+MongoDB real são marcados e **ficam como *Skipped*** (com a razão no relatório) enquanto `MONGO_TEST_URI` não estiver definida:
+
+```bash
+docker run -d --rm -p 27017:27017 --name clyvovet-mongo-teste mongo:7
+MONGO_TEST_URI=mongodb://localhost:27017 dotnet test tests/ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj
+docker stop clyvovet-mongo-teste
+```
+
+Cada teste cria e apaga o próprio banco (`clyvovet_teste_<guid>`): nada de dados de desenvolvimento é tocado.
 
 ---
 
