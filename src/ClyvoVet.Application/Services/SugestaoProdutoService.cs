@@ -35,7 +35,8 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         return MapToResponse(sugestao);
     }
 
-    public async Task<SugestaoProdutoResponse> CreateAsync(SugestaoProdutoRequest request)
+    /// <summary>Criar e atualizar aceitam o mesmo corpo: animal e produto precisam existir.</summary>
+    private async Task ValidarReferenciasAsync(SugestaoProdutoRequest request)
     {
         var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
         if (animal is null)
@@ -44,23 +45,28 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         var produto = await _produtoRepository.GetByIdAsync(request.ProdutoId);
         if (produto is null)
             throw new NotFoundException($"Produto com id {request.ProdutoId} não encontrado.");
+    }
 
-        var sugestao = new SugestaoProduto
-        {
-            AnimalId = request.AnimalId,
-            ProdutoId = request.ProdutoId,
-            Justificativa = request.Justificativa,
-            // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
-            // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
-            // servidor, os dois discordavam sobre que dia e hoje sempre que o
-            // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
-            // aplicacao brasileira. Uma sugestao criada perto da meia-noite
-            // nasceria com a data de ontem para o validador.
-            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
-            Ativo = request.Ativo
-        };
+    private static SugestaoProduto Montar(SugestaoProdutoRequest request) => new()
+    {
+        AnimalId = request.AnimalId,
+        ProdutoId = request.ProdutoId,
+        Justificativa = request.Justificativa,
+        // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
+        // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
+        // servidor, os dois discordavam sobre que dia e hoje sempre que o
+        // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
+        // aplicacao brasileira. Uma sugestao criada perto da meia-noite
+        // nasceria com a data de ontem para o validador.
+        DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
+        Ativo = request.Ativo
+    };
 
-        var created = await _repository.CreateAsync(sugestao);
+    public async Task<SugestaoProdutoResponse> CreateAsync(SugestaoProdutoRequest request)
+    {
+        await ValidarReferenciasAsync(request);
+
+        var created = await _repository.CreateAsync(Montar(request));
         var full = await _repository.GetByIdAsync(created.Id);
         return MapToResponse(full!);
     }
@@ -71,24 +77,9 @@ public class SugestaoProdutoService : ISugestaoProdutoService
         if (existing is null)
             throw new NotFoundException($"Sugestão com id {id} não encontrada.");
 
-        var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
-        if (animal is null)
-            throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
+        await ValidarReferenciasAsync(request);
 
-        var produto = await _produtoRepository.GetByIdAsync(request.ProdutoId);
-        if (produto is null)
-            throw new NotFoundException($"Produto com id {request.ProdutoId} não encontrado.");
-
-        var sugestao = new SugestaoProduto
-        {
-            AnimalId = request.AnimalId,
-            ProdutoId = request.ProdutoId,
-            Justificativa = request.Justificativa,
-            DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
-            Ativo = request.Ativo
-        };
-
-        await _repository.UpdateAsync(id, sugestao);
+        await _repository.UpdateAsync(id, Montar(request));
         var full = await _repository.GetByIdAsync(id);
         return MapToResponse(full!);
     }

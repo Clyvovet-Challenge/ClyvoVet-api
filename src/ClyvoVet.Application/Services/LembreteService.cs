@@ -60,7 +60,8 @@ public class LembreteService : ILembreteService
                 "A data final da repetição não pode ser anterior à data do lembrete.");
     }
 
-    public async Task<LembreteResponse> CreateAsync(LembreteRequest request)
+    /// <summary>Criar e atualizar aceitam o mesmo corpo, então validam do mesmo jeito.</summary>
+    private async Task ValidarAsync(LembreteRequest request)
     {
         var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
         if (animal is null)
@@ -70,25 +71,30 @@ public class LembreteService : ILembreteService
             throw new BadRequestException("A data do lembrete não pode ser no passado.");
 
         ValidarSerie(request);
+    }
 
-        var lembrete = new Lembrete
-        {
-            AnimalId = request.AnimalId,
-            Titulo = request.Titulo,
-            Descricao = request.Descricao,
-            Tipo = request.Tipo,
-            AgendadoEm = request.AgendadoEm,
-            // DERIVADO, e nao copiado do request: com duas fontes para a mesma
-            // verdade, um corpo com {"recorrente": true} sem intervalo gravaria
-            // um lembrete que se diz recorrente e nao repete -- exatamente o
-            // defeito que a V18 veio consertar.
-            Recorrente = request.IntervaloDias.HasValue,
-            IntervaloDias = request.IntervaloDias,
-            RepetirAte = request.RepetirAte,
-            Status = StatusLembreteEnum.Pendente
-        };
+    private static Lembrete Montar(LembreteRequest request, StatusLembreteEnum status) => new()
+    {
+        AnimalId = request.AnimalId,
+        Titulo = request.Titulo,
+        Descricao = request.Descricao,
+        Tipo = request.Tipo,
+        AgendadoEm = request.AgendadoEm,
+        // DERIVADO, e nao copiado do request: com duas fontes para a mesma
+        // verdade, um corpo com {"recorrente": true} sem intervalo gravaria
+        // um lembrete que se diz recorrente e nao repete -- exatamente o
+        // defeito que a V18 veio consertar.
+        Recorrente = request.IntervaloDias.HasValue,
+        IntervaloDias = request.IntervaloDias,
+        RepetirAte = request.RepetirAte,
+        Status = status
+    };
 
-        var created = await _repository.CreateAsync(lembrete);
+    public async Task<LembreteResponse> CreateAsync(LembreteRequest request)
+    {
+        await ValidarAsync(request);
+
+        var created = await _repository.CreateAsync(Montar(request, StatusLembreteEnum.Pendente));
         var full = await _repository.GetByIdAsync(created.Id);
         return MapToResponse(full!);
     }
@@ -99,29 +105,10 @@ public class LembreteService : ILembreteService
         if (existing is null)
             throw new NotFoundException($"Lembrete com id {id} não encontrado.");
 
-        var animal = await _animalRepository.GetByIdAsync(request.AnimalId);
-        if (animal is null)
-            throw new NotFoundException($"Animal com id {request.AnimalId} não encontrado.");
+        await ValidarAsync(request);
 
-        if (DataValidationHelper.EhDataNoPassado(request.AgendadoEm))
-            throw new BadRequestException("A data do lembrete não pode ser no passado.");
-
-        ValidarSerie(request);
-
-        var lembrete = new Lembrete
-        {
-            AnimalId = request.AnimalId,
-            Titulo = request.Titulo,
-            Descricao = request.Descricao,
-            Tipo = request.Tipo,
-            AgendadoEm = request.AgendadoEm,
-            Recorrente = request.IntervaloDias.HasValue,   // derivado; ver CreateAsync
-            IntervaloDias = request.IntervaloDias,
-            RepetirAte = request.RepetirAte,
-            Status = existing.Status
-        };
-
-        await _repository.UpdateAsync(id, lembrete);
+        // O status não vem do corpo: editar um lembrete não o reenvia nem o dá por enviado.
+        await _repository.UpdateAsync(id, Montar(request, existing.Status));
         var full = await _repository.GetByIdAsync(id);
         return MapToResponse(full!);
     }
