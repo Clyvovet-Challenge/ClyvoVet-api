@@ -258,6 +258,25 @@ desenvolvimento local; ele não produz o artefato publicado.)
 
 ---
 
+## Princípios aplicados
+
+Cada princípio com um exemplo real do código (arquivo e linha):
+
+| Princípio | Onde | O que mostra |
+|---|---|---|
+| **S** — responsabilidade única | [`MapaDeErro.cs:21`](src/ClyvoVet.Api/Errors/MapaDeErro.cs#L21) | Uma classe só traduz exceção de negócio em status HTTP; o tratador global só a chama. Controllers delegam ao *service* e não têm regra de negócio. |
+| **O** — aberto/fechado | [`ProdutoRepository.cs:15`](src/ClyvoVet.Infrastructure/Repositories/ProdutoRepository.cs#L15) e [`Ordenacao.cs:25`](src/ClyvoVet.Infrastructure/Repositories/Ordenacao.cs#L25) | Tornar um campo ordenável é uma entrada na lista branca do repositório; a `Ordenacao` não muda. |
+| **L** — substituição de Liskov | [`InfrastructureServiceExtensions.cs:83`](src/ClyvoVet.Infrastructure/InfrastructureServiceExtensions.cs#L83) e [`MongoServiceExtensions.cs:39`](src/ClyvoVet.Infrastructure/Mongo/MongoServiceExtensions.cs#L39) | `ParecerIaRepository` (MySQL) e `ParecerIaMongoRepository` são trocados por configuração sem o `SaudePreditivaService` perceber. |
+| **I** — segregação de interfaces | [`IParecerIaRepository.cs:5`](src/ClyvoVet.Application/Abstractions/Repositories/IParecerIaRepository.cs#L5) | Uma interface por recurso, só com o que o caso de uso usa (aqui, dois métodos), em vez de um repositório genérico com tudo. |
+| **D** — inversão de dependência | [`SaudePreditivaService.cs:47`](src/ClyvoVet.Application/Services/SaudePreditivaService.cs#L47) e [`ArquiteturaTests.cs:51`](tests/ClyvoVet.Api.Tests.Unit/ArquiteturaTests.cs#L51) | A Application depende só de interfaces que ela mesma declara; a Infrastructure as implementa. Um teste falha se a Application passar a referenciar EF, MongoDB ou ASP.NET. |
+
+**Clean Code:** nomes do domínio em português, comentários que explicam o porquê (não o quê) e métodos curtos. Uma revisão de
+SOLID e Clean Code nas quatro camadas gerou cinco correções, cada uma num commit `refactor:` próprio — entre elas, a checagem de
+escopo do tutor centralizada num só lugar, a regra da série de lembretes movida para a entidade e o `SaudePreditivaService`
+dividido em prompt, leitura da resposta da IA, regras e perfil do animal (de 425 para 213 linhas).
+
+---
+
 ## Tecnologias
 
 | Tecnologia | Versão | Uso |
@@ -632,7 +651,14 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
 
 ### Logging Estruturado (Serilog)
 
-- Configurado em [`ObservabilidadeExtensions.cs`](src/ClyvoVet.Api/Extensions/ObservabilidadeExtensions.cs), chamado pelo [`Program.cs`](src/ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
+- Configurado em [`ObservabilidadeExtensions.cs`](src/ClyvoVet.Api/Extensions/ObservabilidadeExtensions.cs), chamado pelo [`Program.cs`](src/ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a nuvem lê. **Fora de `Development` ele sai em JSON** (`CompactJsonFormatter`, uma linha por evento, com `CorrelationId`, `Application`, `MachineName` e as propriedades da mensagem como campos); em `Development`, no template legível.
+- Exemplo real (API em `Production`, `GET /health/live`; campos de rastreio omitidos):
+
+  ```json
+  {"@t":"2026-09-26T04:56:32.4232450Z","@mt":"HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms","RequestMethod":"GET","RequestPath":"/health/live","StatusCode":200,"Elapsed":41.008667,"SourceContext":"Serilog.AspNetCore.RequestLoggingMiddleware","CorrelationId":"demo-readme-01","Application":"ClyvoVet.Api"}
+  ```
+
+  O nível só aparece (`@l`) quando não é `Information`, e uma exceção vem em `@x`. Como cada propriedade é um campo, dá para filtrar por `StatusCode` ou `CorrelationId` sem expressão regular.
 - O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
 - Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](src/ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
 - São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
@@ -656,7 +682,7 @@ Em `tests/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Ar
 | Projeto | O que testa | Ferramentas |
 |---------|-------------|-------------|
 | `ClyvoVet.Api.Tests.Unit` | Camada de Aplicação (`Services/`) com os repositórios mockados, e o `ApiKeyFilterAttribute` | xUnit + Moq |
-| `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory |
+| `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory (e MongoDB real, opcional — ver [NoSQL](#nosql--mongodb-cache-do-parecer-de-ia)) |
 
 ### Rodando os testes
 
@@ -671,7 +697,17 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `124` testes passando (`55` unitários e `69` de integração).
+**Resultado esperado:** `512` testes passando (`298` unitários e `214` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
+
+### Cobertura
+
+```bash
+scripts/cobertura.sh                        # coverlet + ReportGenerator; relatório em TestResults/cobertura/relatorio/index.html
+```
+
+Mede a cobertura de **linhas** das camadas de **Domínio e Aplicação**, unindo os testes de unidade e os de integração, e **falha abaixo de
+90%**. Medição na entrega: **99%** (Domain 95,6%, Application 99,6%). O limite é uma catraca: a medição inicial já passava de 96%, e um
+limite baixo deixaria a cobertura cair sem ninguém perceber.
 
 ### Detalhes dos testes de integração
 
