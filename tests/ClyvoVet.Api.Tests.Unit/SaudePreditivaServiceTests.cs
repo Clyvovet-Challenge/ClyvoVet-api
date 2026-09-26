@@ -3,6 +3,7 @@ using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Services;
+using ClyvoVet.Application.Services.SaudePreditiva;
 using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -235,7 +236,7 @@ public class SaudePreditivaServiceTests
     [InlineData(null, null)]
     public void CodigoDoCatalogo_TraduzOVocabularioDoAnimal(string? especie, string? esperado)
     {
-        Assert.Equal(esperado, SaudePreditivaService.CodigoDoCatalogo(especie));
+        Assert.Equal(esperado, PerfilDoAnimal.CodigoDoCatalogo(especie));
     }
 
     [Theory]
@@ -246,7 +247,7 @@ public class SaudePreditivaServiceTests
     [InlineData("{\"riscos\":[{\"nivel\":\"ALTO\"}]}")] // risco sem doença
     public void RespostasInvalidasDaIa_ViramNull(string? texto)
     {
-        Assert.Null(SaudePreditivaService.TentarLerRespostaDaIa(texto));
+        Assert.Null(LeitorDaRespostaDaIa.TentarLer(texto));
     }
 
     // ------------------------------------------------------------------
@@ -261,7 +262,7 @@ public class SaudePreditivaServiceTests
     [Fact]
     public void Convite_CitaOPetPeloNome_EConvidaAAgendar()
     {
-        var frase = SaudePreditivaService.MontarConvite(Bolinha(), "Mastocitoma");
+        var frase = ParecerPorRegras.MontarConvite(Bolinha(), "Mastocitoma");
 
         Assert.Contains("Bolinha", frase);
         Assert.Contains("mastocitoma", frase);
@@ -277,8 +278,8 @@ public class SaudePreditivaServiceTests
         var femea = Bolinha();
         femea.Sexo = "FEMEA";
 
-        Assert.Contains("ele tem mais chance", SaudePreditivaService.MontarConvite(macho, "Linfoma"));
-        Assert.Contains("ela tem mais chance", SaudePreditivaService.MontarConvite(femea, "Linfoma"));
+        Assert.Contains("ele tem mais chance", ParecerPorRegras.MontarConvite(macho, "Linfoma"));
+        Assert.Contains("ela tem mais chance", ParecerPorRegras.MontarConvite(femea, "Linfoma"));
     }
 
     /// <summary>
@@ -293,7 +294,7 @@ public class SaudePreditivaServiceTests
         var semIdade = Bolinha();
         semIdade.DataNascimento = null;
 
-        var frase = SaudePreditivaService.MontarConvite(semIdade, "Mastocitoma");
+        var frase = ParecerPorRegras.MontarConvite(semIdade, "Mastocitoma");
 
         Assert.DoesNotContain("idade", frase);
         Assert.Contains("Pela raça de Bolinha", frase);
@@ -307,7 +308,7 @@ public class SaudePreditivaServiceTests
         semNada.Raca = null;
         semNada.RacaCatalogo = null;
 
-        var frase = SaudePreditivaService.MontarConvite(semNada, "Mastocitoma");
+        var frase = ParecerPorRegras.MontarConvite(semNada, "Mastocitoma");
 
         Assert.DoesNotContain("idade", frase);
         Assert.DoesNotContain("raça", frase);
@@ -318,7 +319,7 @@ public class SaudePreditivaServiceTests
     [Fact]
     public void Convite_SemDoenca_AindaConvidaAoCheckup()
     {
-        var frase = SaudePreditivaService.MontarConvite(Bolinha(), null);
+        var frase = ParecerPorRegras.MontarConvite(Bolinha(), null);
 
         Assert.Contains("Bolinha", frase);
         Assert.Contains("checkup preventivo", frase);
@@ -392,7 +393,7 @@ public class SaudePreditivaServiceTests
         const string texto = "Segue o parecer: { riscos: [mastocitoma, alto] }";
 
         // Act
-        var conteudo = SaudePreditivaService.TentarLerRespostaDaIa(texto);
+        var conteudo = LeitorDaRespostaDaIa.TentarLer(texto);
 
         // Assert
         Assert.Null(conteudo);
@@ -435,7 +436,7 @@ public class SaudePreditivaServiceTests
         semRaca.RacaCatalogo = null;
 
         // Act
-        var frase = SaudePreditivaService.MontarConvite(semRaca, "Mastocitoma");
+        var frase = ParecerPorRegras.MontarConvite(semRaca, "Mastocitoma");
 
         // Assert
         Assert.Contains("Pela idade de Bolinha", frase);
