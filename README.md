@@ -517,6 +517,7 @@ Só o **access token** vale: o *refresh token* (7 dias) é recusado.
 | `Jwt__Secret` | o **mesmo** valor de `JWT_SECRET` da API Java (base64; a chave é o valor *decodificado*) |
 | `Jwt__Emissor`, `Jwt__Publico` | opcionais; padrões `clyvovet-api-java` e `clyvovet` |
 | `Auth__ExigirToken` | `false` desliga a exigência do Bearer (alavanca de emergência); padrão `true` |
+| `Api__EscopoPorTutor` | `true` liga o recorte por tutor: um TUTOR só vê os próprios animais, lembretes e sugestões, e o recurso de outro tutor responde `404`. Padrão **desligado** |
 
 ```bash
 dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
@@ -965,7 +966,7 @@ O parecer de riscos e recomendações que a home do app mostra por animal. O des
 - `origem` diz quem redigiu: `IA` (OCI) ou `REGRAS` (fallback determinístico). O app mostra a diferença ao tutor.
 - `baseLimitada` avisa quando a base cobre pouco a espécie (aves/répteis dos datasets são fauna selvagem; roedores não têm dados).
 - Se o tutor tem o Telegram vinculado, um parecer **novo** também dispara o resumo por mensagem.
-- Exige o `X-Api-Key` principal e respeita o escopo por tutor (animal alheio responde 404).
+- Exige o `X-Api-Key` principal e respeita o escopo por tutor: com `Api__EscopoPorTutor=true`, animal alheio responde 404.
 
 **Configuração da OCI** (tudo por variável de ambiente ou `user-secrets` — nunca no código):
 
