@@ -1,12 +1,12 @@
 # Guia de Testes Manuais
 
-> Movido do [README da raiz](../README.md) na Sprint 4, sem alteração de conteúdo.
+> Movido do [README da raiz](../README.md) na Sprint 4. A única mudança é o aviso de autenticação logo abaixo, que passou a citar o JWT.
 
 
 > **54 testes** manuais, rodados contra o banco MySQL real, todos passando.  
 > Acesse **`http://localhost:5191/swagger`**, siga a ordem indicada e reaproveite os JSONs já prontos.  
 > Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
-> ⚠️ Desde a Sprint 3, os endpoints principais exigem `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](../README.md#-autenticação)).
+> ⚠️ Os endpoints principais exigem a `X-Api-Key` (desde a Sprint 3) **e** o access token `Bearer` da API Java (desde a Sprint 4) — clique em **"Authorize"** no Swagger e informe os dois antes de começar (veja a seção [🔐 Autenticação](../README.md#-autenticação)).
 
 ---
 

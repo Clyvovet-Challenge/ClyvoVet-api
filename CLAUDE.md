@@ -96,6 +96,8 @@ arquitetura está errada — não o teste.
 - **Só access token vale** (`tipo = access`). O refresh de 7 dias não é credencial aqui.
 - **`tutorId` nulo nega, nunca "passa sem filtro"** (ADMIN e VETERINARIO não têm tutor).
 - **Recurso de outro tutor responde 404, não 403** — a existência já é informação.
+  Exceção de propósito: no Telegram o `tutorId` da rota é o **do próprio chamador** (vincular o
+  próprio chat), não um recurso alheio; se não for o dele, a resposta é **403** (`PermiteTutor`).
 - **Nunca `AllowAnyOrigin`** no CORS.
 - Não mexer em `TINYINT` das tabelas `t_clyvo_*` (Pomelo mapeia `bool` para `tinyint(1)`).
 
