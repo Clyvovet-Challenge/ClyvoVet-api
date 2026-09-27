@@ -47,18 +47,13 @@ public class SugestaoProdutoService : ISugestaoProdutoService
             throw new NotFoundException($"Produto com id {request.ProdutoId} não encontrado.");
     }
 
-    private static SugestaoProduto Montar(SugestaoProdutoRequest request) => new()
+    /// <param name="dataPadrao">Usada quando o corpo não traz a data: hoje ao criar, a data já gravada ao atualizar.</param>
+    private static SugestaoProduto Montar(SugestaoProdutoRequest request, DateOnly dataPadrao) => new()
     {
         AnimalId = request.AnimalId,
         ProdutoId = request.ProdutoId,
         Justificativa = request.Justificativa,
-        // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
-        // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
-        // servidor, os dois discordavam sobre que dia e hoje sempre que o
-        // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
-        // aplicacao brasileira. Uma sugestao criada perto da meia-noite
-        // nasceria com a data de ontem para o validador.
-        DataSugestao = request.DataSugestao ?? DateOnly.FromDateTime(DateTime.UtcNow),
+        DataSugestao = request.DataSugestao ?? dataPadrao,
         Ativo = request.Ativo
     };
 
@@ -66,7 +61,14 @@ public class SugestaoProdutoService : ISugestaoProdutoService
     {
         await ValidarReferenciasAsync(request);
 
-        var created = await _repository.CreateAsync(Montar(request));
+        // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
+        // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
+        // servidor, os dois discordavam sobre que dia e hoje sempre que o
+        // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
+        // aplicacao brasileira. Uma sugestao criada perto da meia-noite
+        // nasceria com a data de ontem para o validador.
+        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        var created = await _repository.CreateAsync(Montar(request, hoje));
         var full = await _repository.GetByIdAsync(created.Id);
         return MapToResponse(full!);
     }
@@ -79,7 +81,8 @@ public class SugestaoProdutoService : ISugestaoProdutoService
 
         await ValidarReferenciasAsync(request);
 
-        await _repository.UpdateAsync(id, Montar(request));
+        // Um PUT sem a data não é um pedido para "trocar pela de hoje".
+        await _repository.UpdateAsync(id, Montar(request, existing.DataSugestao));
         var full = await _repository.GetByIdAsync(id);
         return MapToResponse(full!);
     }

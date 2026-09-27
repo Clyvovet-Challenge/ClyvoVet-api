@@ -144,6 +144,35 @@ public class SugestaoProdutoServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_SemDataSugestao_MantemDataOriginal()
+    {
+        // Arrange
+        var dataOriginal = new DateOnly(2026, 1, 15);
+        var existing = new SugestaoProduto { Id = "1", AnimalId = "animal-1", ProdutoId = "produto-1", DataSugestao = dataOriginal, Ativo = true };
+        SugestaoProduto? gravada = null;
+
+        _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(() => gravada ?? existing);
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        _produtoRepositoryMock.Setup(r => r.GetByIdAsync("produto-1")).ReturnsAsync(CriarProduto());
+        _repositoryMock
+            .Setup(r => r.UpdateAsync("1", It.IsAny<SugestaoProduto>()))
+            .ReturnsAsync((string _, SugestaoProduto s) =>
+            {
+                gravada = s;
+                return s;
+            });
+
+        var request = new SugestaoProdutoRequest { AnimalId = "animal-1", ProdutoId = "produto-1", DataSugestao = null };
+
+        // Act
+        var result = await _service.UpdateAsync("1", request);
+
+        // Assert
+        Assert.Equal(dataOriginal, gravada!.DataSugestao);
+        Assert.Equal(dataOriginal, result.DataSugestao);
+    }
+
+    [Fact]
     public async Task UpdateAsync_IdInexistente_LancaNotFoundException()
     {
         // Arrange
