@@ -108,6 +108,7 @@ public class ProdutoRepository : IProdutoRepository
         existing.Categoria = produto.Categoria;
         existing.Preco = produto.Preco;
         existing.EspecieIndicada = produto.EspecieIndicada;
+        existing.PorteIndicado = produto.PorteIndicado;
         existing.Ativo = produto.Ativo;
 
         await _context.SaveChangesAsync();

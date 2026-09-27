@@ -31,7 +31,7 @@ dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swa
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (review pós-F7, 27/09/2026): **340 unidade + 222 integração = 562, todos verdes**
+- Linha de base (code review, 27/09/2026): **340 unidade + 223 integração = 563, todos verdes**
   (+ 8 testes de Mongo real, pulados sem `MONGO_TEST_URI`).
 - `MONGO_TEST_URI=mongodb://localhost:27017 dotnet test …` roda também os testes contra um MongoDB real.
 - `scripts/cobertura.sh` mede a cobertura de linhas de Domain + Application e **falha abaixo de 90%**

@@ -197,6 +197,38 @@ public class ProdutoEndpointsTests
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, getAfterDeleteResponse.StatusCode);
     }
+
+    /// <summary>
+    /// O PUT respondia 200 e continuava com o porte antigo: o repositorio copiava todos os
+    /// campos menos esse. O teste do fluxo completo so olhava o status, por isso nao pegava.
+    /// </summary>
+    [Fact]
+    public async Task Update_MudaPorte_RespostaEGetTrazemPorteNovo()
+    {
+        // Arrange
+        var request = new ProdutoRequest
+        {
+            Nome = $"Racao Porte {Guid.NewGuid():N}",
+            Categoria = CategoriaEnum.Racao,
+            Preco = 50m,
+            EspecieIndicada = EspecieEnum.Cachorro,
+            PorteIndicado = PorteEnum.Pequeno,
+            Ativo = true
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/produtos", request);
+        var created = await createResponse.Content.ReadFromJsonAsync<ProdutoResponse>();
+
+        // Act
+        request.PorteIndicado = PorteEnum.Grande;
+        var updateResponse = await _client.PutAsJsonAsync($"/api/v1/produtos/{created!.Id}", request);
+        var atualizado = await updateResponse.Content.ReadFromJsonAsync<ProdutoResponse>();
+        var lido = await _client.GetFromJsonAsync<ProdutoResponse>($"/api/v1/produtos/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        Assert.Equal(PorteEnum.Grande, atualizado!.PorteIndicado);
+        Assert.Equal(PorteEnum.Grande, lido!.PorteIndicado);
+    }
     // ─────────────────────────────────────────────────────────────────────────
     // Os dois filtros que a vitrine por animal exigiu
     //
