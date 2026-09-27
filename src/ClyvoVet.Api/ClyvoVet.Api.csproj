@@ -39,6 +39,11 @@
          restante do grafo (Tokens, JsonWebTokens, Jwt) resolve em 8.3.1, e a convivencia foi provada
          em execucao (ADR-003, F2). Os testes tambem montam tokens com o JwtSecurityTokenHandler daqui. -->
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+
+    <!-- 9.0.20, e nao a 9.0.0 que o Microsoft.IdentityModel.Tokens 8.3.1 pede: CVE-2026-26127
+         (GHSA-73j8-2gch-69rq, alta, negacao de servico) atinge 9.0.0 ate 9.0.13. Mesma major, entao
+         o contrato binario se mantem; a referencia direta so sobrepoe a transitiva. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.20" />
   </ItemGroup>
 
   <ItemGroup>
