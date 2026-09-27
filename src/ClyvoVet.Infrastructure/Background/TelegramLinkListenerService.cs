@@ -80,7 +80,7 @@ public class TelegramLinkListenerService : BackgroundService
         }
     }
 
-    private async Task ProcessarAsync(Telegram.Bot.Types.Update update, CancellationToken cancellationToken)
+    internal async Task ProcessarAsync(Telegram.Bot.Types.Update update, CancellationToken cancellationToken)
     {
         var texto = update.Message?.Text;
         if (string.IsNullOrWhiteSpace(texto))
