@@ -23,28 +23,38 @@ public static class DocumentacaoApiExtensions
 
                     ---
 
-                    ### Recursos gerenciados por esta API
+                    ### Recursos desta API
 
-                    | Recurso | Rota base | Tabela |
-                    |---------|-----------|---------------|
+                    | Recurso | Rota base | Dados |
+                    |---------|-----------|-------|
                     | Produtos | `/api/v1/produtos` | `t_clyvo_produto` |
                     | Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |
                     | Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |
                     | Sugestões de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
+                    | Saúde Preditiva (IA) | `/api/v1/saude-preditiva` | parecer em cache no **MongoDB** (ou em `t_clyvo_parecer_ia`) |
+                    | Widget de Saúde Preditiva | `/api/v1/widget-saude-preditiva` | `t_clyvo_predisposicao_saude` |
+                    | Telegram | `/api/v1/telegram` | `t_clyvo_tutor_telegram` |
 
-                    ### Tabelas da API Java (somente consulta)
+                    ### Tabelas da API Java (somente leitura)
 
-                    | Tabela | Finalidade |
-                    |--------|-----------|
-                    | `animal` | Validação de `animalId` nas FKs |
-                    | `tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
+                    | Tabela | Para quê |
+                    |--------|----------|
+                    | `t_clyvo_tutor` | Dono do animal, nas respostas enriquecidas e no escopo por tutor |
+                    | `t_clyvo_animal` | Validação de `animalId` e perfil do animal na saúde preditiva |
+                    | `t_clyvo_raca`, `t_clyvo_base_doencas` | Base de doenças por espécie e raça usada no parecer |
 
-                    > O banco MySQL é **compartilhado com a API Java** — as tabelas `tutor` e `animal`
-                    > seguem o schema definido pelas migrations Flyway do time de Java.
+                    > O banco MySQL é **compartilhado com a API Java**, dona do schema (migrations Flyway).
+                    > Esta API só escreve nas tabelas dela.
+
+                    ### Autenticação
+
+                    Clique em **Authorize** e informe as duas credenciais: o **Bearer** (access token emitido
+                    pela API Java no login) e a **X-Api-Key**. O envio de mensagens do Telegram usa uma chave
+                    própria. `/health*` e `/metrics` são públicos.
 
                     ---
 
-                    **Banco de dados:** Azure Database for MySQL Flexible Server
+                    **Dados:** MySQL (EF Core) · MongoDB (cache do parecer de IA)
                     """,
                 Contact = new OpenApiContact
                 {
@@ -83,10 +93,9 @@ public static class DocumentacaoApiExtensions
                     options.IncludeXmlComments(xmlPath);
             }
 
-            // Botão "Authorize" no Swagger — os endpoints principais (Produto, Lembrete,
-            // EventoPet, SugestaoProduto) exigem o header X-Api-Key. O cadeado só aparece
-            // nesses endpoints (ver ApiKeySecurityOperationFilter) — Widget não exige
-            // chave, e WhatsApp/Telegram exigem chaves próprias e diferentes desta.
+            // Botão "Authorize" no Swagger — os endpoints de negócio exigem o header X-Api-Key
+            // (Api:ApiKey). O cadeado só aparece neles (ver ApiKeySecurityDocumentFilter): o
+            // envio do Telegram exige uma chave própria, diferente desta.
             options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
             {
                 Name        = "X-Api-Key",
