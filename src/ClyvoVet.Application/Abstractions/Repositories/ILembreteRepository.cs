@@ -12,7 +12,14 @@ public interface ILembreteRepository
     /// porque eles nao tem chamador para recortar.
     /// </param>
     Task<PaginaDeResultados<Lembrete>> GetAllAsync(ConsultaPaginada consulta, string? animalId, TipoLembreteEnum? tipo, StatusLembreteEnum? status, string? tutorId = null);
+    /// <summary>
+    /// Pendentes que vencem até <paramref name="limite"/>, só de tutores com Telegram vinculado:
+    /// sem canal não há o que fazer com eles, e varrê-los a cada minuto era girar em falso.
+    /// </summary>
     Task<IEnumerable<Lembrete>> GetPendentesVencendoAsync(DateTime limite);
+
+    /// <summary>Os que a varredura deixa de fora por falta de Telegram, para o log contar.</summary>
+    Task<int> ContarPendentesSemTelegramAsync(DateTime limite);
     Task<IEnumerable<Lembrete>> GetPendentesByTutorIdAsync(string tutorId);
     Task<Lembrete?> GetByIdAsync(string id);
     Task<Lembrete> CreateAsync(Lembrete lembrete);

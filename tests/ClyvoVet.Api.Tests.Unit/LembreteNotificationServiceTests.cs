@@ -76,6 +76,25 @@ public class LembreteNotificationServiceTests
         _lembretes.Verify(r => r.GetPendentesVencendoAsync(new DateTime(2026, 10, 1, 9, 30, 0)), Times.Once);
     }
 
+    /// <summary>
+    /// A varredura só traz quem tem Telegram. Os que ficam de fora viram UMA linha de log por
+    /// ciclo, com a contagem, em vez de um aviso por lembrete a cada minuto — e contados na
+    /// mesma janela da varredura.
+    /// </summary>
+    [Fact]
+    public async Task VerificarLembretes_ContaOsSemTelegramNaMesmaJanela()
+    {
+        // Arrange: 11:30 UTC = 08:30 em Brasília.
+        var relogio = new RelogioDeTeste(new DateTimeOffset(2026, 10, 1, 11, 30, 0, TimeSpan.Zero));
+        _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>())).ReturnsAsync([]);
+
+        // Act
+        await Servico(relogio).VerificarLembretesAsync(CancellationToken.None);
+
+        // Assert
+        _lembretes.Verify(r => r.ContarPendentesSemTelegramAsync(new DateTime(2026, 10, 1, 9, 30, 0)), Times.Once);
+    }
+
     /// <summary>O defeito: o primeiro lembrete explodia e o segundo nunca era visto.</summary>
     [Fact]
     public async Task UmLembreteQueExplode_NaoImpedeOsSeguintes()

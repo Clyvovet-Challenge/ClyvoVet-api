@@ -70,8 +70,17 @@ public class LembreteNotificationService : BackgroundService
 
         // Hora de Brasilia, o relogio do agendadoEm (ver HorarioDeBrasilia). Em UTC, tres horas
         // a frente, a notificacao das 10h saia as 6h.
-        var lembretes = await lembreteRepository.GetPendentesVencendoAsync(
-            HorarioDeBrasilia.Agora(_relogio).Add(JanelaDeAntecedencia));
+        var limite = HorarioDeBrasilia.Agora(_relogio).Add(JanelaDeAntecedencia);
+        var lembretes = await lembreteRepository.GetPendentesVencendoAsync(limite);
+
+        // A varredura so traz quem tem Telegram: sem canal nao ha o que fazer, e reler esses
+        // lembretes a cada minuto, com um aviso por lembrete, era girar em falso para sempre.
+        // O operador continua sabendo que eles existem, numa linha so por ciclo.
+        var semCanal = await lembreteRepository.ContarPendentesSemTelegramAsync(limite);
+        if (semCanal > 0)
+            _logger.LogInformation(
+                "{Quantidade} lembrete(s) vencendo sem canal de notificacao: o tutor nao tem Telegram vinculado.",
+                semCanal);
 
         foreach (var lembrete in lembretes)
         {
@@ -126,10 +135,10 @@ public class LembreteNotificationService : BackgroundService
 
         if (!notificado)
         {
-            // Sem Telegram vinculado nao ha por onde avisar — o WhatsApp saiu
-            // do escopo. O lembrete fica Pendente e volta a ser varrido a cada
-            // minuto; o log diz o motivo para o operador nao ver so "a
-            // notificacao nao chegou".
+            // Raro desde que a varredura so traz quem tem Telegram: o vinculo
+            // sumiu entre a consulta e o envio. Sem canal nao ha por onde
+            // avisar (o WhatsApp saiu do escopo); o lembrete fica Pendente e o
+            // log diz o motivo.
             _logger.LogWarning(
                 "Lembrete {LembreteId} sem canal de notificacao: o tutor {TutorId} nao tem Telegram vinculado.",
                 lembrete.Id, tutor.Id);

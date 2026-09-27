@@ -83,8 +83,15 @@ public class LembreteRepository : ILembreteRepository
             .Include(l => l.Animal)
             .ThenInclude(a => a.Tutor)
             .Where(l => l.Status == StatusLembreteEnum.Pendente && l.AgendadoEm <= limite)
+            .Where(l => _context.TutoresTelegram.Any(v => v.TutorId == l.Animal.TutorId))
             .ToListAsync();
     }
+
+    public Task<int> ContarPendentesSemTelegramAsync(DateTime limite) =>
+        _context.Lembretes
+            .Where(l => l.Status == StatusLembreteEnum.Pendente && l.AgendadoEm <= limite)
+            .Where(l => !_context.TutoresTelegram.Any(v => v.TutorId == l.Animal.TutorId))
+            .CountAsync();
 
     public async Task<IEnumerable<Lembrete>> GetPendentesByTutorIdAsync(string tutorId)
     {

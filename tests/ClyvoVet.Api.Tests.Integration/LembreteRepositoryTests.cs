@@ -25,12 +25,71 @@ public class LembreteRepositoryTests
         return (tutor, animal);
     }
 
+    private static void VincularTelegram(AppDbContext context, Tutor tutor) =>
+        context.TutoresTelegram.Add(new TutorTelegram
+        {
+            Id = Guid.NewGuid().ToString(), TutorId = tutor.Id, ChatId = 4242L, CriadoEm = DateTime.UtcNow
+        });
+
+    private static Lembrete PendenteVencendo(Animal animal) => new()
+    {
+        Id = Guid.NewGuid().ToString(),
+        AnimalId = animal.Id,
+        Animal = animal,
+        Titulo = "Vacina",
+        Tipo = TipoLembreteEnum.Vacina,
+        AgendadoEm = DateTime.UtcNow.AddMinutes(30),
+        Status = StatusLembreteEnum.Pendente,
+        CriadoEm = DateTime.UtcNow
+    };
+
+    /// <summary>
+    /// Sem Telegram vinculado não há por onde avisar. Antes o lembrete voltava a cada minuto,
+    /// para sempre, com um aviso no log por lembrete — a varredura inteira girando em falso.
+    /// </summary>
+    [Fact]
+    public async Task GetPendentesVencendoAsync_TutorSemTelegram_NaoRetornaOLembrete()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var (_, animal) = CriarTutorEAnimal(context);
+        context.Lembretes.Add(PendenteVencendo(animal));
+        await context.SaveChangesAsync();
+        var repository = new LembreteRepository(context);
+
+        // Act
+        var result = await repository.GetPendentesVencendoAsync(DateTime.UtcNow.AddHours(1));
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task ContarPendentesSemTelegramAsync_UmComEUmSemVinculo_ContaSoOSemVinculo()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var (comTelegram, animalA) = CriarTutorEAnimal(context);
+        var (_, animalB) = CriarTutorEAnimal(context);
+        VincularTelegram(context, comTelegram);
+        context.Lembretes.AddRange(PendenteVencendo(animalA), PendenteVencendo(animalB));
+        await context.SaveChangesAsync();
+        var repository = new LembreteRepository(context);
+
+        // Act
+        var quantos = await repository.ContarPendentesSemTelegramAsync(DateTime.UtcNow.AddHours(1));
+
+        // Assert
+        Assert.Equal(1, quantos);
+    }
+
     [Fact]
     public async Task GetPendentesVencendoAsync_LembretePendenteDentroDaJanela_RetornaOLembrete()
     {
         // Arrange
         using var context = CriarContexto();
-        var (_, animal) = CriarTutorEAnimal(context);
+        var (tutor, animal) = CriarTutorEAnimal(context);
+        VincularTelegram(context, tutor);
         context.Lembretes.Add(new Lembrete
         {
             Id = Guid.NewGuid().ToString(),
