@@ -10,7 +10,8 @@ public class BaseDoencaConfiguration : IEntityTypeConfiguration<BaseDoenca>
     {
         // Schema criado pela V15 do Flyway da API Java (que é quem provisiona
         // as tabelas do domínio .NET desde a V8). O seed também mora lá.
-        builder.ToTable("t_clyvo_base_doencas");
+        // Por isso fica fora das migrations do EF: criá-la aqui daria ao schema uma segunda definição.
+        builder.ToTable("t_clyvo_base_doencas", t => t.ExcludeFromMigrations());
 
         builder.HasKey(b => b.Id);
 

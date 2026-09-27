@@ -10,7 +10,8 @@ public class RacaConfiguration : IEntityTypeConfiguration<Raca>
     {
         // Tabela da API Java (V14 do Flyway de lá) — aqui é só leitura, como
         // t_clyvo_animal e t_clyvo_tutor.
-        builder.ToTable("t_clyvo_raca");
+        // Por isso fica fora das migrations do EF: criá-la aqui daria ao schema uma segunda definição.
+        builder.ToTable("t_clyvo_raca", t => t.ExcludeFromMigrations());
 
         builder.HasKey(r => r.Id);
 

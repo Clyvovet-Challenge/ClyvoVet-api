@@ -12,7 +12,8 @@ public class TutorConfiguration : IEntityTypeConfiguration<Tutor>
         // só leitura via FK/Include, nunca escrita. O prefixo t_clyvo_ veio da V9 de lá:
         // renomear a tabela no Java sem trocar este nome quebra a primeira consulta, e o
         // EF não avisa no boot porque não valida schema.
-        builder.ToTable("t_clyvo_tutor");
+        // Por isso fica fora das migrations do EF: criá-la aqui daria ao schema uma segunda definição.
+        builder.ToTable("t_clyvo_tutor", t => t.ExcludeFromMigrations());
 
         builder.HasKey(t => t.Id);
 
