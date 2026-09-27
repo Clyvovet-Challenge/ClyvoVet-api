@@ -31,11 +31,11 @@ dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swa
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (F7 fechada, 27/09/2026): **323 unidade + 214 integração = 537, todos verdes**
+- Linha de base (review pós-F7, 27/09/2026): **340 unidade + 222 integração = 562, todos verdes**
   (+ 8 testes de Mongo real, pulados sem `MONGO_TEST_URI`).
 - `MONGO_TEST_URI=mongodb://localhost:27017 dotnet test …` roda também os testes contra um MongoDB real.
 - `scripts/cobertura.sh` mede a cobertura de linhas de Domain + Application e **falha abaixo de 90%**
-  (hoje 99%). Use `DOTNET=~/.dotnet/dotnet` quando o `dotnet` do PATH não tiver o runtime 8.
+  (hoje 98,8%). Use `DOTNET=~/.dotnet/dotnet` quando o `dotnet` do PATH não tiver o runtime 8.
 - `scripts/exportar-swagger.sh` regera `docs/swagger/openapi-v1.json` a partir da própria API.
   **Rode depois de mudar rota, DTO ou a descrição do Swagger**, e commite o JSON junto.
 - `scripts/gerar-script-migrations.sh` regera `schema/ef/migrations-idempotente.sql` a partir das

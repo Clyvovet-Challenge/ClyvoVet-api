@@ -97,6 +97,7 @@ o ouvinte do Telegram sem bot real e o redirecionamento HTTPS sem porta HTTPS lo
 2. **O recorte por tutor depende de uma chave de configuração.** O 404 para recurso de outro tutor
    só vale com `Api__EscopoPorTutor=true`; o padrão é desligado (ver a
    [auditoria](auditoria-de-arquitetura.md)). O README passou a dizer isso na seção de autenticação.
+   *Depois do review de 27/09/2026 o padrão passou a ser **ligado**; `false` desliga.*
 3. **Dois detalhes de ambiente, sem relação com o código:**
    - Um MySQL local sem SSL precisa de `AllowPublicKeyRetrieval=True` na connection string, por
      causa do `caching_sha2_password`. Na Azure a conexão usa SSL.

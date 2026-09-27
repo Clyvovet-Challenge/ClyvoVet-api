@@ -51,7 +51,7 @@ A entrega junta todas essas funcionalidades numa base só, organizada em quatro 
 - **Arquitetura e código:** Clean Architecture em 4 projetos (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste; injeção de dependência; **tratamento global de exceções** com respostas `application/problem+json`.
 - **API REST:** **autenticação JWT** (o access token emitido pela API Java) com autorização por perfil; **paginação com total, ordenação e filtros**; **HATEOAS** nas consultas, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão); Swagger/OpenAPI documentado e exportado.
 - **Persistência:** EF Core sobre **MySQL** com o padrão Repository, e **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
-- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **537 testes** (323 unitários + 214 de integração) e **99% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
+- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **562 testes** (340 unitários + 222 de integração) e **98,8% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
 
 ---
 
@@ -574,7 +574,7 @@ Só o **access token** vale: o *refresh token* (7 dias) é recusado.
 | `Jwt__Secret` | o **mesmo** valor de `JWT_SECRET` da API Java (base64; a chave é o valor *decodificado*) |
 | `Jwt__Emissor`, `Jwt__Publico` | opcionais; padrões `clyvovet-api-java` e `clyvovet` |
 | `Auth__ExigirToken` | `false` desliga a exigência do Bearer (alavanca de emergência); padrão `true` |
-| `Api__EscopoPorTutor` | `true` liga o recorte por tutor: um TUTOR só vê os próprios animais, lembretes e sugestões, e o recurso de outro tutor responde `404`. Padrão **desligado** |
+| `Api__EscopoPorTutor` | recorte por tutor, **ligado por padrão**: um TUTOR só vê os próprios animais, lembretes e sugestões, e o recurso de outro tutor responde `404`; o convite do Telegram de outro tutor responde `403`. ADMIN e VETERINARIO não têm tutor no token e recebem `403` nessas rotas. `false` desliga (alavanca de emergência) |
 
 ```bash
 dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
@@ -596,6 +596,7 @@ No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e in
 2. Confirme nos logs da subida que **não** há a mensagem "Jwt:Secret não configurado".
 3. Teste `GET /health/live` (200) e uma rota protegida sem token (401) e com token (200).
 4. Rollback rápido, sem redeploy: `Auth__ExigirToken=false`.
+5. Se o recorte por tutor atrapalhar algum fluxo em produção: `Api__EscopoPorTutor=false`, também sem redeploy.
 
 ### Quem faz o login: a API Java
 
@@ -740,14 +741,15 @@ Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 ### 🐾 Eventos Pet — `/api/v1/eventos-pet`
 
 Trata dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`), sem depender de FK com as tabelas Java.
+Qualquer usuário autenticado lê; **criar, editar e apagar é só para a equipe** (ADMIN ou VETERINARIO), como em Produto: o evento é da clínica e aparece para todos os tutores.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
 | GET | `/api/v1/eventos-pet` | Lista eventos com filtros e paginação | 200, 400 |
 | GET | `/api/v1/eventos-pet/{id}` | Busca evento por ID | 200, 404 |
-| POST | `/api/v1/eventos-pet` | Cadastra novo evento | 201, 400 |
-| PUT | `/api/v1/eventos-pet/{id}` | Atualiza evento existente | 200, 400, 404 |
-| DELETE | `/api/v1/eventos-pet/{id}` | Remove evento | 204, 404 |
+| POST | `/api/v1/eventos-pet` | Cadastra novo evento | 201, 400, 403 |
+| PUT | `/api/v1/eventos-pet/{id}` | Atualiza evento existente | 200, 400, 403, 404 |
+| DELETE | `/api/v1/eventos-pet/{id}` | Remove evento | 204, 403, 404 |
 
 **Query params — GET `/api/v1/eventos-pet`**
 
@@ -848,7 +850,7 @@ Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
 ```
 
 > **Atenção:** na criação, o `status` é **sempre forçado para `Pendente` (0)**, seja qual for o valor enviado.  
-> `agendadoEm` precisa ser uma data/hora **futura**.
+> `agendadoEm` precisa ser uma data/hora **futura**, em **horário de Brasília e sem fuso** (`2026-09-15T10:00:00`), que é como o app envia. A API compara com a hora atual de Brasília e dispara a notificação do Telegram uma hora antes nesse mesmo relógio. Carimbos internos (`criadoEm`) ficam em UTC.
 
 **A repetição (V18)**
 
@@ -1021,7 +1023,7 @@ O parecer de riscos e recomendações que a home do app mostra por animal. O des
 - `origem` diz quem redigiu: `IA` (OCI) ou `REGRAS` (fallback determinístico). O app mostra a diferença ao tutor.
 - `baseLimitada` avisa quando a base cobre pouco a espécie (aves/répteis dos datasets são fauna selvagem; roedores não têm dados).
 - Se o tutor tem o Telegram vinculado, um parecer **novo** também dispara o resumo por mensagem.
-- Exige o `X-Api-Key` principal e respeita o escopo por tutor: com `Api__EscopoPorTutor=true`, animal alheio responde 404.
+- Exige o `X-Api-Key` principal e respeita o recorte por tutor (ligado por padrão): animal alheio responde 404.
 
 **Configuração da OCI** (tudo por variável de ambiente ou `user-secrets` — nunca no código):
 
@@ -1141,13 +1143,14 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 | `dataInicio` só pode ser alterada para data futura (PUT) | 400 Bad Request |
 | Eventos já iniciados podem ser editados normalmente | Apenas mudança de `dataInicio` para passado é bloqueada |
 | `dataFim` deve ser ≥ `dataInicio` | 400 Bad Request |
+| POST, PUT e DELETE só para ADMIN ou VETERINARIO | 403 Forbidden |
 
 ### Lembrete
 
 | Regra | Comportamento |
 |-------|---------------|
 | `animalId` deve existir em `t_clyvo_animal` | 404 Not Found |
-| `agendadoEm` deve ser data/hora futura (POST e PUT) | 400 Bad Request |
+| `agendadoEm` deve ser data/hora futura em horário de Brasília (POST e PUT) | 400 Bad Request |
 | `status` é forçado a `Pendente` na criação | Qualquer valor enviado é ignorado |
 | No PUT, `status` pode ser alterado livremente | Permite marcar como `Enviado` ou `Cancelado` |
 
@@ -1312,7 +1315,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `537` testes passando (`323` unitários e `214` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
+**Resultado esperado:** `562` testes passando (`340` unitários e `222` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
 
 ### Cobertura
 
@@ -1321,7 +1324,7 @@ scripts/cobertura.sh                        # coverlet + ReportGenerator; relat�
 ```
 
 Mede a cobertura de **linhas** das camadas de **Domínio e Aplicação**, unindo os testes de unidade e os de integração, e **falha abaixo de
-90%**. Medição na entrega: **99%** (Domain 95,6%, Application 99,6%). O limite é uma catraca: a medição inicial já passava de 96%, e um
+90%**. Medição na entrega: **98,8%** (Domain 95,6%, Application 99,3%). O limite é uma catraca: a medição inicial já passava de 96%, e um
 limite baixo deixaria a cobertura cair sem ninguém perceber.
 
 ### Detalhes dos testes de integração
