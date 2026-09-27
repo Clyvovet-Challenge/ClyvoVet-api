@@ -173,6 +173,23 @@ public class SugestaoProdutoServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ApagadoNoMeio_LancaNotFound()
+    {
+        // Arrange — a sugestão existe na primeira leitura e some antes da releitura.
+        var existing = new SugestaoProduto { Id = "1", AnimalId = "animal-1", ProdutoId = "produto-1", Ativo = true };
+        _repositoryMock.SetupSequence(r => r.GetByIdAsync("1"))
+            .ReturnsAsync(existing)
+            .ReturnsAsync((SugestaoProduto?)null);
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-1")).ReturnsAsync(CriarAnimal());
+        _produtoRepositoryMock.Setup(r => r.GetByIdAsync("produto-1")).ReturnsAsync(CriarProduto());
+        _repositoryMock.Setup(r => r.UpdateAsync("1", It.IsAny<SugestaoProduto>())).ReturnsAsync((SugestaoProduto?)null);
+        var request = new SugestaoProdutoRequest { AnimalId = "animal-1", ProdutoId = "produto-1" };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync("1", request));
+    }
+
+    [Fact]
     public async Task UpdateAsync_IdInexistente_LancaNotFoundException()
     {
         // Arrange

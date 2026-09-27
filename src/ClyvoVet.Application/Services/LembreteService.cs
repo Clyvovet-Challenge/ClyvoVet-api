@@ -114,8 +114,10 @@ public class LembreteService : ILembreteService
             ? StatusLembreteEnum.Pendente
             : existing.Status;
         await _repository.UpdateAsync(id, Montar(request, status));
-        var full = await _repository.GetByIdAsync(id);
-        return MapToResponse(full!);
+        // Outra requisição pode apagá-lo entre a leitura e a releitura.
+        var full = await _repository.GetByIdAsync(id)
+            ?? throw new NotFoundException($"Lembrete com id {id} não encontrado.");
+        return MapToResponse(full);
     }
 
     public async Task DeleteAsync(string id)

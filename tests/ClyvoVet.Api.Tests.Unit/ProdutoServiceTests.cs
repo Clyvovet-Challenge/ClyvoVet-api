@@ -109,6 +109,18 @@ public class ProdutoServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ApagadoNoMeio_LancaNotFound()
+    {
+        // Arrange — outra requisição apaga o produto entre a leitura e a gravação.
+        _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(new Produto { Id = "1", Nome = "Ração" });
+        _repositoryMock.Setup(r => r.UpdateAsync("1", It.IsAny<Produto>())).ReturnsAsync((Produto?)null);
+        var request = new ProdutoRequest { Nome = "X", Categoria = CategoriaEnum.Outro, EspecieIndicada = EspecieEnum.Outro };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync("1", request));
+    }
+
+    [Fact]
     public async Task DeleteAsync_IdInexistente_LancaNotFoundException()
     {
         // Arrange

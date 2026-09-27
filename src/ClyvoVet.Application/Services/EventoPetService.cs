@@ -58,8 +58,10 @@ public class EventoPetService : IEventoPetService
             throw new BadRequestException("A data de fim não pode ser anterior à data de início.");
 
         var evento = MapToEntity(request);
-        var updated = await _repository.UpdateAsync(id, evento);
-        return MapToResponse(updated!);
+        // Outra requisição pode apagá-lo entre a leitura e a gravação.
+        var updated = await _repository.UpdateAsync(id, evento)
+            ?? throw new NotFoundException($"Evento com id {id} não encontrado.");
+        return MapToResponse(updated);
     }
 
     public async Task DeleteAsync(string id)

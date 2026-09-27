@@ -46,8 +46,10 @@ public class ProdutoService : IProdutoService
             throw new NotFoundException($"Produto com id {id} não encontrado.");
 
         var produto = MapToEntity(request);
-        var updated = await _repository.UpdateAsync(id, produto);
-        return MapToResponse(updated!);
+        // Outra requisição pode apagá-lo entre a leitura e a gravação.
+        var updated = await _repository.UpdateAsync(id, produto)
+            ?? throw new NotFoundException($"Produto com id {id} não encontrado.");
+        return MapToResponse(updated);
     }
 
     public async Task DeleteAsync(string id)

@@ -80,8 +80,10 @@ public class SugestaoProdutoService : ISugestaoProdutoService
 
         // Um PUT sem a data não é um pedido para "trocar pela de hoje".
         await _repository.UpdateAsync(id, Montar(request, existing.DataSugestao));
-        var full = await _repository.GetByIdAsync(id);
-        return MapToResponse(full!);
+        // Outra requisição pode apagá-la entre a leitura e a releitura.
+        var full = await _repository.GetByIdAsync(id)
+            ?? throw new NotFoundException($"Sugestão com id {id} não encontrada.");
+        return MapToResponse(full);
     }
 
     public async Task DeleteAsync(string id)

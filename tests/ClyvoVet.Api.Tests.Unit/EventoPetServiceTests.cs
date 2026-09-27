@@ -197,6 +197,25 @@ public class EventoPetServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ApagadoNoMeio_LancaNotFound()
+    {
+        // Arrange — outra requisição apaga o evento entre a leitura e a gravação.
+        var dataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
+        _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(new EventoPet { Id = "1", Titulo = "Feira", DataInicio = dataInicio });
+        _repositoryMock.Setup(r => r.UpdateAsync("1", It.IsAny<EventoPet>())).ReturnsAsync((EventoPet?)null);
+        var request = new EventoPetRequest
+        {
+            Titulo = "X",
+            Tipo = TipoEventoPetEnum.Outro,
+            DataInicio = dataInicio,
+            EspecieAlvo = EspecieEnum.Todos
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateAsync("1", request));
+    }
+
+    [Fact]
     public async Task DeleteAsync_IdInexistente_LancaNotFoundException()
     {
         // Arrange
