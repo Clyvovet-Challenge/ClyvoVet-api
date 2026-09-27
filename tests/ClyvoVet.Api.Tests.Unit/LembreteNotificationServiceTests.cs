@@ -44,7 +44,7 @@ public class LembreteNotificationServiceTests
         }
     };
 
-    private LembreteNotificationService Servico()
+    private LembreteNotificationService Servico(TimeProvider? relogio = null)
     {
         var servicos = new ServiceCollection();
         servicos.AddScoped(_ => _lembretes.Object);
@@ -53,7 +53,27 @@ public class LembreteNotificationServiceTests
 
         return new LembreteNotificationService(
             servicos.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
+            relogio ?? TimeProvider.System,
             NullLogger<LembreteNotificationService>.Instance);
+    }
+
+    /// <summary>
+    /// O <c>agendadoEm</c> é hora de Brasília (é o que o app manda). A janela de uma hora
+    /// precisa ser contada nesse relógio: contada em UTC, três horas à frente, o lembrete das
+    /// 10h saía às 6h.
+    /// </summary>
+    [Fact]
+    public async Task VerificarLembretes_JanelaDeUmaHora_ContadaNoHorarioDeBrasilia()
+    {
+        // Arrange: 11:30 UTC = 08:30 em Brasília.
+        var relogio = new RelogioDeTeste(new DateTimeOffset(2026, 10, 1, 11, 30, 0, TimeSpan.Zero));
+        _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>())).ReturnsAsync([]);
+
+        // Act
+        await Servico(relogio).VerificarLembretesAsync(CancellationToken.None);
+
+        // Assert
+        _lembretes.Verify(r => r.GetPendentesVencendoAsync(new DateTime(2026, 10, 1, 9, 30, 0)), Times.Once);
     }
 
     /// <summary>O defeito: o primeiro lembrete explodia e o segundo nunca era visto.</summary>

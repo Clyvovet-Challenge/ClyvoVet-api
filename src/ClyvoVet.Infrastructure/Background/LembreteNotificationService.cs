@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ClyvoVet.Application.Abstractions.External;
+using ClyvoVet.Application.Common;
 using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Application.Abstractions.Repositories;
@@ -23,11 +24,16 @@ public class LembreteNotificationService : BackgroundService
     private static readonly TimeSpan JanelaDeAntecedencia = TimeSpan.FromHours(1);
 
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeProvider _relogio;
     private readonly ILogger<LembreteNotificationService> _logger;
 
-    public LembreteNotificationService(IServiceScopeFactory scopeFactory, ILogger<LembreteNotificationService> logger)
+    public LembreteNotificationService(
+        IServiceScopeFactory scopeFactory,
+        TimeProvider relogio,
+        ILogger<LembreteNotificationService> logger)
     {
         _scopeFactory = scopeFactory;
+        _relogio = relogio;
         _logger = logger;
     }
 
@@ -62,7 +68,10 @@ public class LembreteNotificationService : BackgroundService
         var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
         var telegramService = scope.ServiceProvider.GetRequiredService<ITelegramService>();
 
-        var lembretes = await lembreteRepository.GetPendentesVencendoAsync(DateTime.UtcNow.Add(JanelaDeAntecedencia));
+        // Hora de Brasilia, o relogio do agendadoEm (ver HorarioDeBrasilia). Em UTC, tres horas
+        // a frente, a notificacao das 10h saia as 6h.
+        var lembretes = await lembreteRepository.GetPendentesVencendoAsync(
+            HorarioDeBrasilia.Agora(_relogio).Add(JanelaDeAntecedencia));
 
         foreach (var lembrete in lembretes)
         {
@@ -130,7 +139,7 @@ public class LembreteNotificationService : BackgroundService
         {
             try
             {
-                lembrete.RegistrarNotificacao(DateTime.UtcNow);
+                lembrete.RegistrarNotificacao(HorarioDeBrasilia.Agora(_relogio));
                 RegistrarNoLog(lembrete);
 
                 await lembreteRepository.UpdateAsync(lembrete.Id, lembrete);

@@ -89,6 +89,32 @@ public class LembreteEndpointsTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    /// <summary>
+    /// O app manda a hora de Brasília sem fuso ("2026-10-01T10:00:00"). Comparada com o
+    /// relógio UTC, três horas à frente, um lembrete para daqui a uma hora era recusado como
+    /// passado. Brasília = UTC−3 (sem horário de verão desde 2019).
+    /// </summary>
+    [Fact]
+    public async Task Create_DaquiAUmaHoraEmBrasiliaSemFuso_RetornaCreated()
+    {
+        // Arrange
+        var daquiAUmaHoraEmBrasilia = DateTime.SpecifyKind(
+            DateTime.UtcNow.AddHours(-3).AddHours(1), DateTimeKind.Unspecified);
+        var request = new LembreteRequest
+        {
+            AnimalId = _fixture.AnimalId,
+            Titulo = "Vermífugo daqui a uma hora",
+            Tipo = TipoLembreteEnum.Medicamento,
+            AgendadoEm = daquiAUmaHoraEmBrasilia
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/lembretes", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
     [Fact]
     public async Task Create_DataAgendadaNoPassado_RetornaBadRequest()
     {

@@ -9,6 +9,7 @@ using ClyvoVet.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using MySqlConnector;                        // MySqlConnectionStringBuilder (transitivo via Pomelo)
@@ -92,6 +93,10 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<ITelegramBotClient>(sp =>
             new TelegramBotClient(sp.GetRequiredService<IConfiguration>()["Telegram:BotToken"]!));
         services.AddSingleton<ITelegramService, TelegramService>();
+
+        // O relogio do LembreteNotificationService. Injetado, e nao lido direto, para os testes
+        // poderem dizer que horas sao; o ASP.NET 8 nao registra TimeProvider sozinho.
+        services.TryAddSingleton(TimeProvider.System);
 
         if (!environment.IsEnvironment("Testing"))
         {

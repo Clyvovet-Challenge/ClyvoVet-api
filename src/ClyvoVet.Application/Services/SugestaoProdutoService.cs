@@ -61,13 +61,10 @@ public class SugestaoProdutoService : ISugestaoProdutoService
     {
         await ValidarReferenciasAsync(request);
 
-        // UtcNow, e nao DateTime.Today: quem VALIDA esta data e
-        // DataValidationHelper, que le UTC. Com o padrao lendo o fuso local do
-        // servidor, os dois discordavam sobre que dia e hoje sempre que o
-        // processo nao rodasse em UTC -- e WEBSITE_TIME_ZONE e comum em
-        // aplicacao brasileira. Uma sugestao criada perto da meia-noite
-        // nasceria com a data de ontem para o validador.
-        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        // O mesmo relogio de quem VALIDA datas (DataValidationHelper): o de
+        // Brasilia. Com relogios diferentes, os dois discordavam sobre que dia e
+        // hoje, e uma sugestao criada perto da meia-noite nascia com outra data.
+        var hoje = HorarioDeBrasilia.Hoje();
         var created = await _repository.CreateAsync(Montar(request, hoje));
         var full = await _repository.GetByIdAsync(created.Id);
         return MapToResponse(full!);
