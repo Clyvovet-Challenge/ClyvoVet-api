@@ -3,6 +3,7 @@ using ClyvoVet.Application.DTOs.Response;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ClyvoVet.Application.Services;
 
@@ -19,11 +20,25 @@ namespace ClyvoVet.Application.Services;
 public class VinculoTelegramService(
     IConfiguration configuracao,
     VinculosPendentesDeTelegram convites,
-    ITutorTelegramRepository vinculos) : IVinculoTelegramService
+    ITutorTelegramRepository vinculos,
+    ILogger<VinculoTelegramService> logger) : IVinculoTelegramService
 {
+    /// <summary>O valor de exemplo do appsettings, que ninguém trocou.</summary>
+    private const string PlaceholderDoBot = "SEU_BOT_USERNAME";
+
     public TelegramLinkResponse GerarLink(string tutorId)
     {
         var botUsername = configuracao["Telegram:BotUsername"];
+
+        // Sem o nome do bot, o link não abre conversa nenhuma, e o erro aparece no
+        // celular do tutor, longe dos logs. O link sai mesmo assim: derrubar o pedido
+        // com 500 não conserta a configuração, e o aviso aponta o que falta.
+        if (string.IsNullOrWhiteSpace(botUsername) || botUsername == PlaceholderDoBot)
+        {
+            logger.LogWarning(
+                "Telegram:BotUsername não configurado; o link do Telegram não vai abrir o bot.");
+        }
+
         var token = convites.Gerar(tutorId);
         return new TelegramLinkResponse { Link = $"https://t.me/{botUsername}?start={token}" };
     }

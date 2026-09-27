@@ -176,6 +176,53 @@ public class VinculosPendentesDeTelegramTests
     }
 
     /// <summary>
+    /// Sem teto, quem repetisse o POST do link em laço encheria a memória do processo
+    /// com convites válidos por quinze minutos cada. Passou de cinco, cai o mais antigo;
+    /// os cinco mais novos continuam valendo, então o link recém-mostrado nunca morre.
+    /// </summary>
+    [Fact]
+    public void Gerar_SeisVezes_OMaisAntigoDeixaDeValer()
+    {
+        // Arrange
+        var relogio = NovoRelogio();
+        var cofre = new VinculosPendentesDeTelegram(relogio);
+        var tokens = new List<string>();
+
+        // Act — um segundo entre cada pedido, para a ordem ser inequívoca.
+        for (var i = 0; i < 6; i++)
+        {
+            tokens.Add(cofre.Gerar(Tutor));
+            relogio.Avancar(TimeSpan.FromSeconds(1));
+        }
+
+        // Assert
+        Assert.Equal(VinculosPendentesDeTelegram.MaximoPorTutor, cofre.Pendentes);
+        Assert.Null(cofre.Consumir(tokens[0]));
+        Assert.All(tokens.Skip(1), t => Assert.Equal(Tutor, cofre.Consumir(t)));
+    }
+
+    /// <summary>O teto é por tutor: os convites de um não derrubam os de outro.</summary>
+    [Fact]
+    public void Gerar_TetoDeUmTutor_NaoAfetaOutro()
+    {
+        // Arrange
+        var relogio = NovoRelogio();
+        var cofre = new VinculosPendentesDeTelegram(relogio);
+        var doOutro = cofre.Gerar("tutor-outro");
+        relogio.Avancar(TimeSpan.FromSeconds(1));
+
+        // Act
+        for (var i = 0; i < 6; i++)
+        {
+            cofre.Gerar(Tutor);
+            relogio.Avancar(TimeSpan.FromSeconds(1));
+        }
+
+        // Assert
+        Assert.Equal("tutor-outro", cofre.Consumir(doOutro));
+    }
+
+    /// <summary>
     /// Dois <c>/start</c> com o mesmo token ao mesmo tempo só podem ter um vencedor:
     /// é o <c>TryRemove</c> do dicionário que garante isso, e não um lock nosso.
     /// </summary>

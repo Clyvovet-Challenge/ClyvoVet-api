@@ -46,6 +46,13 @@ public class VinculosPendentesDeTelegram
     /// </summary>
     public static readonly TimeSpan Validade = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// Convites pendentes por tutor. Sem teto, quem repetisse o POST do link em laço
+    /// encheria a memória do processo, e a faxina só alcança o que já venceu. Cinco
+    /// cobre quem pediu, fechou o app e pediu de novo, com folga.
+    /// </summary>
+    public const int MaximoPorTutor = 5;
+
     private readonly ConcurrentDictionary<string, Convite> _convites = new(StringComparer.Ordinal);
     private readonly TimeProvider _relogio;
 
@@ -72,6 +79,12 @@ public class VinculosPendentesDeTelegram
         // Faxina oportunista: sem ela, um token nunca resgatado ficaria na memória
         // para sempre. Roda no caminho raro (gerar), nunca no de consumir.
         RemoverExpirados();
+
+        // Abre espaço antes de gravar, e não depois: assim o convite novo nunca é o
+        // descartado, e o link recém-mostrado continua valendo. Dois pedidos
+        // simultâneos do mesmo tutor podem passar do teto por um instante; o próximo
+        // Gerar acerta a conta.
+        DescartarOsMaisAntigos(tutorId);
 
         var token = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
         _convites[token] = new Convite(tutorId, _relogio.GetUtcNow().Add(Validade));
@@ -110,6 +123,19 @@ public class VinculosPendentesDeTelegram
         foreach (var (token, convite) in _convites)
         {
             if (convite.ExpiraEm <= agora) _convites.TryRemove(token, out _);
+        }
+    }
+
+    private void DescartarOsMaisAntigos(string tutorId)
+    {
+        var doTutor = _convites
+            .Where(c => c.Value.TutorId == tutorId)
+            .OrderBy(c => c.Value.ExpiraEm)
+            .ToList();
+
+        foreach (var (token, _) in doTutor.Take(doTutor.Count - MaximoPorTutor + 1))
+        {
+            _convites.TryRemove(token, out _);
         }
     }
 
