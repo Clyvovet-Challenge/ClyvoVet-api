@@ -28,6 +28,10 @@ public class TutorTelegramConfiguration : IEntityTypeConfiguration<TutorTelegram
             .HasColumnName("chat_id")
             .IsRequired();
 
+        // Um chat, um tutor: o bot responde pelo chat_id, então dois donos seriam
+        // dois conjuntos de lembretes na mesma conversa.
+        builder.HasIndex(t => t.ChatId).IsUnique().HasDatabaseName("uk_tutor_telegram_chat");
+
         builder.Property(t => t.CriadoEm)
             .HasColumnName("criado_em")
             .HasColumnType("DATETIME");

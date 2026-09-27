@@ -22,7 +22,8 @@ CREATE TABLE t_clyvo_tutor_telegram (
     chat_id    NUMBER(19)    NOT NULL,
     criado_em  TIMESTAMP     DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_clyvo_tutor_telegram        PRIMARY KEY (id),
-    CONSTRAINT uq_clyvo_tutor_telegram_tutor  UNIQUE (tutor_id)
+    CONSTRAINT uq_clyvo_tutor_telegram_tutor  UNIQUE (tutor_id),
+    CONSTRAINT uq_clyvo_tutor_telegram_chat   UNIQUE (chat_id)
 );
 
 CREATE OR REPLACE TRIGGER trg_clyvo_tutor_telegram_id

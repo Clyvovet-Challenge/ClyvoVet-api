@@ -47,6 +47,39 @@ public class TutorTelegramRepositoryTests
     }
 
     [Fact]
+    public async Task VincularAsync_ChatDeOutroTutor_MoveOChatParaONovo()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+        await repository.VincularAsync("tutor-antigo", 777777);
+
+        // Act — o mesmo celular passou para outra pessoa
+        await repository.VincularAsync("tutor-novo", 777777);
+
+        // Assert
+        var registro = Assert.Single(await context.TutoresTelegram.Where(t => t.ChatId == 777777).ToListAsync());
+        Assert.Equal("tutor-novo", registro.TutorId);
+        Assert.Null(await repository.GetChatIdByTutorIdAsync("tutor-antigo"));
+    }
+
+    [Fact]
+    public async Task GetTutorIdByChatIdAsync_DepoisDeMover_DevolveONovo()
+    {
+        // Arrange
+        using var context = CriarContexto();
+        var repository = new TutorTelegramRepository(context);
+        await repository.VincularAsync("tutor-antigo", 888888);
+        await repository.VincularAsync("tutor-novo", 888888);
+
+        // Act
+        var tutorId = await repository.GetTutorIdByChatIdAsync(888888);
+
+        // Assert
+        Assert.Equal("tutor-novo", tutorId);
+    }
+
+    [Fact]
     public async Task GetChatIdByTutorIdAsync_TutorVinculado_RetornaOChatId()
     {
         // Arrange

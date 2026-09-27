@@ -323,3 +323,65 @@ DROP PROCEDURE MigrationsScript;
 
 COMMIT;
 
+START TRANSACTION;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260927191105_ChatIdUnico') THEN
+
+
+                    DELETE antigo FROM t_clyvo_tutor_telegram antigo
+                    JOIN t_clyvo_tutor_telegram recente
+                      ON antigo.chat_id = recente.chat_id
+                     AND (antigo.criado_em < recente.criado_em
+                          OR (antigo.criado_em = recente.criado_em AND antigo.id < recente.id));
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260927191105_ChatIdUnico') THEN
+
+
+                    SET @existe_uk_chat := (SELECT COUNT(*) FROM information_schema.statistics
+                        WHERE table_schema = DATABASE()
+                          AND table_name = 't_clyvo_tutor_telegram'
+                          AND index_name = 'uk_tutor_telegram_chat');
+                    SET @ddl_uk_chat := IF(@existe_uk_chat = 0,
+                        'CREATE UNIQUE INDEX uk_tutor_telegram_chat ON t_clyvo_tutor_telegram (chat_id)',
+                        'DO 0');
+                    PREPARE criar_uk_chat FROM @ddl_uk_chat;
+                    EXECUTE criar_uk_chat;
+                    DEALLOCATE PREPARE criar_uk_chat;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260927191105_ChatIdUnico') THEN
+
+    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+    VALUES ('20260927191105_ChatIdUnico', '8.0.11');
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+COMMIT;
+

@@ -16,6 +16,14 @@ public class TutorTelegramRepository : ITutorTelegramRepository
 
     public async Task VincularAsync(string tutorId, long chatId)
     {
+        // O chat muda de dono, não fica compartilhado: com duas linhas no mesmo
+        // chat_id, GetTutorIdByChatIdAsync escolheria um tutor ao acaso e o bot
+        // mostraria os lembretes de outra pessoa.
+        var deOutros = await _context.TutoresTelegram
+            .Where(t => t.ChatId == chatId && t.TutorId != tutorId)
+            .ToListAsync();
+        _context.TutoresTelegram.RemoveRange(deOutros);
+
         var existente = await _context.TutoresTelegram.FirstOrDefaultAsync(t => t.TutorId == tutorId);
 
         if (existente is not null)

@@ -473,7 +473,8 @@ CREATE TABLE t_clyvo_tutor_telegram (
     tutor_id    VARCHAR(36) NOT NULL,
     chat_id     BIGINT      NOT NULL,
     criado_em   DATETIME    NOT NULL,
-    CONSTRAINT uk_tutor_telegram_tutor_id UNIQUE (tutor_id)
+    CONSTRAINT uk_tutor_telegram_tutor_id UNIQUE (tutor_id),
+    CONSTRAINT uk_tutor_telegram_chat UNIQUE (chat_id)
     -- sem FK pra tutor de proposito: tutor_id e validado via API, nao via constraint de banco
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   COMMENT='Vinculo entre um tutor e seu chatId no bot do Telegram';

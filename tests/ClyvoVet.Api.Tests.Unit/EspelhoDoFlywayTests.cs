@@ -26,6 +26,9 @@ public class EspelhoDoFlywayTests
             "idx_sugestao_animal",
             "idx_sugestao_produto",
             "uk_parecer_ia_animal",
+            // Nasce na migration ChatIdUnico, ainda sem par no Flyway: a Java precisa de uma
+            // V21 com este mesmo nome. A migration só cria o índice se ele não existir.
+            "uk_tutor_telegram_chat",
             "uk_tutor_telegram_tutor",
         ];
 
