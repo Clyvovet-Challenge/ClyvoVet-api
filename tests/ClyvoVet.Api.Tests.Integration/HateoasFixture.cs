@@ -33,7 +33,12 @@ public class HateoasFixture : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
 
         builder.ConfigureAppConfiguration((_, configuracao) =>
-            configuracao.AddInMemoryCollection(new Dictionary<string, string?> { ["Jwt:Secret"] = TokensDeTeste.Segredo }));
+            configuracao.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Secret"] = TokensDeTeste.Segredo,
+                // Desligado de propósito, como na IntegrationTestFixture: aqui o assunto são os links.
+                ["Api:EscopoPorTutor"] = "false",
+            }));
 
         builder.ConfigureServices(services =>
         {

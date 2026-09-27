@@ -33,6 +33,10 @@ public class IntegrationTestFixture : WebApplicationFactory<Program>
             configuracao.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Jwt:Secret"] = TokensDeTeste.Segredo,
+                // O recorte por tutor vem ligado por padrão; aqui ele sai de propósito, para
+                // estes testes cuidarem do recurso. Quem prova o recorte é o
+                // EscopoPorTutorEndpointsTests, com a fixture própria.
+                ["Api:EscopoPorTutor"] = "false",
             }));
 
         builder.ConfigureServices(services =>

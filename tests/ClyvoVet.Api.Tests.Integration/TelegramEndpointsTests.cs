@@ -9,6 +9,7 @@ using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClyvoVet.Api.Tests.Integration;
@@ -42,9 +43,18 @@ public class TelegramTestFixture : WebApplicationFactory<Program>
 {
     public readonly FakeTelegramService FakeService = new();
 
+    /// <summary>
+    /// Recorte por tutor desligado de propósito: estes testes cuidam do formato do convite e do
+    /// vínculo, chamando só com a X-Api-Key. O recorte, que vem ligado por padrão, tem o teste dele.
+    /// </summary>
+    protected virtual Dictionary<string, string?> Configuracao => new() { ["Api:EscopoPorTutor"] = "false" };
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((_, configuracao) =>
+            configuracao.AddInMemoryCollection(Configuracao));
 
         builder.ConfigureServices(services =>
         {
@@ -61,6 +71,12 @@ public class TelegramTestFixture : WebApplicationFactory<Program>
             services.AddSingleton<ITelegramService>(FakeService);
         });
     }
+}
+
+/// <summary>A configuração de fábrica: nada sobre o recorte, que então vem ligado.</summary>
+public class TelegramRecortePadraoFixture : TelegramTestFixture
+{
+    protected override Dictionary<string, string?> Configuracao => new();
 }
 
 public class TelegramFalhaTestFixture : WebApplicationFactory<Program>
@@ -88,6 +104,26 @@ public class TelegramFalhaTestFixture : WebApplicationFactory<Program>
 
 public class TelegramEndpointsTests
 {
+    /// <summary>
+    /// O ataque que o convite de uso único existe para impedir: a X-Api-Key viaja dentro do app,
+    /// e com o recorte desligado quem a extraísse pedia o convite do tutor alheio e passava a
+    /// receber as notificações dele. Com a configuração de fábrica, isso é 403.
+    /// </summary>
+    [Fact]
+    public async Task GerarLink_ConfiguracaoPadraoSoComAChaveDoApp_Responde403()
+    {
+        // Arrange
+        using var factory = new TelegramRecortePadraoFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        // Act
+        var response = await client.GetAsync("/api/v1/telegram/link/tutor-de-outra-pessoa");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     [Fact]
     public async Task Enviar_DadosValidos_RetornaNoContentEChamaServicoComOsDadosCorretos()
     {

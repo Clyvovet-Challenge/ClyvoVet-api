@@ -8,9 +8,11 @@ namespace ClyvoVet.Application.Security;
 /// Decide se a requisição atual deve enxergar apenas os dados do próprio tutor.
 ///
 /// <para>
-/// <b>Desligado por padrão.</b> Com <c>Api:EscopoPorTutor</c> ausente ou falso, o
-/// comportamento é idêntico ao de antes desta classe existir — a <c>X-Api-Key</c>
-/// continua sendo a única barreira. Ligar é uma app setting, sem redeploy.
+/// <b>Ligado por padrão.</b> Nasceu desligado, quando a <c>X-Api-Key</c> era a única
+/// barreira e ligar dependia de o app mandar token. Com o JWT obrigatório, desligado
+/// significava um tutor listar os lembretes de todos e gerar convite do Telegram para o
+/// tutor alheio. <c>Api:EscopoPorTutor=false</c> continua sendo a alavanca de emergência,
+/// uma app setting, sem redeploy.
 /// </para>
 ///
 /// <para>
@@ -35,19 +37,21 @@ public class EscopoDoTutor(
     /// <para>
     /// A leitura é tolerante de propósito. <c>IConfiguration.GetValue&lt;bool&gt;</c>
     /// <b>lança</b> quando o valor não é "true"/"false" — e um operador apressado
-    /// escreve <c>Api__EscopoPorTutor=1</c>. O interruptor de emergência não pode
-    /// ser capaz de derrubar a própria API que ele existe para salvar.
+    /// escreve <c>Api__EscopoPorTutor=0</c>. O interruptor de emergência não pode
+    /// ser capaz de derrubar a própria API que ele existe para salvar. Valor
+    /// ilegível deixa o recorte <b>ligado</b>, como no <c>AcessoHandler</c>: falha
+    /// para o lado seguro.
     /// </para>
     /// </summary>
     public bool Ativo => LerFlag(configuracao[ChaveDaFlag]);
 
     private static bool LerFlag(string? valor)
     {
-        if (string.IsNullOrWhiteSpace(valor)) return false;
+        if (string.IsNullOrWhiteSpace(valor)) return true;
         var limpo = valor.Trim();
         return bool.TryParse(limpo, out var booleano)
             ? booleano
-            : limpo is "1" or "sim" or "yes";
+            : limpo is not ("0" or "nao" or "no");
     }
 
     /// <summary>O tutor autenticado, ou <c>null</c> quando não há token de tutor.</summary>

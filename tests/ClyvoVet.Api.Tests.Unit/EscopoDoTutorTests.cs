@@ -30,10 +30,37 @@ public class EscopoDoTutorTests
     public void FiltroDeListagem_RecorteDesligado_DevolveNullSemExigirToken()
     {
         // Arrange
-        var escopo = Criar(flag: null, identidade: null);
+        var escopo = Criar(flag: "false", identidade: null);
 
         // Act & Assert
         Assert.Null(escopo.FiltroDeListagem());
+    }
+
+    /// <summary>
+    /// Ligado por padrão desde que o JWT virou obrigatório: desligado, um tutor listava os
+    /// lembretes de todos e gerava convite do Telegram para o tutor alheio. Desligar continua
+    /// possível, mas precisa ser dito.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Ativo_SemConfiguracao_RecorteLigado(string? flag)
+    {
+        // Arrange
+        var escopo = Criar(flag, new IdentidadeDoChamador("u1", "tutor-1", "TUTOR"));
+
+        // Act & Assert
+        Assert.True(escopo.Ativo);
+        Assert.False(escopo.PermiteTutor("tutor-2"));
+    }
+
+    [Theory]
+    [InlineData("false")]
+    [InlineData("0")]
+    public void Ativo_DesligadoExplicitamente_RecorteDesligado(string flag)
+    {
+        Assert.False(Criar(flag, identidade: null).Ativo);
     }
 
     [Fact]
@@ -94,7 +121,7 @@ public class EscopoDoTutorTests
     {
         // Arrange
         var animais = new Mock<IAnimalRepository>();
-        var escopo = Criar(flag: null, identidade: null, animais);
+        var escopo = Criar(flag: "false", identidade: null, animais);
 
         // Act
         await escopo.ExigirAnimalDoTutorAsync("animal-1", "nao deveria lancar");
@@ -104,7 +131,7 @@ public class EscopoDoTutorTests
     }
 
     [Theory]
-    [InlineData(null, null, "tutor-1", true)]            // recorte desligado: a X-Api-Key é a barreira
+    [InlineData("false", null, "tutor-1", true)]         // recorte desligado: a X-Api-Key é a barreira
     [InlineData("true", "tutor-1", "tutor-1", true)]     // o próprio tutor
     [InlineData("true", "tutor-1", "tutor-2", false)]    // outro tutor
     [InlineData("true", null, "tutor-1", false)]         // ADMIN/VETERINARIO: nulo nega
