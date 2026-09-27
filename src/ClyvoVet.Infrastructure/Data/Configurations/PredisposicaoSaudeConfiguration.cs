@@ -44,6 +44,7 @@ public class PredisposicaoSaudeConfiguration : IEntityTypeConfiguration<Predispo
 
         builder.Property(p => p.CriadoEm)
             .HasColumnName("criado_em")
+            .HasColumnType("DATETIME")
             .ValueGeneratedOnAdd();
     }
 }

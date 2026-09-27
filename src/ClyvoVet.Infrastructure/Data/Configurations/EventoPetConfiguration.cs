@@ -9,7 +9,11 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 {
     public void Configure(EntityTypeBuilder<EventoPet> builder)
     {
-        builder.ToTable("t_clyvo_evento_pet");
+        builder.ToTable("t_clyvo_evento_pet", t =>
+        {
+            t.HasCheckConstraint("chk_evento_pet_gratuito", "gratuito IN (0,1)");
+            t.HasCheckConstraint("chk_evento_pet_ativo", "ativo IN (0,1)");
+        });
 
         builder.HasKey(e => e.Id);
 
@@ -48,7 +52,7 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
 
         builder.Property(e => e.Estado)
             .HasColumnName("estado")
-            .HasColumnType("VARCHAR(50)");   // DDL real: VARCHAR(50)
+            .HasColumnType("VARCHAR(10)");   // DDL real: VARCHAR(10) (o request aceita só a UF)
 
         builder.Property(e => e.Cep)
             .HasColumnName("cep")
@@ -92,6 +96,7 @@ public class EventoPetConfiguration : IEntityTypeConfiguration<EventoPet>
             .HasColumnName("ativo");
 
         builder.Property(e => e.CriadoEm)
-            .HasColumnName("criado_em");
+            .HasColumnName("criado_em")
+            .HasColumnType("DATETIME");
     }
 }

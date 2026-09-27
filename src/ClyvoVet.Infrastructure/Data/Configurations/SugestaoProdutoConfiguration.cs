@@ -9,7 +9,11 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
 {
     public void Configure(EntityTypeBuilder<SugestaoProduto> builder)
     {
-        builder.ToTable("t_clyvo_sugestao_produto");
+        builder.ToTable("t_clyvo_sugestao_produto",
+            t => t.HasCheckConstraint("chk_sugestao_ativo", "ativo IN (0,1)"));
+
+        builder.HasIndex(s => s.AnimalId).HasDatabaseName("idx_sugestao_animal");
+        builder.HasIndex(s => s.ProdutoId).HasDatabaseName("idx_sugestao_produto");
 
         builder.HasKey(s => s.Id);
 
@@ -47,7 +51,8 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
             .HasColumnName("ativo");
 
         builder.Property(s => s.CriadoEm)
-            .HasColumnName("criado_em");
+            .HasColumnName("criado_em")
+            .HasColumnType("DATETIME");
 
         builder.HasOne(s => s.Animal)
             .WithMany()
@@ -57,6 +62,9 @@ public class SugestaoProdutoConfiguration : IEntityTypeConfiguration<SugestaoPro
         builder.HasOne(s => s.Produto)
             .WithMany(p => p.Sugestoes)
             .HasForeignKey(s => s.ProdutoId)
-            .HasConstraintName("fk_sugestao_produto");
+            .HasConstraintName("fk_sugestao_produto")
+            // Sem cascade, como no Flyway: produto com sugestão não se apaga, e o
+            // AppDbContext traduz a recusa do banco em 409.
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

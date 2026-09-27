@@ -8,7 +8,16 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
 {
     public void Configure(EntityTypeBuilder<Produto> builder)
     {
-        builder.ToTable("t_clyvo_produto");
+        // CHECKs e índice repetem os do Flyway (V8 e V16 da Java): o script das
+        // migrations tem de montar o mesmo banco que a produção tem.
+        builder.ToTable("t_clyvo_produto", t =>
+        {
+            t.HasCheckConstraint("chk_produto_ativo", "ativo IN (0,1)");
+            t.HasCheckConstraint("chk_produto_porte", "porte_indicado IN ('PEQUENO', 'MEDIO', 'GRANDE', 'TODOS')");
+        });
+
+        builder.HasIndex(p => new { p.EspecieIndicada, p.PorteIndicado })
+            .HasDatabaseName("idx_produto_especie_porte");
 
         builder.HasKey(p => p.Id);
 
@@ -42,6 +51,7 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
             .HasColumnName("ativo");
 
         builder.Property(p => p.CriadoEm)
-            .HasColumnName("criado_em");
+            .HasColumnName("criado_em")
+            .HasColumnType("DATETIME");
     }
 }

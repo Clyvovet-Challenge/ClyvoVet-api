@@ -8,7 +8,8 @@ public class ParecerIaConfiguration : IEntityTypeConfiguration<ParecerIa>
 {
     public void Configure(EntityTypeBuilder<ParecerIa> builder)
     {
-        builder.ToTable("t_clyvo_parecer_ia");
+        builder.ToTable("t_clyvo_parecer_ia",
+            t => t.HasCheckConstraint("ck_parecer_ia_origem", "origem IN ('IA','REGRAS')"));
 
         builder.HasKey(p => p.Id);
 
@@ -23,7 +24,15 @@ public class ParecerIaConfiguration : IEntityTypeConfiguration<ParecerIa>
         // UNIQUE no banco (uk_parecer_ia_animal). Declarar o índice aqui faz o
         // provider InMemory dos testes de integração aplicar a MESMA regra —
         // é o que impede a suíte de aceitar dois pareceres por animal.
-        builder.HasIndex(p => p.AnimalId).IsUnique();
+        builder.HasIndex(p => p.AnimalId).IsUnique().HasDatabaseName("uk_parecer_ia_animal");
+
+        // Sem navegação: o parecer só precisa da FK no banco (V15, cascade desde a V20),
+        // nenhuma consulta daqui carrega o animal a partir dele.
+        builder.HasOne<Animal>()
+            .WithMany()
+            .HasForeignKey(p => p.AnimalId)
+            .HasConstraintName("fk_parecer_ia_animal")
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(p => p.Origem)
             .HasColumnName("origem")
@@ -38,9 +47,11 @@ public class ParecerIaConfiguration : IEntityTypeConfiguration<ParecerIa>
             .HasColumnType("TEXT");
 
         builder.Property(p => p.GeradoEm)
-            .HasColumnName("gerado_em");
+            .HasColumnName("gerado_em")
+            .HasColumnType("DATETIME");
 
         builder.Property(p => p.ValidoAte)
-            .HasColumnName("valido_ate");
+            .HasColumnName("valido_ate")
+            .HasColumnType("DATETIME");
     }
 }

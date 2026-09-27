@@ -22,13 +22,14 @@ public class TutorTelegramConfiguration : IEntityTypeConfiguration<TutorTelegram
             .HasColumnType("VARCHAR(36)")
             .IsRequired();
 
-        builder.HasIndex(t => t.TutorId).IsUnique();
+        builder.HasIndex(t => t.TutorId).IsUnique().HasDatabaseName("uk_tutor_telegram_tutor");
 
         builder.Property(t => t.ChatId)
             .HasColumnName("chat_id")
             .IsRequired();
 
         builder.Property(t => t.CriadoEm)
-            .HasColumnName("criado_em");
+            .HasColumnName("criado_em")
+            .HasColumnType("DATETIME");
     }
 }
