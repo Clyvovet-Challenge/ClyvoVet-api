@@ -108,7 +108,12 @@ public class LembreteService : ILembreteService
         await ValidarAsync(request);
 
         // O status não vem do corpo: editar um lembrete não o reenvia nem o dá por enviado.
-        await _repository.UpdateAsync(id, Montar(request, existing.Status));
+        // Só a data nova o reabre: o worker só dispara Pendente, então um Enviado
+        // reagendado ficaria mudo para sempre. A data já foi validada como futura.
+        var status = request.AgendadoEm != existing.AgendadoEm
+            ? StatusLembreteEnum.Pendente
+            : existing.Status;
+        await _repository.UpdateAsync(id, Montar(request, status));
         var full = await _repository.GetByIdAsync(id);
         return MapToResponse(full!);
     }

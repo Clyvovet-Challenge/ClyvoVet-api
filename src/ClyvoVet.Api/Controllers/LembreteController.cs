@@ -134,7 +134,8 @@ public class LembreteController : ControllerBase
 
     /// <summary>
     /// Atualiza um lembrete existente.
-    /// <c>agendadoEm</c> deve ser uma data/hora futura.
+    /// <c>agendadoEm</c> deve ser uma data/hora futura. O status não vem do corpo:
+    /// mudar a data de um lembrete enviado o agenda de novo (volta a Pendente).
     /// </summary>
     /// <param name="id">UUID do lembrete a atualizar.</param>
     [HttpPut("{id}")]

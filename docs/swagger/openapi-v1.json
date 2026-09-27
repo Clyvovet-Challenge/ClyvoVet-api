@@ -550,7 +550,7 @@
         "tags": [
           "Lembretes"
         ],
-        "summary": "Atualiza um lembrete existente.\n`agendadoEm` deve ser uma data/hora futura.",
+        "summary": "Atualiza um lembrete existente.\n`agendadoEm` deve ser uma data/hora futura. O status n\u00e3o vem do corpo:\nmudar a data de um lembrete enviado o agenda de novo (volta a Pendente).",
         "parameters": [
           {
             "name": "id",
