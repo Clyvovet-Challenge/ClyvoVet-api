@@ -39,7 +39,8 @@ public sealed class ApiKeySecurityDocumentFilter : IDocumentFilter
                 continue;
 
             var method = new HttpMethod(apiDescription.HttpMethod!);
-            if (!pathItem.Operations.TryGetValue(method, out var operation))
+            // Operations é anulável no Microsoft.OpenApi 2.x: um caminho sem operação nenhuma não tem o que proteger.
+            if (pathItem.Operations is null || !pathItem.Operations.TryGetValue(method, out var operation))
                 continue;
 
             operation.Security =
