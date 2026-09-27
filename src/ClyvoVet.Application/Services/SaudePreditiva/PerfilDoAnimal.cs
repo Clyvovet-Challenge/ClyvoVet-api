@@ -1,3 +1,4 @@
+using ClyvoVet.Application.Common;
 using ClyvoVet.Domain.Entities;
 
 namespace ClyvoVet.Application.Services.SaudePreditiva;
@@ -23,12 +24,17 @@ internal static class PerfilDoAnimal
             _ => null,
         };
 
-    internal static decimal? CalcularIdadeAnos(DateTime? dataNascimento)
+    /// <summary>
+    /// Idade até o "hoje" de Brasília, o mesmo dia que o tutor vê no calendário: depois das
+    /// 21h o dia UTC já virou, e o widget e o parecer davam idades diferentes ao mesmo animal.
+    /// </summary>
+    internal static decimal? CalcularIdadeAnos(DateTime? dataNascimento, TimeProvider? relogio = null)
     {
         if (dataNascimento is null)
             return null;
 
-        var dias = (DateTime.UtcNow.Date - dataNascimento.Value.Date).TotalDays;
+        var hoje = HorarioDeBrasilia.Hoje(relogio).ToDateTime(TimeOnly.MinValue);
+        var dias = (hoje - dataNascimento.Value.Date).TotalDays;
         return Math.Round((decimal)(dias / 365.25), 1);
     }
 }

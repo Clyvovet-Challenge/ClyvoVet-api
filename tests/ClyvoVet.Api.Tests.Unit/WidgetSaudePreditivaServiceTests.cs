@@ -165,4 +165,23 @@ public class WidgetSaudePreditivaServiceTests
         Assert.True(result.SugerirAgendamentoConsulta);
         Assert.Single(result.Predisposicoes);
     }
+
+    [Fact]
+    public async Task GetPredisposicoesAsync_DepoisDasVinteUmEmBrasilia_IdadeIgualADoParecer()
+    {
+        // Arrange: 21:30 do dia 30 em Brasília, já dia 1º em UTC. O widget tinha a própria conta,
+        // em UTC (0,1 ano), um dia à frente do calendário do tutor (0,0). O ano é 2040
+        // para o teste só passar se o widget usar o relógio injetado, nunca o de verdade.
+        var relogio = new RelogioDeTeste(new DateTimeOffset(2040, 10, 1, 0, 30, 0, TimeSpan.Zero));
+        var service = new WidgetSaudePreditivaService(
+            _animalRepositoryMock.Object, _predisposicaoRepositoryMock.Object, _loggerMock.Object, relogio);
+        var animal = new Animal { Id = "animal-7", Nome = "Pipoca", Especie = "EXOTICO", DataNascimento = new DateTime(2040, 9, 12) };
+        _animalRepositoryMock.Setup(r => r.GetByIdAsync("animal-7")).ReturnsAsync(animal);
+
+        // Act
+        var result = await service.GetPredisposicoesAsync("animal-7");
+
+        // Assert
+        Assert.Equal(0.0m, result.IdadeAnos);
+    }
 }

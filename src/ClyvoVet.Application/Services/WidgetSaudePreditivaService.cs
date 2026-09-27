@@ -3,6 +3,7 @@ using ClyvoVet.Domain.Enums;
 using ClyvoVet.Domain.Exceptions;
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Services.Interfaces;
+using ClyvoVet.Application.Services.SaudePreditiva;
 using Microsoft.Extensions.Logging;
 
 namespace ClyvoVet.Application.Services;
@@ -17,15 +18,18 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
     private readonly IAnimalRepository _animalRepository;
     private readonly IPredisposicaoSaudeRepository _predisposicaoRepository;
     private readonly ILogger<WidgetSaudePreditivaService> _logger;
+    private readonly TimeProvider _relogio;
 
     public WidgetSaudePreditivaService(
         IAnimalRepository animalRepository,
         IPredisposicaoSaudeRepository predisposicaoRepository,
-        ILogger<WidgetSaudePreditivaService> logger)
+        ILogger<WidgetSaudePreditivaService> logger,
+        TimeProvider? relogio = null)
     {
         _animalRepository = animalRepository;
         _predisposicaoRepository = predisposicaoRepository;
         _logger = logger;
+        _relogio = relogio ?? TimeProvider.System;
     }
 
     public async Task<WidgetSaudePreditivaResponse> GetPredisposicoesAsync(string animalId)
@@ -34,7 +38,7 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
         if (animal is null)
             throw new NotFoundException($"Animal com id {animalId} não encontrado.");
 
-        var idadeAnos = CalcularIdadeAnos(animal.DataNascimento);
+        var idadeAnos = PerfilDoAnimal.CalcularIdadeAnos(animal.DataNascimento, _relogio);
 
         // Espécies fora do catálogo (ex.: "OUTRO", ou string inesperada vinda da API Java)
         // simplesmente não têm predisposição cadastrada — não é um erro.
@@ -74,15 +78,6 @@ public class WidgetSaudePreditivaService : IWidgetSaudePreditivaService
         SugerirAgendamentoConsulta = predisposicoes.Count > 0,
         Predisposicoes = predisposicoes
     };
-
-    private static decimal? CalcularIdadeAnos(DateTime? dataNascimento)
-    {
-        if (dataNascimento is null)
-            return null;
-
-        var dias = (DateTime.UtcNow.Date - dataNascimento.Value.Date).TotalDays;
-        return Math.Round((decimal)(dias / 365.25), 1);
-    }
 
     // Compara de forma tolerante (ex.: "Labrador" casa com "Labrador Retriever" cadastrado
     // no Animal) — a raça do Animal vem de texto livre da API Java, sem padronização.
