@@ -1,5 +1,6 @@
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services;
+using ClyvoVet.Application.Services.SaudePreditiva;
 using ClyvoVet.Application.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,9 @@ public static class ApplicationServiceExtensions
         // e o BackgroundService do Telegram. Se cada um recebesse a sua instancia, todo link
         // nasceria ja invalido.
         services.AddSingleton<VinculosPendentesDeTelegram>();
+
+        // Singleton pelo mesmo motivo: a fila de um animal precisa valer entre requisicoes.
+        services.AddSingleton<TravasPorAnimal>();
 
         return services;
     }

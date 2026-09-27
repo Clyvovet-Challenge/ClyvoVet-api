@@ -2,6 +2,7 @@ using ClyvoVet.Application.Abstractions.External;
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Services;
 using ClyvoVet.Application.Services.Interfaces;
+using ClyvoVet.Application.Services.SaudePreditiva;
 using ClyvoVet.Domain.Entities;
 using ClyvoVet.Infrastructure.Mongo;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,7 +53,7 @@ public class SaudePreditivaComMongoRealTests : IClassFixture<MongoRealFixture>
         var servico = new SaudePreditivaService(
             animais.Object, baseDoencas.Object,
             new ParecerIaMongoRepository(banco, NullLogger<ParecerIaMongoRepository>.Instance),
-            ia.Object, tutorTelegram.Object, new Mock<ITelegramService>().Object,
+            ia.Object, tutorTelegram.Object, new Mock<ITelegramService>().Object, new TravasPorAnimal(),
             NullLogger<SaudePreditivaService>.Instance);
 
         // Act

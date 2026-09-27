@@ -43,6 +43,7 @@ public class SaudePreditivaService : ISaudePreditivaService
     private readonly IOciGenerativeAiClient _ia;
     private readonly ITutorTelegramRepository _tutorTelegram;
     private readonly ITelegramService _telegram;
+    private readonly TravasPorAnimal _travas;
     private readonly ILogger<SaudePreditivaService> _logger;
 
     public SaudePreditivaService(
@@ -52,6 +53,7 @@ public class SaudePreditivaService : ISaudePreditivaService
         IOciGenerativeAiClient ia,
         ITutorTelegramRepository tutorTelegram,
         ITelegramService telegram,
+        TravasPorAnimal travas,
         ILogger<SaudePreditivaService> logger)
     {
         _animais = animais;
@@ -60,6 +62,7 @@ public class SaudePreditivaService : ISaudePreditivaService
         _ia = ia;
         _tutorTelegram = tutorTelegram;
         _telegram = telegram;
+        _travas = travas;
         _logger = logger;
     }
 
@@ -69,15 +72,26 @@ public class SaudePreditivaService : ISaudePreditivaService
             ?? throw new NotFoundException($"Animal com id {animalId} não encontrado.");
 
         var emCache = await _pareceres.GetByAnimalIdAsync(animalId);
-        if (emCache is not null && emCache.ValidoAte > DateTime.UtcNow)
-            return Montar(animal, emCache);
+        if (Valido(emCache))
+            return Montar(animal, emCache!);
 
-        var parecer = await GerarAsync(animal, cancellationToken);
-        await _pareceres.SalvarAsync(parecer);
-        await TentarAvisarNoTelegramAsync(animal, parecer);
+        // Um animal por vez, e o cache relido DENTRO da trava: quem esperou a vez encontra o
+        // parecer que o primeiro acabou de gravar, e nao chama a OCI nem avisa o tutor de novo.
+        using (await _travas.EntrarAsync(animalId, cancellationToken))
+        {
+            emCache = await _pareceres.GetByAnimalIdAsync(animalId);
+            if (Valido(emCache))
+                return Montar(animal, emCache!);
 
-        return Montar(animal, parecer);
+            var parecer = await GerarAsync(animal, cancellationToken);
+            await _pareceres.SalvarAsync(parecer);
+            await TentarAvisarNoTelegramAsync(animal, parecer);
+
+            return Montar(animal, parecer);
+        }
     }
+
+    private static bool Valido(ParecerIa? parecer) => parecer is not null && parecer.ValidoAte > DateTime.UtcNow;
 
     // ------------------------------------------------------------------
     // Geração: IA primeiro, regras quando a IA não puder responder

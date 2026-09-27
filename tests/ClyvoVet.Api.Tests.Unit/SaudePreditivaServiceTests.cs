@@ -28,7 +28,7 @@ public class SaudePreditivaServiceTests
 
     private SaudePreditivaService Servico() => new(
         _animais.Object, _base.Object, _pareceres.Object, _ia.Object,
-        _tutorTelegram.Object, _telegram.Object,
+        _tutorTelegram.Object, _telegram.Object, new TravasPorAnimal(),
         NullLogger<SaudePreditivaService>.Instance);
 
     private static Animal Bolinha() => new()
@@ -216,6 +216,43 @@ public class SaudePreditivaServiceTests
 
         _pareceres.Verify(r => r.SalvarAsync(It.IsAny<ParecerIa>()), Times.Never);
         _telegram.Verify(t => t.EnviarMensagemAsync(It.IsAny<long>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>
+    /// A home e um pull-to-refresh chegando juntos, com o cache vencido: sem a trava por
+    /// animal, as duas requisicoes chamavam a OCI e o tutor recebia duas mensagens iguais.
+    /// </summary>
+    [Fact]
+    public async Task DoisPedidosSimultaneos_CacheVencido_GeraUmaVezEAvisaUmaVez()
+    {
+        // Arrange — o repositorio mockado devolve o que foi salvo, como o de verdade.
+        ArmarBasePadrao();
+        ParecerIa? salvo = null;
+        _pareceres.Setup(r => r.GetByAnimalIdAsync("animal-1")).ReturnsAsync(() => salvo);
+        _pareceres.Setup(r => r.SalvarAsync(It.IsAny<ParecerIa>()))
+            .Callback<ParecerIa>(p => salvo = p)
+            .Returns(Task.CompletedTask);
+        _tutorTelegram.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1")).ReturnsAsync(4242L);
+        _ia.SetupGet(i => i.Configurado).Returns(true);
+        _ia.SetupGet(i => i.ModelId).Returns("meta.llama-3.3-70b-instruct");
+
+        // A OCI so responde quando o teste mandar: os dois pedidos ficam em voo ao mesmo tempo.
+        var respostaDaIa = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ia.Setup(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(respostaDaIa.Task);
+        var servico = Servico();
+
+        // Act
+        var primeiro = servico.GetParecerAsync("animal-1");
+        var segundo = servico.GetParecerAsync("animal-1");
+        respostaDaIa.SetResult("""{"riscos":[{"doenca":"Mastocitoma","nivel":"ALTO"}],"recomendacoes":["Checkup"],"resumo":"ok"}""");
+        await Task.WhenAll(primeiro, segundo);
+
+        // Assert
+        _ia.Verify(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _pareceres.Verify(r => r.SalvarAsync(It.IsAny<ParecerIa>()), Times.Once);
+        _telegram.Verify(t => t.EnviarMensagemAsync(4242L, It.IsAny<string>()), Times.Once);
+        Assert.Equal("IA", segundo.Result.Origem);
     }
 
     [Fact]
