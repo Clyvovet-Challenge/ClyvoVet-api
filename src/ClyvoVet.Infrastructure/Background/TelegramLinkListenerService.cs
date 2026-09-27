@@ -9,8 +9,9 @@ namespace ClyvoVet.Infrastructure.Background;
 
 // Fica de olho nas mensagens que chegam pro bot (via polling em getUpdates, já
 // que rodar sem HTTPS público não permite usar webhook do Telegram). Trata os
-// comandos "/start <tutorId>" (deep link gerado em /api/v1/telegram/link/{tutorId},
-// salva o vínculo TutorId -> ChatId), "/meuslembretes" (lista lembretes pendentes),
+// comandos "/start <convite>" (deep link gerado em /api/v1/telegram/link/{tutorId}; o
+// convite é de uso único e troca-se pelo tutorId em VinculosPendentesDeTelegram, e só
+// então salva o vínculo TutorId -> ChatId), "/meuslembretes" (lista lembretes pendentes),
 // "/meusanimais" (lista os pets do tutor), "/desvincular" (remove o vínculo) e
 // "/ajuda" (lista os comandos). Qualquer outra mensagem recebe uma resposta padrão
 // explicando que o bot não tem fluxo de conversa livre.
