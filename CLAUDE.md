@@ -31,13 +31,15 @@ dotnet run --project src/ClyvoVet.Api/ClyvoVet.Api.csproj      # Swagger em /swa
   código. Não use `DOTNET_ROLL_FORWARD=Major` para "validar": o resultado engana.
 - O **SDK 8 não lê `.slnx`**: quem testa com ele roda cada `.csproj` de teste em vez da
   solução. Os detalhes de ambiente de cada pessoa ficam no `CLAUDE.local.md` (fora do Git).
-- Linha de base (F6 fechada, 27/09/2026): **299 unidade + 214 integração = 513, todos verdes**
+- Linha de base (F7 fechada, 27/09/2026): **323 unidade + 214 integração = 537, todos verdes**
   (+ 8 testes de Mongo real, pulados sem `MONGO_TEST_URI`).
 - `MONGO_TEST_URI=mongodb://localhost:27017 dotnet test …` roda também os testes contra um MongoDB real.
 - `scripts/cobertura.sh` mede a cobertura de linhas de Domain + Application e **falha abaixo de 90%**
   (hoje 99%). Use `DOTNET=~/.dotnet/dotnet` quando o `dotnet` do PATH não tiver o runtime 8.
 - `scripts/exportar-swagger.sh` regera `docs/swagger/openapi-v1.json` a partir da própria API.
   **Rode depois de mudar rota, DTO ou a descrição do Swagger**, e commite o JSON junto.
+- `scripts/gerar-script-migrations.sh` regera `schema/ef/migrations-idempotente.sql` a partir das
+  migrations. **Rode depois de mudar uma entidade ou config do EF (e criar a migration)**, e commite o SQL junto.
 - `test_api.sh` é o roteiro ponta a ponta contra uma API no ar (pede `TOKEN`, `API_KEY` etc.;
   ver o cabeçalho). O ensaio geral e a receita do ambiente estão em `docs/ensaio-geral.md`.
 - Segredos locais: `dotnet user-secrets` (o projeto já tem `UserSecretsId`). Em produção,
@@ -90,9 +92,12 @@ arquitetura está errada — não o teste.
 ## O que NÃO fazer (decisões já tomadas — cada uma tem motivo em `docs/`)
 
 - **Não escrever em `animal` nem `tutor`.** Esta API só lê; a Java é dona dessas tabelas.
-- **Migrations EF só na F7, e só das `t_clyvo_*`.** O professor liberou o MySQL com migrations
-  (20/09/2026, ADR-005). `animal` e `tutor` são da Java e ficam fora delas. Antes da F7,
-  nenhuma migration.
+- **A migration cobre só as 7 tabelas que a API grava** (produto, sugestao_produto, lembrete,
+  evento_pet, predisposicao_saude, tutor_telegram, parecer_ia). `animal`, `tutor`, `raca` e
+  `base_doencas` são da Java e ficam fora com `ExcludeFromMigrations()` (ADR-005).
+- **Nada de `Database.Migrate()` no boot.** Banco compartilhado: Flyway da Java primeiro, depois
+  `schema/ef/baseline-banco-compartilhado.sql`, depois o script idempotente. O script do EF num
+  banco vazio, antes do Flyway, impede a Java de subir.
 - **Não usar `FallbackPolicy` global** de autorização: derrubaria `/health`, `/metrics`,
   `/swagger` e os webhooks, e health check quebrado tira a app de rotação no Render.
 - **JWT: a chave é o base64 *decodificado* do segredo** (`Convert.FromBase64String`), igual

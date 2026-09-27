@@ -51,7 +51,7 @@ A entrega junta todas essas funcionalidades numa base só, organizada em quatro 
 - **Arquitetura e código:** Clean Architecture em 4 projetos (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste; injeção de dependência; **tratamento global de exceções** com respostas `application/problem+json`.
 - **API REST:** **autenticação JWT** (o access token emitido pela API Java) com autorização por perfil; **paginação com total, ordenação e filtros**; **HATEOAS** nas consultas, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão); Swagger/OpenAPI documentado e exportado.
 - **Persistência:** EF Core sobre **MySQL** com o padrão Repository, e **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
-- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **513 testes** (299 unitários + 214 de integração) e **99% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
+- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **537 testes** (323 unitários + 214 de integração) e **99% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
 
 ---
 
@@ -130,7 +130,7 @@ desenvolvimento local; ele não produz o artefato publicado.)
 | Tecnologia | Versão | Uso |
 |------------|--------|-----|
 | .NET / ASP.NET Core | 8.0 | Framework da API |
-| Entity Framework Core | 8.0.11 | ORM (Database-First, sem migrations) |
+| Entity Framework Core | 8.0.11 | ORM, com migrations das 7 tabelas que a API grava |
 | Pomelo.EntityFrameworkCore.MySql | 8.0.2 | Provider MySQL para EF Core |
 | MongoDB.Driver / MongoDB | 3.12.0 / 7 | Cache NoSQL do parecer de IA (opcional: só com `Mongo:ConnectionString`) |
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
@@ -168,7 +168,8 @@ ClyvoVet-api/
 │   ├── ClyvoVet.Infrastructure/       → EF Core, repositórios concretos e integrações externas
 │   │   ├── Data/
 │   │   │   ├── AppDbContext.cs        → DbContext principal
-│   │   │   └── Configurations/        → Fluent API (mapeamento tabela ↔ modelo)
+│   │   │   ├── Configurations/        → Fluent API (mapeamento tabela ↔ modelo)
+│   │   │   └── Migrations/            → Migrations do EF Core (só as tabelas que esta API grava)
 │   │   ├── Repositories/              → Acesso ao banco via EF Core
 │   │   ├── Mongo/                     → Cache do parecer de IA no MongoDB (repositório, índice TTL)
 │   │   ├── External/                  → Clientes da OCI Generative AI e do Telegram
@@ -190,11 +191,16 @@ ClyvoVet-api/
 │   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
 ├── docs/                → Documentação complementar (deploy Azure, guia de testes manuais, auditoria, diagrama de infra)
 ├── scripts/
-│   ├── cobertura.sh         → Mede a cobertura de Domain + Application e falha abaixo de 90%
-│   └── exportar-swagger.sh  → Gera docs/swagger/openapi-v1.json a partir da própria API
+│   ├── cobertura.sh                 → Mede a cobertura de Domain + Application e falha abaixo de 90%
+│   ├── exportar-swagger.sh          → Gera docs/swagger/openapi-v1.json a partir da própria API
+│   └── gerar-script-migrations.sh   → Gera schema/ef/migrations-idempotente.sql a partir das migrations
 ├── docker-compose.yml   → MongoDB de desenvolvimento
 ├── Dockerfile           → Imagem da API para desenvolvimento local
 └── schema/
+    ├── script_bd.sql                            → Schema MySQL completo para desenvolvimento local (as duas APIs + seed)
+    ├── ef/
+    │   ├── migrations-idempotente.sql           → Script gerado das migrations do EF (pode rodar mais de uma vez)
+    │   └── baseline-banco-compartilhado.sql     → Marca a migration Inicial como aplicada num banco do Flyway
     ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
     ├── 02_seed_dotnet.sql                       → Dados de exemplo para os endpoints originais
     ├── 03_drop_tabelas_dotnet.sql               → Remove as 6 tabelas .NET
@@ -364,8 +370,67 @@ responde normalmente, mas sempre com a lista vazia.
 
 > **Os arquivos `schema/01_*.sql` a `schema/06_*.sql` são do tempo do Oracle** —
 > `VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`. Eles
-> não rodam no MySQL e ficam apenas como registro histórico. O único script vigente
-> é o `script_bd.sql`.
+> não rodam no MySQL e ficam apenas como registro histórico. Os scripts vigentes são o
+> `script_bd.sql` e os de `schema/ef/`, descritos a seguir.
+
+#### 3.3 — Migrations do EF Core
+
+As tabelas que **esta API grava** têm migrations do EF Core, em
+[`src/ClyvoVet.Infrastructure/Data/Migrations/`](src/ClyvoVet.Infrastructure/Data/Migrations/):
+
+| Na migration (a API grava) | Fora dela (a API só lê) |
+|---|---|
+| `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude`, `t_clyvo_tutor_telegram`, `t_clyvo_parecer_ia` | `t_clyvo_animal`, `t_clyvo_tutor`, `t_clyvo_raca`, `t_clyvo_base_doencas` |
+
+A regra é verificável no código: entra na migration a tabela cujo repositório tem
+`Add`/`Update`. As outras quatro também começam com `t_clyvo_`, mas o schema e o seed
+delas são da API Java, e por isso ficam de fora com `ExcludeFromMigrations()` — o EF
+ainda as mapeia para as consultas e os JOINs, só não tenta criá-las.
+
+**A API não roda `Database.Migrate()` ao subir.** O banco é compartilhado, e quem sobe
+primeiro não pode decidir o schema do outro. As migrations viram um script SQL
+revisável, aplicado à mão:
+
+```bash
+scripts/gerar-script-migrations.sh    # regera schema/ef/migrations-idempotente.sql a partir das migrations
+```
+
+| Arquivo | O que faz | Quando usar |
+|---|---|---|
+| [`schema/ef/migrations-idempotente.sql`](schema/ef/migrations-idempotente.sql) | Cria as 7 tabelas e registra a migration em `__EFMigrationsHistory`. Cada migration só roda se ainda não estiver no histórico, então aplicar duas vezes não faz nada na segunda | Banco em que o Flyway da Java já rodou e as 7 tabelas ainda não existem |
+| [`schema/ef/baseline-banco-compartilhado.sql`](schema/ef/baseline-banco-compartilhado.sql) | Só registra a migration `Inicial` como aplicada, sem criar nada | Banco montado pelo Flyway da Java, onde as 7 tabelas já existem (produção) |
+
+**A ordem é sempre Flyway da Java → EF.** Num banco compartilhado:
+
+```bash
+# 1. a API Java sobe uma vez (o Flyway cria o schema inteiro, V1 em diante)
+mysql -u root -p clyvovet < schema/ef/baseline-banco-compartilhado.sql   # 2. marca a Inicial como aplicada
+mysql -u root -p clyvovet < schema/ef/migrations-idempotente.sql         # 3. aplica só o que vier depois dela
+```
+
+Rodar o script do EF **antes** do Flyway, num banco vazio, é a única forma de quebrar a
+API Java: a `t_clyvo_lembrete` tem FK para a `t_clyvo_animal`, que ainda não existe
+(`ERROR 1824`), e o que o script chegou a criar deixa o schema "não vazio" sem
+`flyway_schema_history` — o Flyway então recusa a V1.
+
+**Onde o EF e o Flyway diferem.** Comparando o `information_schema` dos dois lados
+(colunas, índices, FKs, CHECKs, collation e engine), sobram quatro diferenças, todas
+sem efeito no comportamento da API:
+
+| Diferença | Flyway (Java) | EF | Por que fica assim |
+|---|---|---|---|
+| `DEFAULT` nas colunas | tem | não tem | A API sempre manda todos os valores no `INSERT`. `HasDefaultValue(true)` num `bool` faria o EF omitir o `false` e o banco gravar `true` |
+| `produto.categoria` e `produto.especie_indicada` | aceitam `NULL` | `NOT NULL` | Na entidade C# são obrigatórias; a API nunca grava `NULL` nelas |
+| Colunas booleanas | `TINYINT` | `TINYINT(1)` | É como o Pomelo mapeia `bool`; guardam os mesmos valores |
+| FK `sugestao_produto → produto` | `NO ACTION` | `RESTRICT` | No InnoDB as duas regras são a mesma coisa |
+
+Depois de mudar uma entidade ou uma configuração do EF: criar a migration
+(`dotnet tool restore` e depois
+`dotnet ef migrations add <Nome> --project src/ClyvoVet.Infrastructure --startup-project src/ClyvoVet.Api`),
+rodar `scripts/gerar-script-migrations.sh` e commitar o SQL junto. Três classes de teste de
+unidade seguram isso: `MigrationsTests` falha se o modelo mudou sem migration nova;
+`EscopoDasMigrationsTests` falha se uma tabela nova não for classificada como "grava" ou "só
+lê"; `EspelhoDoFlywayTests` confere nomes de índice, CHECKs, regras de FK e tipos contra o Flyway.
 
 ---
 
@@ -1247,7 +1312,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `513` testes passando (`299` unitários e `214` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
+**Resultado esperado:** `537` testes passando (`323` unitários e `214` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
 
 ### Cobertura
 
