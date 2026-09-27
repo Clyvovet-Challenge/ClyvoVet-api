@@ -1152,7 +1152,8 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 | `animalId` deve existir em `t_clyvo_animal` | 404 Not Found |
 | `agendadoEm` deve ser data/hora futura em horário de Brasília (POST e PUT) | 400 Bad Request |
 | `status` é forçado a `Pendente` na criação | Qualquer valor enviado é ignorado |
-| No PUT, `status` pode ser alterado livremente | Permite marcar como `Enviado` ou `Cancelado` |
+| No PUT, o `status` enviado também é ignorado | Mudar `agendadoEm` volta o lembrete para `Pendente` (para disparar de novo); sem mudar a data, o status fica como estava |
+| Esta API nunca grava `Cancelado` | O valor existe porque o banco e o app já o conhecem; não há, hoje, rota que cancele um lembrete |
 
 ### Sugestão de Produto
 
@@ -1286,6 +1287,7 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
 
 - **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core vêm instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
 - **Métricas:** disponíveis em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+- **Por que `/metrics` é público:** um coletor Prometheus raspa sem credencial, e o conteúdo é só agregado (rota-modelo e status, sem id nem dado de tutor). Em produção de verdade, o endpoint ficaria fechado na rede, visível só para o coletor.
 
 ```bash
 curl http://localhost:5191/metrics

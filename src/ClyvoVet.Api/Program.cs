@@ -106,6 +106,9 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 // Métricas no formato Prometheus (tempo de resposta, contagem de requisições, taxa de erro por status code).
+// Público de propósito: o Prometheus raspa sem credencial (um JWT de 15 min não serve a um coletor), e
+// o conteúdo é agregado por rota-modelo e status — nenhum id, token ou dado de tutor. Em produção de
+// verdade o caminho seria fechá-lo na rede (porta interna ou firewall só para o coletor).
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
