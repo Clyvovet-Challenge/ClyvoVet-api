@@ -16,6 +16,10 @@ namespace ClyvoVet.Api.Controllers;
 /// Gerencia eventos públicos para pets (feiras, vacinações, workshops etc.).
 /// Tabela: <c>t_clyvo_evento_pet</c>
 /// </summary>
+/// <remarks>
+/// Leitura para qualquer usuário autenticado; criar, editar e apagar só a equipe (ADMIN ou
+/// VETERINARIO), como em Produto. O evento é da clínica e aparece para todos os tutores.
+/// </remarks>
 [ApiController]
 [Route("api/v1/eventos-pet")]
 [Produces("application/json")]
@@ -82,6 +86,7 @@ public class EventoPetController : ControllerBase
     /// então depender de um DEFAULT exigiria ler a linha de volta.
     /// <c>dataInicio</c> não pode ser no passado.
     /// </summary>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -97,6 +102,7 @@ public class EventoPetController : ControllerBase
     /// alterada para uma data futura.
     /// </summary>
     /// <param name="id">UUID do evento a atualizar.</param>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -109,6 +115,7 @@ public class EventoPetController : ControllerBase
 
     /// <summary>Remove um evento pet pelo ID.</summary>
     /// <param name="id">UUID do evento a remover.</param>
+    [Authorize(Policy = PoliticasDeAcesso.Equipe)]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -62,6 +62,42 @@ public class AutorizacaoEndpointsTests
         Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
     }
 
+    /// <summary>
+    /// Evento Pet é da clínica (feira, campanha de vacinação) e aparece para todos os tutores.
+    /// Antes, qualquer tutor logado criava, editava e apagava eventos; agora é como Produto.
+    /// </summary>
+    [Theory]
+    [InlineData("POST", "/api/v1/eventos-pet")]
+    [InlineData("PUT", "/api/v1/eventos-pet/qualquer-id")]
+    [InlineData("DELETE", "/api/v1/eventos-pet/qualquer-id")]
+    public async Task EventoPet_EscritaComPerfilTutor_RetornaForbidden(string metodo, string rota)
+    {
+        // Arrange
+        var cliente = _fixture.CreateClientComBearer("TUTOR");
+        cliente.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        var requisicao = new HttpRequestMessage(new HttpMethod(metodo), rota) { Content = JsonContent.Create(new { }) };
+
+        // Act
+        var resposta = await cliente.SendAsync(requisicao);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EventoPet_LeituraComPerfilTutor_RetornaOk()
+    {
+        // Arrange
+        var cliente = _fixture.CreateClientComBearer("TUTOR");
+        cliente.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        // Act
+        var resposta = await cliente.GetAsync("/api/v1/eventos-pet");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+
     [Fact]
     public async Task Produto_LeituraComPerfilTutor_RetornaOk()
     {
