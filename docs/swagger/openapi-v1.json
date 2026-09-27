@@ -2,7 +2,7 @@
   "openapi": "3.0.4",
   "info": {
     "title": "\ud83d\udc3e Clyvo Vet API",
-    "description": "API REST de gerenciamento veterin\u00e1rio \u2014 dom\u00ednio **.NET** (ASP.NET Core 8 + MySQL).\n\n---\n\n### Recursos gerenciados por esta API\n\n| Recurso | Rota base | Tabela |\n|---------|-----------|---------------|\n| Produtos | `/api/v1/produtos` | `t_clyvo_produto` |\n| Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |\n| Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |\n| Sugest\u00f5es de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |\n\n### Tabelas da API Java (somente consulta)\n\n| Tabela | Finalidade |\n|--------|-----------|\n| `animal` | Valida\u00e7\u00e3o de `animalId` nas FKs |\n| `tutor` | JOIN autom\u00e1tico pelo EF Core nas respostas enriquecidas |\n\n> Nesta entrega (Sprint 3 \u2014 DevOps Tools & Cloud Computing), o banco \u00e9 um Azure Database\n> for MySQL Flexible Server **compartilhado com a API Java** \u2014 as tabelas `tutor` e `animal`\n> seguem o schema definido pelas migrations Flyway do time de Java.\n\n---\n\n**Banco de dados:** Azure Database for MySQL Flexible Server",
+    "description": "API REST de gerenciamento veterin\u00e1rio \u2014 dom\u00ednio **.NET** (ASP.NET Core 8 + MySQL).\n\n---\n\n### Recursos gerenciados por esta API\n\n| Recurso | Rota base | Tabela |\n|---------|-----------|---------------|\n| Produtos | `/api/v1/produtos` | `t_clyvo_produto` |\n| Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |\n| Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |\n| Sugest\u00f5es de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |\n\n### Tabelas da API Java (somente consulta)\n\n| Tabela | Finalidade |\n|--------|-----------|\n| `animal` | Valida\u00e7\u00e3o de `animalId` nas FKs |\n| `tutor` | JOIN autom\u00e1tico pelo EF Core nas respostas enriquecidas |\n\n> O banco MySQL \u00e9 **compartilhado com a API Java** \u2014 as tabelas `tutor` e `animal`\n> seguem o schema definido pelas migrations Flyway do time de Java.\n\n---\n\n**Banco de dados:** Azure Database for MySQL Flexible Server",
     "contact": {
       "name": "Clyvo Vet \u2014 Equipe .NET",
       "email": "rm562312@fiap.com.br"
@@ -2197,7 +2197,7 @@
     "securitySchemes": {
       "ApiKey": {
         "type": "apiKey",
-        "description": "Chave de API exigida pelos endpoints principais da Sprint 3.",
+        "description": "Chave de API exigida pelos endpoints principais, junto com o token Bearer.",
         "name": "X-Api-Key",
         "in": "header"
       },

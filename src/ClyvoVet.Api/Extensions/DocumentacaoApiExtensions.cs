@@ -39,8 +39,7 @@ public static class DocumentacaoApiExtensions
                     | `animal` | Validação de `animalId` nas FKs |
                     | `tutor` | JOIN automático pelo EF Core nas respostas enriquecidas |
 
-                    > Nesta entrega (Sprint 3 — DevOps Tools & Cloud Computing), o banco é um Azure Database
-                    > for MySQL Flexible Server **compartilhado com a API Java** — as tabelas `tutor` e `animal`
+                    > O banco MySQL é **compartilhado com a API Java** — as tabelas `tutor` e `animal`
                     > seguem o schema definido pelas migrations Flyway do time de Java.
 
                     ---
@@ -93,7 +92,7 @@ public static class DocumentacaoApiExtensions
                 Name        = "X-Api-Key",
                 Type        = SecuritySchemeType.ApiKey,
                 In          = ParameterLocation.Header,
-                Description = "Chave de API exigida pelos endpoints principais da Sprint 3."
+                Description = "Chave de API exigida pelos endpoints principais, junto com o token Bearer."
             });
             options.DocumentFilter<ApiKeySecurityDocumentFilter>();
 
