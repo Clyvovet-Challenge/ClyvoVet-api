@@ -44,22 +44,14 @@ A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
 - **Saúde Preditiva com IA generativa** — parecer de riscos e recomendações por animal, redigido pela **OCI Generative AI** sobre uma base agregada de doenças por espécie/raça (datasets Dryad com DOI), com fallback determinístico e cache por animal
 - **Widget de Saúde Preditiva** (por regras) — o antecessor, mantido no ar: aponta condições relevantes para a espécie/raça/idade
-- **Envio de mensagens no Telegram** — bot próprio; é o canal único de mensagem (lembretes e saúde preditiva). O WhatsApp/Twilio saiu do escopo na Sprint 3
+- **Envio de mensagens no Telegram** — bot próprio; é o canal único de mensagem (lembretes e saúde preditiva)
 
-A **Sprint 3** somou à API uma camada completa de observabilidade e testes automatizados:
+A entrega junta todas essas funcionalidades numa base só, organizada em quatro frentes:
 
-- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o **MySQL** está realmente funcionando.
-- **Logging estruturado** via Serilog (console sempre; arquivo em desenvolvimento), correlacionando requisições através do header `X-Correlation-Id`.
-- **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console e endpoint `/metrics` em formato Prometheus).
-- **124 testes automatizados** (55 unitários + 69 de integração), abrangendo a camada de Aplicação (Services), o filtro de API Key, o fluxo HTTP completo (Controllers → banco em memória) e a geração do documento OpenAPI.
-
-A **Sprint 4** consolidou tudo isso:
-
-- **Clean Architecture em 4 projetos** (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste.
-- **Autenticação JWT** (o access token emitido pela API Java) e **tratamento global de exceções** com respostas `application/problem+json`.
-- **Paginação com total, ordenação e HATEOAS** nas listagens, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão).
-- **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
-- **Logs em JSON** fora de `Development`, **513 testes** (299 unitários + 214 de integração) e **99% de cobertura** de linhas em Domain + Application.
+- **Arquitetura e código:** Clean Architecture em 4 projetos (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste; injeção de dependência; **tratamento global de exceções** com respostas `application/problem+json`.
+- **API REST:** **autenticação JWT** (o access token emitido pela API Java) com autorização por perfil; **paginação com total, ordenação e filtros**; **HATEOAS** nas consultas, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão); Swagger/OpenAPI documentado e exportado.
+- **Persistência:** EF Core sobre **MySQL** com o padrão Repository, e **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
+- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **513 testes** (299 unitários + 214 de integração) e **99% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
 
 ---
 
@@ -898,8 +890,6 @@ Trata das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUT
 
 ### 🩺 Widget de Saúde Preditiva — `/api/v1/widget-saude-preditiva`
 
-> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
-
 Esse card compara os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e, encontrando alguma condição relevante, sugere marcar uma consulta.
 
 | Método | Rota | Descrição | Status |
@@ -981,16 +971,14 @@ dotnet user-secrets set "Oci:GenAi:CompartmentOcid" "ocid1.compartment.oc1..."
 
 O modelo default é `meta.llama-3.3-70b-instruct` (`Oci:GenAi:ModelId` muda; `Oci:GenAi:ApiFormat` aceita `GENERIC`/`COHERE`). A chave de API se cria na console da OCI em **Identity → My profile → API keys**; a região precisa oferecer o serviço Generative AI. **Sem nada disso configurado a rota continua funcionando** — o parecer sai com `origem: "REGRAS"`.
 
-> O WhatsApp (Twilio) saiu do escopo nesta sprint: o Telegram é o canal único de mensagens, e a marcação de consultas acontece apenas no app — o bot só dispara lembretes e os resumos de saúde preditiva.
+> O Telegram é o canal único de mensagens (o WhatsApp/Twilio saiu do escopo), e a marcação de consultas acontece apenas no app — o bot só dispara lembretes e os resumos de saúde preditiva.
 
 
 ---
 
 ### ✈️ Telegram — `/api/v1/telegram`
 
-> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
-
-O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. Desde esta sprint é o ÚNICO canal: o WhatsApp/Twilio saiu do escopo, e a marcação de consultas acontece apenas no app.
+O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. É o ÚNICO canal (o WhatsApp/Twilio saiu do escopo), e a marcação de consultas acontece apenas no app.
 
 | Método | Rota | Descrição | Chave | Status |
 |--------|------|-----------|-------|--------|
@@ -1398,11 +1386,10 @@ Cada teste cria e apaga o próprio banco (`clyvovet_teste_<guid>`): nada de dado
 
 Tudo o que não é uso direto da API fica em [`docs/`](docs/README.md):
 
-### ☁️ Deploy na Azure (Sprint 3)
+### ☁️ Deploy na Azure
 
-O passo a passo do deploy da disciplina **DevOps Tools & Cloud Computing** (App Service +
-Azure Database for MySQL), o vídeo daquela entrega e os endereços de produção estão em
-[`docs/deploy-azure-sprint3.md`](docs/deploy-azure-sprint3.md).
+O passo a passo do deploy na Azure (App Service + Azure Database for MySQL) e os endereços de
+produção estão em [`docs/deploy-azure.md`](docs/deploy-azure.md).
 
 ### Guia de Testes Manuais
 
