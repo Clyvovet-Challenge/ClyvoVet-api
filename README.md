@@ -198,7 +198,8 @@ ClyvoVet-api/
 │   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
 ├── docs/                → Documentação complementar (deploy Azure, guia de testes manuais, auditoria, diagrama de infra)
 ├── scripts/
-│   └── cobertura.sh     → Mede a cobertura de Domain + Application e falha abaixo de 90%
+│   ├── cobertura.sh         → Mede a cobertura de Domain + Application e falha abaixo de 90%
+│   └── exportar-swagger.sh  → Gera docs/swagger/openapi-v1.json a partir da própria API
 ├── docker-compose.yml   → MongoDB de desenvolvimento
 ├── Dockerfile           → Imagem da API para desenvolvimento local
 └── schema/
@@ -560,6 +561,15 @@ Semeadas pelo `DevDataSeeder` nos perfis Spring `dev`, `h2`, `oracle` e `local` 
 
 > **Base path:** `/api/v1/`  
 > Toda resposta de endpoint vem em `application/json`; as respostas de **erro** vêm em `application/problem+json`, com o campo `error` (e, em falha de servidor, `referencia`).
+
+**Swagger exportado:** o documento OpenAPI completo (26 operações em 7 recursos) está em
+[`docs/swagger/openapi-v1.json`](docs/swagger/openapi-v1.json). Ele pode ser aberto no
+[Swagger Editor](https://editor.swagger.io) ou importado no Postman/Insomnia. É gerado pela própria API; depois de
+mudar uma rota, rode de novo:
+
+```bash
+scripts/exportar-swagger.sh      # sobe a API em Production numa porta local, salva o JSON e encerra
+```
 
 ### 📄 Paginação, ordenação e navegação (HATEOAS)
 

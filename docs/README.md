@@ -10,6 +10,7 @@ e testes. Aqui fica o que não tem lugar lá, incluindo o deploy na Azure da Spr
 | [arquitetura-azure.svg](arquitetura-azure.svg) | Diagrama de implantação exigido pela disciplina de DevOps |
 | [deploy-azure-sprint3.md](deploy-azure-sprint3.md) | Passo a passo do deploy na Azure (DevOps, Sprint 3) e endereços de produção — saiu do README na Sprint 4 |
 | [guia-de-testes-manuais.md](guia-de-testes-manuais.md) | Os 54 testes manuais pelo Swagger — saiu do README na Sprint 4 |
+| [swagger/openapi-v1.json](swagger/openapi-v1.json) | Documento OpenAPI exportado da API (`scripts/exportar-swagger.sh`) |
 
 ---
 

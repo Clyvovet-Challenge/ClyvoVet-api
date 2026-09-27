@@ -1,0 +1,2242 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "\ud83d\udc3e Clyvo Vet API",
+    "description": "API REST de gerenciamento veterin\u00e1rio \u2014 dom\u00ednio **.NET** (ASP.NET Core 8 + MySQL).\n\n---\n\n### Recursos gerenciados por esta API\n\n| Recurso | Rota base | Tabela |\n|---------|-----------|---------------|\n| Produtos | `/api/v1/produtos` | `t_clyvo_produto` |\n| Eventos Pet | `/api/v1/eventos-pet` | `t_clyvo_evento_pet` |\n| Lembretes | `/api/v1/lembretes` | `t_clyvo_lembrete` |\n| Sugest\u00f5es de Produto | `/api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |\n\n### Tabelas da API Java (somente consulta)\n\n| Tabela | Finalidade |\n|--------|-----------|\n| `animal` | Valida\u00e7\u00e3o de `animalId` nas FKs |\n| `tutor` | JOIN autom\u00e1tico pelo EF Core nas respostas enriquecidas |\n\n> Nesta entrega (Sprint 3 \u2014 DevOps Tools & Cloud Computing), o banco \u00e9 um Azure Database\n> for MySQL Flexible Server **compartilhado com a API Java** \u2014 as tabelas `tutor` e `animal`\n> seguem o schema definido pelas migrations Flyway do time de Java.\n\n---\n\n**Banco de dados:** Azure Database for MySQL Flexible Server",
+    "contact": {
+      "name": "Clyvo Vet \u2014 Equipe .NET",
+      "email": "rm562312@fiap.com.br"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/eventos-pet": {
+      "get": {
+        "tags": [
+          "Eventos Pet"
+        ],
+        "summary": "Lista eventos pet com pagina\u00e7\u00e3o, ordena\u00e7\u00e3o e filtros opcionais.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "N\u00famero da p\u00e1gina (padr\u00e3o: 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Itens por p\u00e1gina \u2014 m\u00e1x. 100 (padr\u00e3o: 10).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "cidade",
+            "in": "query",
+            "description": "Filtro por cidade (case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "query",
+            "description": "Filtro: `Vacinacao | Feira | Castracao | Workshop | Outro`",
+            "schema": {
+              "$ref": "#/components/schemas/TipoEventoPetEnum"
+            }
+          },
+          {
+            "name": "especieAlvo",
+            "in": "query",
+            "description": "Filtro: `Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino`",
+            "schema": {
+              "$ref": "#/components/schemas/EspecieEnum"
+            }
+          },
+          {
+            "name": "ordenarPor",
+            "in": "query",
+            "description": "Campo de ordena\u00e7\u00e3o (camelCase): <c>titulo | descricao | tipo | rua | numero | bairro | cidade | estado |\ncep | dataInicio | dataFim | especieAlvo | organizador | gratuito | linkInscricao | ativo | criadoEm</c>.\nOmitido, mant\u00e9m a ordem de sempre (`dataInicio`). Campo fora da lista responde 400.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direcao",
+            "in": "query",
+            "description": "`asc` (padr\u00e3o) ou `desc`. Ignorada sem `ordenarPor`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventoPetResponse"
+                  }
+                }
+              },
+              "application/vnd.clyvovet.hateoas+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoPetResponseEnvelopeHateoas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Eventos Pet"
+        ],
+        "summary": "Cadastra um novo evento pet.\nO `id` \u00e9 gerado pela API, e n\u00e3o pelo banco: o MySQL n\u00e3o tem RETURNING,\nent\u00e3o depender de um DEFAULT exigiria ler a linha de volta.\n`dataInicio` n\u00e3o pode ser no passado.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/eventos-pet/{id}": {
+      "delete": {
+        "tags": [
+          "Eventos Pet"
+        ],
+        "summary": "Remove um evento pet pelo ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do evento a remover.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Eventos Pet"
+        ],
+        "summary": "Retorna um evento pet pelo ID (UUID).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do evento.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Eventos Pet"
+        ],
+        "summary": "Atualiza um evento pet existente.\nEventos j\u00e1 iniciados podem ser editados; `dataInicio` s\u00f3 pode ser\nalterada para uma data futura.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do evento a atualizar.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/lembretes": {
+      "get": {
+        "tags": [
+          "Lembretes"
+        ],
+        "summary": "Lista lembretes com pagina\u00e7\u00e3o, ordena\u00e7\u00e3o e filtros opcionais.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "N\u00famero da p\u00e1gina (padr\u00e3o: 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Itens por p\u00e1gina \u2014 m\u00e1x. 100 (padr\u00e3o: 10).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "animalId",
+            "in": "query",
+            "description": "Filtra pelo UUID do animal.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtro: `Pendente | Enviado | Cancelado`",
+            "schema": {
+              "$ref": "#/components/schemas/StatusLembreteEnum"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "query",
+            "description": "Filtro: `Vacina | Medicamento | Consulta | Higiene | Outro`",
+            "schema": {
+              "$ref": "#/components/schemas/TipoLembreteEnum"
+            }
+          },
+          {
+            "name": "ordenarPor",
+            "in": "query",
+            "description": "Campo de ordena\u00e7\u00e3o (camelCase): <c>animalId | nomeAnimal | titulo | descricao | tipo | agendadoEm |\nrecorrente | intervaloDias | repetirAte | status | criadoEm</c>. Omitido, mant\u00e9m a ordem de sempre\n(`agendadoEm`). Campo fora da lista responde 400.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direcao",
+            "in": "query",
+            "description": "`asc` (padr\u00e3o) ou `desc`. Ignorada sem `ordenarPor`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LembreteResponse"
+                  }
+                }
+              },
+              "application/vnd.clyvovet.hateoas+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LembreteResponseEnvelopeHateoas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Lembretes"
+        ],
+        "summary": "Cria um novo lembrete.\nO `id` \u00e9 gerado pela pr\u00f3pria API (`Guid.NewGuid()` no reposit\u00f3rio).\nO campo `status` \u00e9 for\u00e7ado a `Pendente` independente do valor enviado.\n`agendadoEm` deve ser uma data/hora futura.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/lembretes/{id}": {
+      "delete": {
+        "tags": [
+          "Lembretes"
+        ],
+        "summary": "Remove um lembrete pelo ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do lembrete a remover.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Lembretes"
+        ],
+        "summary": "Retorna um lembrete pelo ID (UUID).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do lembrete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Lembretes"
+        ],
+        "summary": "Atualiza um lembrete existente.\n`agendadoEm` deve ser uma data/hora futura.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do lembrete a atualizar.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LembreteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/produtos": {
+      "get": {
+        "tags": [
+          "Produtos"
+        ],
+        "summary": "Lista produtos com pagina\u00e7\u00e3o e filtros opcionais.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "N\u00famero da p\u00e1gina (padr\u00e3o: 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Itens por p\u00e1gina \u2014 m\u00e1x. 100 (padr\u00e3o: 10).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "categoria",
+            "in": "query",
+            "description": "Filtro por categoria: `Racao | Medicamento | Acessorio | Servico | Outro`",
+            "schema": {
+              "$ref": "#/components/schemas/CategoriaEnum"
+            }
+          },
+          {
+            "name": "especieIndicada",
+            "in": "query",
+            "description": "Filtro por esp\u00e9cie: `Cachorro | Gato | Passaro | Reptil | Roedor | Todos | Outro | Bovino | Equino`.\nPedir uma esp\u00e9cie traz tamb\u00e9m os produtos marcados `Todos` \u2014 sem isso,\nperguntar \"o que serve para um cachorro\" esconderia justamente o que serve\npara qualquer animal.",
+            "schema": {
+              "$ref": "#/components/schemas/EspecieEnum"
+            }
+          },
+          {
+            "name": "ativo",
+            "in": "query",
+            "description": "Filtra por produto ativo. Omitido, traz ativos e inativos \u2014 \u00e9 o\ncomportamento de sempre, mantido para n\u00e3o quebrar quem j\u00e1 chamava. A\nvitrine do tutor pede `true`; a gest\u00e3o da cl\u00ednica omite, porque\nprecisa ver o que desativou para poder reativar.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "porteIndicado",
+            "in": "query",
+            "description": "Filtro por porte: `Pequeno | Medio | Grande | Todos`. Como a\nesp\u00e9cie, pedir um porte traz tamb\u00e9m os marcados `Todos` \u2014 consulta,\nshampoo neutro, verm\u00edfugo em gotas, que n\u00e3o t\u00eam porte e servem a\nqualquer animal.",
+            "schema": {
+              "$ref": "#/components/schemas/PorteEnum"
+            }
+          },
+          {
+            "name": "ordenarPor",
+            "in": "query",
+            "description": "Campo de ordena\u00e7\u00e3o (camelCase): <c>nome | descricao | categoria | preco | especieIndicada |\nporteIndicado | ativo | criadoEm</c>. Omitido, mant\u00e9m a ordem de sempre (`nome`). Campo fora\nda lista responde 400.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direcao",
+            "in": "query",
+            "description": "`asc` (padr\u00e3o) ou `desc`. Ignorada sem `ordenarPor`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProdutoResponse"
+                  }
+                }
+              },
+              "application/vnd.clyvovet.hateoas+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoResponseEnvelopeHateoas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Produtos"
+        ],
+        "summary": "Cadastra um novo produto.\nO `id` \u00e9 gerado pela API, e n\u00e3o pelo banco: o MySQL n\u00e3o tem RETURNING,\nent\u00e3o depender de um DEFAULT exigiria ler a linha de volta.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/produtos/{id}": {
+      "delete": {
+        "tags": [
+          "Produtos"
+        ],
+        "summary": "Remove um produto pelo ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do produto a remover.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Produtos"
+        ],
+        "summary": "Retorna um produto pelo ID (UUID).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do produto.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Produtos"
+        ],
+        "summary": "Atualiza um produto existente.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID do produto a atualizar.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProdutoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/saude-preditiva/{animalId}": {
+      "get": {
+        "tags": [
+          "Sa\u00fade Preditiva (IA)"
+        ],
+        "summary": "Retorna o parecer de sa\u00fade preditiva de um animal pelo ID.",
+        "parameters": [
+          {
+            "name": "animalId",
+            "in": "path",
+            "description": "UUID do animal.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sugestoes-produto": {
+      "get": {
+        "tags": [
+          "Sugest\u00f5es de Produto"
+        ],
+        "summary": "Lista sugest\u00f5es com pagina\u00e7\u00e3o, ordena\u00e7\u00e3o e filtros opcionais.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "N\u00famero da p\u00e1gina (padr\u00e3o: 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Itens por p\u00e1gina \u2014 m\u00e1x. 100 (padr\u00e3o: 10).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "animalId",
+            "in": "query",
+            "description": "Filtra pelo UUID do animal.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ativo",
+            "in": "query",
+            "description": "Filtra por sugest\u00e3o ativa. Omitido, traz ativas e inativas.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "ordenarPor",
+            "in": "query",
+            "description": "Campo de ordena\u00e7\u00e3o (camelCase): <c>animalId | nomeAnimal | produtoId | nomeProduto | justificativa |\ndataSugestao | ativo | criadoEm</c>. Omitido, mant\u00e9m a ordem de sempre (`dataSugestao`,\nda mais recente para a mais antiga). Campo fora da lista responde 400.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direcao",
+            "in": "query",
+            "description": "`asc` (padr\u00e3o) ou `desc`. Ignorada sem `ordenarPor`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SugestaoProdutoResponse"
+                  }
+                }
+              },
+              "application/vnd.clyvovet.hateoas+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SugestaoProdutoResponseEnvelopeHateoas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Sugest\u00f5es de Produto"
+        ],
+        "summary": "Cria uma nova sugest\u00e3o de produto.\nO `id` \u00e9 gerado pela pr\u00f3pria API (`Guid.NewGuid()` no reposit\u00f3rio).\nValida a exist\u00eancia de `animalId` e `produtoId` antes de salvar.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sugestoes-produto/{id}": {
+      "delete": {
+        "tags": [
+          "Sugest\u00f5es de Produto"
+        ],
+        "summary": "Remove uma sugest\u00e3o de produto pelo ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID da sugest\u00e3o a remover.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Sugest\u00f5es de Produto"
+        ],
+        "summary": "Retorna uma sugest\u00e3o de produto pelo ID (UUID).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID da sugest\u00e3o.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Sugest\u00f5es de Produto"
+        ],
+        "summary": "Atualiza uma sugest\u00e3o de produto existente.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID da sugest\u00e3o a atualizar.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SugestaoProdutoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/telegram/enviar": {
+      "post": {
+        "tags": [
+          "Telegram"
+        ],
+        "summary": "Envia uma mensagem de Telegram para o chatId informado.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/link/{tutorId}": {
+      "get": {
+        "tags": [
+          "Telegram"
+        ],
+        "summary": "Gera o link de v\u00ednculo do tutor com o bot do Telegram.",
+        "description": "O que vai no `start=` \u00e9 um convite de uso \u00fanico com quinze minutos de\nprazo, e n\u00e3o mais o `tutorId`. O motivo est\u00e1 em\nClyvoVet.Application.Security.VinculosPendentesDeTelegram: o bot \u00e9 p\u00fablico, e enquanto o\npar\u00e2metro era o id do tutor, qualquer pessoa digitava `/start` com o id\nalheio e assumia as notifica\u00e7\u00f5es daquele tutor.\n            \n\nO link muda a cada chamada, e isso \u00e9 o desenho, n\u00e3o um efeito colateral:\npedir de novo invalida nada, mas cada link s\u00f3 serve uma vez.",
+        "parameters": [
+          {
+            "name": "tutorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v1/telegram/vinculo/{tutorId}": {
+      "delete": {
+        "tags": [
+          "Telegram"
+        ],
+        "summary": "Desliga o Telegram deste tutor.",
+        "description": "Quem liga precisa poder desligar, e pelo mesmo lugar. Sem isto, sair das\nnotificacoes exigiria bloquear o bot no proprio Telegram -- o vinculo\ncontinuaria no banco, e esta API continuaria tentando escrever para um\nchat que recusa.\n            \n\nDevolve 204 mesmo quando nao havia vinculo. O pedido e \"que este tutor\nnao receba mais\", e esse estado passa a valer nos dois casos; distinguir\ncom 404 so daria ao app um erro para tratar sem nada a fazer com ele.",
+        "parameters": [
+          {
+            "name": "tutorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Telegram"
+        ],
+        "summary": "Diz se este tutor ja tem uma conversa do Telegram ligada.",
+        "description": "A tela de vinculo precisa disso antes de desenhar: oferecer \"conectar\" a\nquem ja conectou manda a pessoa refazer o que esta feito, e mostrar\n\"conectado\" a quem nao esta promete um lembrete que nunca chega.\n            \n\nResponde 200 nos dois casos, com `vinculado` dizendo qual deles. Um\n404 para \"nao vinculado\" faria a ausencia de vinculo parecer erro, e o app\nteria de tratar como excecao um estado que e normal -- todo tutor comeca\nnele.",
+        "parameters": [
+          {
+            "name": "tutorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v1/widget-saude-preditiva/{animalId}": {
+      "get": {
+        "tags": [
+          "Widget de Sa\u00fade Preditiva"
+        ],
+        "summary": "Retorna o card de sa\u00fade preditiva de um animal pelo ID.",
+        "parameters": [
+          {
+            "name": "animalId",
+            "in": "path",
+            "description": "UUID do animal.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [],
+            "Bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CategoriaEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EspecieEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "EventoPetRequest": {
+        "required": [
+          "dataInicio",
+          "tipo",
+          "titulo"
+        ],
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "maxLength": 300,
+            "minLength": 3,
+            "type": "string"
+          },
+          "descricao": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEventoPetEnum"
+          },
+          "rua": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "numero": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "bairro": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "cidade": {
+            "maxLength": 200,
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "maxLength": 2,
+            "type": "string",
+            "nullable": true
+          },
+          "cep": {
+            "maxLength": 9,
+            "type": "string",
+            "nullable": true
+          },
+          "dataInicio": {
+            "type": "string",
+            "format": "date"
+          },
+          "dataFim": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "especieAlvo": {
+            "$ref": "#/components/schemas/EspecieEnum"
+          },
+          "organizador": {
+            "maxLength": 300,
+            "type": "string",
+            "nullable": true
+          },
+          "gratuito": {
+            "type": "boolean"
+          },
+          "linkInscricao": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EventoPetResponse": {
+        "type": "object",
+        "properties": {
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "titulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEventoPetEnum"
+          },
+          "rua": {
+            "type": "string",
+            "nullable": true
+          },
+          "numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "bairro": {
+            "type": "string",
+            "nullable": true
+          },
+          "cidade": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "cep": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataInicio": {
+            "type": "string",
+            "format": "date"
+          },
+          "dataFim": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "especieAlvo": {
+            "$ref": "#/components/schemas/EspecieEnum"
+          },
+          "organizador": {
+            "type": "string",
+            "nullable": true
+          },
+          "gratuito": {
+            "type": "boolean"
+          },
+          "linkInscricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EventoPetResponseEnvelopeHateoas": {
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventoPetResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "O corpo da listagem quando o cliente pede `application/vnd.clyvovet.hateoas+json`: os itens\ne, ao lado, onde a p\u00e1gina est\u00e1 e para onde ir. Quem n\u00e3o pedir isso n\u00e3o recebe nada diferente."
+      },
+      "LembreteRequest": {
+        "required": [
+          "agendadoEm",
+          "animalId",
+          "tipo",
+          "titulo"
+        ],
+        "type": "object",
+        "properties": {
+          "animalId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "titulo": {
+            "maxLength": 200,
+            "minLength": 3,
+            "type": "string"
+          },
+          "descricao": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoLembreteEnum"
+          },
+          "agendadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorrente": {
+            "type": "boolean",
+            "description": "Aceito por compatibilidade e IGNORADO no calculo: quem manda e\nClyvoVet.Application.DTOs.Request.LembreteRequest.IntervaloDias. O service deriva este valor."
+          },
+          "intervaloDias": {
+            "maximum": 365,
+            "minimum": 1,
+            "type": "integer",
+            "description": "\"A cada quantos dias\". NULO = nao repete.",
+            "format": "int32",
+            "nullable": true
+          },
+          "repetirAte": {
+            "type": "string",
+            "description": "Fim da serie. NULO = repete sem fim previsto.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusLembreteEnum"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LembreteResponse": {
+        "type": "object",
+        "properties": {
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "animalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nomeAnimal": {
+            "type": "string",
+            "nullable": true
+          },
+          "titulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoLembreteEnum"
+          },
+          "agendadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorrente": {
+            "type": "boolean"
+          },
+          "intervaloDias": {
+            "type": "integer",
+            "description": "\"A cada quantos dias\". NULO quando o lembrete nao repete.",
+            "format": "int32",
+            "nullable": true
+          },
+          "repetirAte": {
+            "type": "string",
+            "description": "Fim da serie. NULO quando repete sem fim previsto.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusLembreteEnum"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LembreteResponseEnvelopeHateoas": {
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LembreteResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "O corpo da listagem quando o cliente pede `application/vnd.clyvovet.hateoas+json`: os itens\ne, ao lado, onde a p\u00e1gina est\u00e1 e para onde ir. Quem n\u00e3o pedir isso n\u00e3o recebe nada diferente."
+      },
+      "Link": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "nullable": true
+          },
+          "method": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Um link HATEOAS: para onde ir e com qual verbo."
+      },
+      "PorteEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "ProdutoRequest": {
+        "required": [
+          "categoria",
+          "especieIndicada",
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "maxLength": 200,
+            "minLength": 3,
+            "type": "string"
+          },
+          "descricao": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaEnum"
+          },
+          "preco": {
+            "maximum": 1.7976931348623157e+308,
+            "minimum": 0,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "especieIndicada": {
+            "$ref": "#/components/schemas/EspecieEnum"
+          },
+          "porteIndicado": {
+            "$ref": "#/components/schemas/PorteEnum"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProdutoResponse": {
+        "type": "object",
+        "properties": {
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "nome": {
+            "type": "string",
+            "nullable": true
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaEnum"
+          },
+          "preco": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "especieIndicada": {
+            "$ref": "#/components/schemas/EspecieEnum"
+          },
+          "porteIndicado": {
+            "$ref": "#/components/schemas/PorteEnum"
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProdutoResponseEnvelopeHateoas": {
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProdutoResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "O corpo da listagem quando o cliente pede `application/vnd.clyvovet.hateoas+json`: os itens\ne, ao lado, onde a p\u00e1gina est\u00e1 e para onde ir. Quem n\u00e3o pedir isso n\u00e3o recebe nada diferente."
+      },
+      "StatusLembreteEnum": {
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "SugestaoProdutoRequest": {
+        "required": [
+          "animalId",
+          "produtoId"
+        ],
+        "type": "object",
+        "properties": {
+          "animalId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "produtoId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "justificativa": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "dataSugestao": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SugestaoProdutoResponse": {
+        "type": "object",
+        "properties": {
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "animalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nomeAnimal": {
+            "type": "string",
+            "nullable": true
+          },
+          "produtoId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nomeProduto": {
+            "type": "string",
+            "nullable": true
+          },
+          "justificativa": {
+            "type": "string",
+            "nullable": true
+          },
+          "dataSugestao": {
+            "type": "string",
+            "format": "date"
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SugestaoProdutoResponseEnvelopeHateoas": {
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SugestaoProdutoResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "_links": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "O corpo da listagem quando o cliente pede `application/vnd.clyvovet.hateoas+json`: os itens\ne, ao lado, onde a p\u00e1gina est\u00e1 e para onde ir. Quem n\u00e3o pedir isso n\u00e3o recebe nada diferente."
+      },
+      "TelegramRequest": {
+        "required": [
+          "chatId",
+          "mensagem"
+        ],
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mensagem": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TipoEventoPetEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "TipoLembreteEnum": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "description": "Chave de API exigida pelos endpoints principais da Sprint 3.",
+        "name": "X-Api-Key",
+        "in": "header"
+      },
+      "Bearer": {
+        "type": "http",
+        "description": "Access token emitido pela API Java no login. Cole s\u00f3 o token: o Swagger acrescenta o prefixo Bearer.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Produtos",
+      "description": "Cat\u00e1logo de produtos e servi\u00e7os veterin\u00e1rios. Suporta filtro por categoria e esp\u00e9cie indicada. Tabela: **`t_clyvo_produto`**."
+    },
+    {
+      "name": "Eventos Pet",
+      "description": "Eventos p\u00fablicos para pets: feiras, vacina\u00e7\u00f5es, workshops e afins. Suporta filtro por cidade, tipo e esp\u00e9cie-alvo. Tabela: **`t_clyvo_evento_pet`**."
+    },
+    {
+      "name": "Lembretes",
+      "description": "Lembretes de cuidados vinculados a um animal. Requer `animalId` v\u00e1lido gerenciado pela **API Java**. Status \u00e9 sempre iniciado como `Pendente`. Tabela: **`t_clyvo_lembrete`**."
+    },
+    {
+      "name": "Sugest\u00f5es de Produto",
+      "description": "Sugest\u00f5es de produto vinculadas a um animal espec\u00edfico. Requer `animalId` (API Java) e `produtoId` (esta API) v\u00e1lidos. Resposta inclui `nomeAnimal` e `nomeProduto` enriquecidos. Tabela: **`t_clyvo_sugestao_produto`**."
+    },
+    {
+      "name": "Widget de Sa\u00fade Preditiva",
+      "description": "Monta um card com predisposi\u00e7\u00f5es de sa\u00fade relevantes para a esp\u00e9cie, ra\u00e7a e idade atual de um animal, sugerindo agendar consulta quando alguma condi\u00e7\u00e3o relevante for encontrada. Tabela de refer\u00eancia: **`t_clyvo_predisposicao_saude`**."
+    },
+    {
+      "name": "Sa\u00fade Preditiva (IA)",
+      "description": "Parecer de riscos e recomenda\u00e7\u00f5es por animal, redigido pela OCI Generative AI sobre a base agregada **`t_clyvo_base_doencas`**, com fallback determin\u00edstico e cache em **`t_clyvo_parecer_ia`**."
+    },
+    {
+      "name": "Telegram",
+      "description": "Ponto \u00fanico de disparo de mensagens no Telegram, via bot pr\u00f3prio."
+    }
+  ]
+}
