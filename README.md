@@ -996,7 +996,7 @@ Esse card compara os dados do animal (espécie, raça e idade) com um catálogo 
 
 ### 🤖 Saúde Preditiva com IA — `/api/v1/saude-preditiva`
 
-O parecer de riscos e recomendações que a home do app mostra por animal. O desenho, em uma frase: os **fatos** vêm da base agregada de doenças (`t_clyvo_base_doencas`, contagens de casos por espécie/raça extraídas de datasets [Dryad](https://datadryad.org) com DOI); a **OCI Generative AI** apenas redige e prioriza em cima deles; o resultado fica em **cache por animal** (`t_clyvo_parecer_ia`, 7 dias); e quando a OCI está indisponível ou sem credencial, as mesmas linhas geram um **parecer determinístico**. A home nunca depende da nuvem para abrir.
+O parecer de riscos e recomendações que a home do app mostra por animal. O desenho, em uma frase: os **fatos** vêm da base agregada de doenças (`t_clyvo_base_doencas`, contagens de casos por espécie/raça extraídas de datasets [Dryad](https://datadryad.org) com DOI); a **OCI Generative AI** apenas redige e prioriza em cima deles; o resultado fica em **cache por animal** (`t_clyvo_parecer_ia`, 7 dias); e quando a OCI está indisponível ou sem credencial, as mesmas linhas geram um **parecer determinístico**. Se a OCI está configurada e só falhou naquela hora, esse parecer vale 1 hora, e não 7 dias, para a IA ter nova chance logo. A home nunca depende da nuvem para abrir.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|

@@ -172,6 +172,52 @@ public class SaudePreditivaServiceTests
         Assert.Equal("REGRAS", parecer.Origem);
     }
 
+    /// <summary>
+    /// Com a IA configurada, as regras sao um tapa-buraco: gravadas por sete dias, um soluco
+    /// da OCI na primeira visita deixava o animal a semana inteira sem IA.
+    /// </summary>
+    [Fact]
+    public async Task IaForaDoAr_ParecerPelasRegras_ValeUmaHora()
+    {
+        ArmarBasePadrao();
+        _ia.SetupGet(i => i.Configurado).Returns(true);
+        _ia.Setup(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("OCI 503"));
+
+        await Servico().GetParecerAsync("animal-1");
+
+        _pareceres.Verify(r => r.SalvarAsync(It.Is<ParecerIa>(p =>
+            p.Origem == "REGRAS" &&
+            p.ValidoAte <= DateTime.UtcNow.AddHours(1) &&
+            p.ValidoAte > DateTime.UtcNow.AddMinutes(50))), Times.Once);
+    }
+
+    /// <summary>
+    /// Quem fechou a tela desistiu do parecer. Sem isto, o cancelamento caia no catch
+    /// generico como se fosse a OCI fora do ar: a API gravava as regras e avisava no Telegram.
+    /// </summary>
+    [Fact]
+    public async Task PedidoCancelado_DuranteAIa_NaoGravaNemAvisa()
+    {
+        ArmarBasePadrao();
+        _ia.SetupGet(i => i.Configurado).Returns(true);
+        _tutorTelegram.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1")).ReturnsAsync(4242L);
+        using var cancelamento = new CancellationTokenSource();
+        _ia.Setup(i => i.GerarTextoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<string, CancellationToken>((_, ct) =>
+            {
+                cancelamento.Cancel();
+                ct.ThrowIfCancellationRequested();
+                return Task.FromResult<string?>(null);
+            });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => Servico().GetParecerAsync("animal-1", cancelamento.Token));
+
+        _pareceres.Verify(r => r.SalvarAsync(It.IsAny<ParecerIa>()), Times.Never);
+        _telegram.Verify(t => t.EnviarMensagemAsync(It.IsAny<long>(), It.IsAny<string>()), Times.Never);
+    }
+
     [Fact]
     public async Task ParecerNovo_ComTelegramVinculado_AvisaOTutor()
     {

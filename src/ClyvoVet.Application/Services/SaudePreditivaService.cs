@@ -35,6 +35,7 @@ namespace ClyvoVet.Application.Services;
 public class SaudePreditivaService : ISaudePreditivaService
 {
     private static readonly TimeSpan Validade = TimeSpan.FromDays(7);
+    private static readonly TimeSpan ValidadeDoFallback = TimeSpan.FromHours(1);
 
     private readonly IAnimalRepository _animais;
     private readonly IBaseDoencaRepository _baseDoencas;
@@ -126,6 +127,12 @@ public class SaudePreditivaService : ISaudePreditivaService
                         animal.Id);
                 }
             }
+            // Antes do catch generico: quem cancelou desistiu do parecer. Tratado como "OCI fora
+            // do ar", o pedido abandonado ainda gravava as regras e avisava no Telegram.
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
@@ -135,6 +142,11 @@ public class SaudePreditivaService : ISaudePreditivaService
 
         conteudo ??= ParecerPorRegras.Gerar(daRaca, linhas, animal, baseLimitada);
 
+        // Regras no lugar de uma IA configurada sao tapa-buraco, e nao a resposta da semana:
+        // com a validade cheia, um soluco da OCI deixava o animal sete dias sem IA. Sem OCI
+        // configurada, tentar de novo nao muda nada, e as regras valem o prazo inteiro.
+        var validade = modelo is null && _ia.Configurado ? ValidadeDoFallback : Validade;
+
         return new ParecerIa
         {
             AnimalId = animal.Id,
@@ -142,7 +154,7 @@ public class SaudePreditivaService : ISaudePreditivaService
             Modelo = modelo,
             Conteudo = JsonSerializer.Serialize(conteudo, LeitorDaRespostaDaIa.Json),
             GeradoEm = DateTime.UtcNow,
-            ValidoAte = DateTime.UtcNow.Add(Validade),
+            ValidoAte = DateTime.UtcNow.Add(validade),
         };
     }
 
