@@ -63,4 +63,36 @@ public class MigrationsTests
         ];
         Assert.Equal(esperadas, tabelasCriadas);
     }
+
+    // O baseline registra a migration Inicial à mão (schema/ef/). Se ela for gerada de
+    // novo, o id muda, e um baseline velho marcaria como aplicada uma migration que não
+    // existe: o script idempotente tentaria recriar as tabelas no banco compartilhado.
+    [Fact]
+    public void Baseline_RegistraAMigrationInicialEAVersaoDoEf()
+    {
+        // Arrange
+        using var contexto = new AppDbContextFactory().CreateDbContext([]);
+        var idDaInicial = contexto.GetService<IMigrationsAssembly>().Migrations.Keys
+            .Single(id => id.EndsWith("_Inicial"));
+        var versaoDoEf = typeof(DbContext).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .Cast<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .Single().InformationalVersion.Split('+')[0];
+
+        // Act
+        var baseline = File.ReadAllText(
+            Path.Combine(RaizDoRepositorio(), "schema", "ef", "baseline-banco-compartilhado.sql"));
+
+        // Assert
+        Assert.Contains($"VALUES ('{idDaInicial}', '{versaoDoEf}');", baseline);
+    }
+
+    private static string RaizDoRepositorio()
+    {
+        var pasta = new DirectoryInfo(AppContext.BaseDirectory);
+        while (pasta is not null && !File.Exists(Path.Combine(pasta.FullName, "ClyvoVet-api.slnx")))
+            pasta = pasta.Parent;
+        return pasta?.FullName
+            ?? throw new InvalidOperationException("ClyvoVet-api.slnx não encontrado acima de " + AppContext.BaseDirectory);
+    }
 }
