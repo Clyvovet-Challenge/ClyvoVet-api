@@ -106,7 +106,8 @@ public class SugestaoProdutoServiceTests
         var result = await _service.CreateAsync(request);
 
         // Assert
-        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), result.DataSugestao);
+        // "Hoje" é o de Brasília: entre 21h e meia-noite o UTC já está no dia seguinte.
+        Assert.Equal(HorarioDeBrasilia.Hoje(), result.DataSugestao);
     }
 
     [Fact]
