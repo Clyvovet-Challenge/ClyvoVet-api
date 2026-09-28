@@ -774,8 +774,8 @@ Qualquer usuário autenticado lê; **criar, editar e apagar é só para a equipe
   "cidade": "São Paulo",
   "estado": "SP",
   "cep": "01310-200",
-  "dataInicio": "2026-08-10",
-  "dataFim": "2026-08-11",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-11",
   "especieAlvo": 5,
   "organizador": "ONG Amigo Fiel",
   "gratuito": true,
@@ -798,8 +798,8 @@ Qualquer usuário autenticado lê; **criar, editar e apagar é só para a equipe
   "cidade": "São Paulo",
   "estado": "SP",
   "cep": "01310-200",
-  "dataInicio": "2026-08-10",
-  "dataFim": "2026-08-11",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-11",
   "especieAlvo": 5,
   "organizador": "ONG Amigo Fiel",
   "gratuito": true,
@@ -842,15 +842,15 @@ Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
   "titulo": "Antibiótico — 10 dias",
   "descricao": "Uma dose por dia, sempre no mesmo horário.",
   "tipo": 1,
-  "agendadoEm": "2026-09-15T10:00:00",
+  "agendadoEm": "2027-03-15T10:00:00",
   "intervaloDias": 1,
-  "repetirAte": "2026-09-25T23:59:00",
+  "repetirAte": "2027-03-25T23:59:00",
   "status": 0
 }
 ```
 
 > **Atenção:** na criação, o `status` é **sempre forçado para `Pendente` (0)**, seja qual for o valor enviado.  
-> `agendadoEm` precisa ser uma data/hora **futura**, em **horário de Brasília e sem fuso** (`2026-09-15T10:00:00`), que é como o app envia. A API compara com a hora atual de Brasília e dispara a notificação do Telegram uma hora antes nesse mesmo relógio. Carimbos internos (`criadoEm`) ficam em UTC.
+> `agendadoEm` precisa ser uma data/hora **futura**, em **horário de Brasília e sem fuso** (`2027-03-15T10:00:00`), que é como o app envia. A API compara com a hora atual de Brasília e dispara a notificação do Telegram uma hora antes nesse mesmo relógio. Carimbos internos (`criadoEm`) ficam em UTC.
 
 **A repetição (V18)**
 
@@ -891,10 +891,10 @@ ciclo faria o tutor receber trinta mensagens iguais para se atualizar.
   "titulo": "Vacina Antirrábica — Reforço Anual",
   "descricao": "Aplicar a vacina antirrábica no pet shop da rua central.",
   "tipo": 0,
-  "agendadoEm": "2026-09-15T10:00:00",
+  "agendadoEm": "2027-03-15T10:00:00",
   "recorrente": true,
   "intervaloDias": 1,
-  "repetirAte": "2026-09-25T23:59:00",
+  "repetirAte": "2027-03-25T23:59:00",
   "status": 0,
   "criadoEm": "2026-05-24T10:30:00"
 }
