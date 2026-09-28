@@ -206,13 +206,8 @@ ClyvoVet-api/
     ├── ef/
     │   ├── migrations-idempotente.sql           → Script gerado das migrations do EF (pode rodar mais de uma vez)
     │   └── baseline-banco-compartilhado.sql     → Marca a migration Inicial como aplicada num banco do Flyway
-    ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
-    ├── 02_seed_dotnet.sql                       → Dados de exemplo para os endpoints originais
-    ├── 03_drop_tabelas_dotnet.sql               → Remove as 6 tabelas .NET
-    ├── 04_criar_tabela_predisposicao_dotnet.sql → DDL da tabela do Widget de Saúde Preditiva
-    ├── 05_seed_predisposicao_dotnet.sql         → 42 predisposições reais por espécie/raça/idade
-    ├── 06_criar_tabela_tutor_telegram_dotnet.sql → DDL da tabela de vínculo Tutor ↔ Telegram
-    └── README.md                                → Guia do schema
+    ├── legado-oracle/                           → Scripts do tempo do Oracle (registro histórico; não rodam no MySQL)
+    └── README.md                                → Qual script usar em cada banco
 ```
 
 ---
@@ -373,8 +368,8 @@ Se `t_clyvo_produto` e `t_clyvo_predisposicao_saude` aparecerem com linhas, o se
 entrou. Sem as predisposições, `GET /api/v1/widget-saude-preditiva/{animalId}`
 responde normalmente, mas sempre com a lista vazia.
 
-> **Os arquivos `schema/01_*.sql` a `schema/06_*.sql` são do tempo do Oracle** —
-> `VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`. Eles
+> **Os scripts do tempo do Oracle ficam em [`schema/legado-oracle/`](schema/legado-oracle/)**
+> (`VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`). Eles
 > não rodam no MySQL e ficam apenas como registro histórico. Os scripts vigentes são o
 > `script_bd.sql` e os de `schema/ef/`, descritos a seguir.
 
@@ -1394,18 +1389,12 @@ builder.Property(p => p.Id)
 
 ### Scripts disponíveis
 
-> **Os `01_` a `06_` abaixo são do tempo do Oracle** e não rodam no MySQL
-> (`VARCHAR2`, `NUMBER`, triggers, `fn_clyvo_uuid`). Ficam como registro. O script
-> vigente, e único aplicável, é o **`schema/script_bd.sql`**.
-
 | Arquivo | Quando usar |
 |---------|-------------|
-| `schema/01_criar_tabelas_dotnet.sql` | Primeira vez ou para recriar tudo do zero |
-| `schema/02_seed_dotnet.sql` | Após o `01` — insere produtos, eventos, lembretes e sugestões de exemplo |
-| `schema/03_drop_tabelas_dotnet.sql` | Para limpar apenas as tabelas .NET (preserva as Java) |
-| `schema/04_criar_tabela_predisposicao_dotnet.sql` | Cria a tabela `T_CLYVO_PREDISPOSICAO_SAUDE` (widget de saúde preditiva) |
-| `schema/05_seed_predisposicao_dotnet.sql` | Após o `04` — insere as 42 predisposições de saúde por espécie/raça/idade |
-| `schema/06_criar_tabela_tutor_telegram_dotnet.sql` | Cria a tabela `T_CLYVO_TUTOR_TELEGRAM` (vínculo tutor ↔ bot do Telegram) |
+| [`schema/script_bd.sql`](schema/script_bd.sql) | Desenvolvimento local: cria o schema das duas APIs, com seed, num MySQL vazio ([3.1](#31--criar-o-banco-e-aplicar-o-schema)) |
+| [`schema/ef/baseline-banco-compartilhado.sql`](schema/ef/baseline-banco-compartilhado.sql) | Banco compartilhado já montado pelo Flyway da Java: marca a migration `Inicial` como aplicada ([3.3](#33--migrations-do-ef-core)) |
+| [`schema/ef/migrations-idempotente.sql`](schema/ef/migrations-idempotente.sql) | Banco compartilhado: aplica as migrations do EF que faltarem, depois do baseline ([3.3](#33--migrations-do-ef-core)) |
+| [`schema/legado-oracle/`](schema/legado-oracle/) | Só consulta: os scripts do tempo do Oracle, que não rodam no MySQL |
 
 ---
 
