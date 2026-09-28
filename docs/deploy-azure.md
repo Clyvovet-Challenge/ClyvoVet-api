@@ -24,8 +24,6 @@
 
 > Esta seção documenta a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, publicada aqui num **Azure App Service** e conectada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica etc.). O passo a passo abaixo reproduz fielmente o que foi feito no vídeo de entrega.
 
-> 📋 **Roteiro da gravação desta Sprint:** [`docs/roteiro-do-video.md`](roteiro-do-video.md).
-
 **🎥 Vídeo de apresentação:** [assista aqui](https://www.youtube.com/watch?v=WBNx3ZSore0)
 
 **Integrantes:**

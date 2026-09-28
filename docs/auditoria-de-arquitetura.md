@@ -9,9 +9,7 @@
 >   da Java, nunca no boot (README, seção 3.3).
 
 > Feito em **06/09/2026**, com base no código, `Program.cs`, configurações do EF,
-> Dockerfile e scripts `azure/` — não no README. O relatório completo dos dois
-> backends, com a comparação de arquiteturas e a matriz de riscos, está em:
-> [claude.ai/code/artifact/79da68b6-2d7d-41b1-82c2-aac5fc68652a](https://claude.ai/code/artifact/79da68b6-2d7d-41b1-82c2-aac5fc68652a)
+> Dockerfile e scripts `azure/` — não no README.
 >
 > Este arquivo cobre apenas o que é de responsabilidade **desta API**. O recorte da
 > API Java está em `clyvovet-backend-java/docs/11-auditoria-de-arquitetura.md`.
