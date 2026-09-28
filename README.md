@@ -123,6 +123,11 @@ desenvolvimento local; ele não produz o artefato publicado.)
 
 > A API .NET **lê** as tabelas de animal e tutor da API Java para validar FKs e enriquecer as respostas — mas **nunca escreve** nelas.
 
+> **Por que MySQL, e não Oracle ou SQL Server.** O enunciado da disciplina pede EF Core com migrations
+> em Oracle ou SQL Server. Como este banco é compartilhado com a API Java, que é a dona do schema (Flyway),
+> consultamos o professor, que **autorizou manter o MySQL** em 20/09/2026. As migrations do EF cobrem as
+> tabelas que esta API grava: veja [3.3 — Migrations do EF Core](#33--migrations-do-ef-core).
+
 ---
 
 ## Tecnologias
