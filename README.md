@@ -562,8 +562,9 @@ Os endpoints de negócio exigem **duas credenciais**: `Authorization: Bearer <ac
 
 | Endpoints | Quem acessa |
 |---|---|
-| Lembretes, Eventos Pet, Sugestões de Produto, Saúde Preditiva, Widget, `GET` de Produtos | qualquer usuário autenticado |
-| `POST`/`PUT`/`DELETE` de Produtos | `ADMIN` ou `VETERINARIO` |
+| `GET` de Produtos e de Eventos Pet | qualquer usuário autenticado |
+| `POST`/`PUT`/`DELETE` de Produtos e de Eventos Pet | a equipe: `ADMIN` ou `VETERINARIO` |
+| Lembretes, Sugestões de Produto, Saúde Preditiva, Widget | o `TUTOR` dono do animal. Com o recorte por tutor ligado (o padrão, ver `Api__EscopoPorTutor` abaixo), perfis sem tutor no token, como `ADMIN` e `VETERINARIO`, recebem `403` |
 | Telegram | chaves próprias (`Api:ApiKey` / `Telegram:ApiKey`), como antes |
 | `/health*`, `/metrics`, `/swagger` | anônimos |
 
@@ -590,7 +591,7 @@ No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e in
 
 > O **envio** do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`), porque manda mensagem para qualquer `chatId`. As ações de **vínculo** do tutor (`link`, `vinculo`) usam esta `Api:ApiKey` — detalhes na seção correspondente, mais abaixo.
 
-### Checklist de deploy (Render)
+### Checklist de deploy
 
 1. Defina `Jwt__Secret` no serviço **antes** do deploy, com o mesmo valor do `JWT_SECRET` da API Java. Sem ele a aplicação sobe, registra um `Warning` e **todas as rotas protegidas respondem 401**.
 2. Confirme nos logs da subida que **não** há a mensagem "Jwt:Secret não configurado".
