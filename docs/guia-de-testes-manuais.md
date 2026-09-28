@@ -1,33 +1,49 @@
 # Guia de Testes Manuais
 
-> Movido do [README da raiz](../README.md) na Sprint 4. A única mudança é o aviso de autenticação logo abaixo, que passou a citar o JWT.
-
-
-> **54 testes** manuais, rodados contra o banco MySQL real, todos passando.  
+> **54 passos** manuais pelo Swagger, com o status e a mensagem que a API devolve em cada um.  
 > Acesse **`http://localhost:5191/swagger`**, siga a ordem indicada e reaproveite os JSONs já prontos.  
-> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
-> ⚠️ Os endpoints principais exigem a `X-Api-Key` (desde a Sprint 3) **e** o access token `Bearer` da API Java (desde a Sprint 4) — clique em **"Authorize"** no Swagger e informe os dois antes de começar (veja a seção [🔐 Autenticação](../README.md#-autenticação)).
+> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação) &nbsp;|&nbsp; 🔑 conta a usar  
+>
+> Os resultados esperados foram conferidos contra o código em 27/09/2026 (perfis, recorte por tutor,
+> mensagens de erro). O roteiro automatizado que cobre o mesmo terreno é o [`test_api.sh`](../test_api.sh).
 
 ---
 
-### Antes de começar — obtenha os IDs necessários
+### Antes de começar — duas contas e os IDs
 
-Rode no cliente `mysql` (ou no MySQL Workbench) depois de aplicar o schema:
+Os endpoints exigem a `X-Api-Key` **e** o access token `Bearer` emitido pela API Java no login
+(veja [🔐 Autenticação](../README.md#-autenticação)). No Swagger, clique em **"Authorize"** e informe os dois.
+**Nenhuma conta sozinha roda o guia inteiro**, e isso é regra da API, não falha:
+
+| 🔑 Conta | Para quê | Por quê |
+|---|---|---|
+| **Equipe**: `admin@clyvovet.com` (ADMIN) ou `camila.ferreira@vetcare.com.br` (VETERINARIO) | Blocos 1 e 2 e os deletes de produto e evento (T49–T51, T53) | Criar, editar e apagar produto e evento é só da equipe; um TUTOR recebe `403` |
+| **Tutor**: `lucas.santos@email.com` (TUTOR) | Blocos 3 e 4 e os deletes de lembrete e sugestão (T47, T48, T52, T54) | Com o recorte por tutor (ligado por padrão), lembretes e sugestões são do tutor do token; ADMIN e VETERINARIO não têm tutor e recebem `403` |
+
+As senhas estão na seção [Quem faz o login](../README.md#quem-faz-o-login-a-api-java) do README.
+Para trocar de conta, faça login de novo na API Java e troque o Bearer no **"Authorize"**.
+
+Rode no cliente `mysql` (ou no MySQL Workbench) para pegar os IDs:
 
 ```sql
--- animal_id (necessário nos testes de Lembrete e Sugestão)
-SELECT id, nome FROM t_clyvo_animal LIMIT 1;
+-- animal_id: precisa ser um animal DO TUTOR logado. Animal de outro tutor responde 404.
+SELECT a.id, a.nome
+  FROM t_clyvo_animal a
+  JOIN t_clyvo_usuario u ON u.tutor_id = a.tutor_id
+ WHERE u.email = 'lucas.santos@email.com'
+ LIMIT 1;
 
 -- produto_id do seed (necessário nos testes de Sugestão)
 SELECT id, nome FROM t_clyvo_produto LIMIT 1;
 ```
 
-> Guarde os dois UUIDs — eles entram no lugar de `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes a seguir.  
-> O `animalId` também pode ser pego direto na resposta do **T23** (GET /lembretes).
+> Guarde os dois UUIDs: eles entram no lugar de `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes a seguir.
 
 ---
 
 ## 🛒 BLOCO 1 — Produtos
+
+> 🔑 **Conta da equipe.** As leituras (T01–T05, T07, T09) funcionam com qualquer conta; criar e editar, não.
 
 ---
 
@@ -140,7 +156,7 @@ GET /api/v1/produtos/id-que-nao-existe
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Produto não encontrado." }
+{ "error": "Produto com id id-que-nao-existe não encontrado." }
 ```
 
 ---
@@ -181,6 +197,8 @@ POST /api/v1/produtos
 ---
 
 ## 🐾 BLOCO 2 — Eventos Pet
+
+> 🔑 **Conta da equipe.** Igual ao Bloco 1: qualquer conta lê, só a equipe cria e edita.
 
 ---
 
@@ -247,8 +265,8 @@ POST /api/v1/eventos-pet
   "cidade": "São Paulo",
   "estado": "SP",
   "cep": "01425-000",
-  "dataInicio": "2026-10-05",
-  "dataFim": "2026-10-05",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-10",
   "especieAlvo": 0,
   "organizador": "Dr. Pet Nutrição",
   "gratuito": false,
@@ -282,8 +300,8 @@ PUT /api/v1/eventos-pet/{id do T17}
   "tipo": 3,
   "cidade": "São Paulo",
   "estado": "SP",
-  "dataInicio": "2026-10-05",
-  "dataFim": "2026-10-06",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-11",
   "especieAlvo": 0,
   "gratuito": true,
   "ativo": true
@@ -311,7 +329,7 @@ POST /api/v1/eventos-pet
 
 ❌ **Esperado:** `400 Bad Request`
 ```json
-{ "error": "A data de início não pode ser no passado." }
+{ "error": "A data de início do evento não pode ser no passado." }
 ```
 
 ---
@@ -323,7 +341,7 @@ POST /api/v1/eventos-pet
 ```json
 {
   "tipo": 0,
-  "dataInicio": "2026-12-01",
+  "dataInicio": "2027-03-10",
   "especieAlvo": 5,
   "gratuito": true,
   "ativo": true
@@ -341,15 +359,15 @@ GET /api/v1/eventos-pet/id-que-nao-existe
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Evento não encontrado." }
+{ "error": "Evento com id id-que-nao-existe não encontrado." }
 ```
 
 ---
 
 ## 🔔 BLOCO 3 — Lembretes
 
-> ⚠️ A partir do T28, os testes exigem `animalId` válido.  
-> Pegue esse valor no T23 (campo `animalId` de qualquer lembrete do seed), ou pelo SQL do pré-requisito.
+> 🔑 **Conta do tutor** (`lucas.santos@email.com`). Com a conta da equipe, todas as rotas deste bloco respondem `403`.  
+> A partir do T26, os testes usam o `{ANIMAL_ID}` do SQL do início, que precisa ser um animal desse tutor.
 
 ---
 
@@ -358,9 +376,7 @@ GET /api/v1/eventos-pet/id-que-nao-existe
 GET /api/v1/lembretes
 ```
 
-✅ **Esperado:** `200 OK` — array com os lembretes do seed (Vacina V10, Vermifugação, Retorno).
-
-> 📋 **Guarde o valor de `animalId`** de qualquer item retornado — será usado nos testes T26 e T28 em diante.
+✅ **Esperado:** `200 OK`: array só com os lembretes dos animais do tutor logado (pode vir `[]` se ele ainda não tiver nenhum). O total vem no cabeçalho `X-Total-Count`.
 
 ---
 
@@ -413,7 +429,7 @@ POST /api/v1/lembretes
   "titulo": "Consulta de Rotina",
   "descricao": "Checkup anual completo com hemograma.",
   "tipo": 2,
-  "agendadoEm": "2026-10-20T14:00:00",
+  "agendadoEm": "2027-03-20T14:00:00",
   "recorrente": false,
   "status": 0
 }
@@ -441,7 +457,7 @@ No response do T29, confirme que `"status": 0`, independente do valor enviado em
 
 ---
 
-### T31 — Atualizar lembrete — mudar status para Enviado
+### T31 — Atualizar lembrete: o `status` do corpo é ignorado
 ```
 PUT /api/v1/lembretes/{id do T28}
 ```
@@ -451,13 +467,17 @@ PUT /api/v1/lembretes/{id do T28}
   "titulo": "Consulta de Rotina",
   "descricao": "Checkup anual completo com hemograma.",
   "tipo": 2,
-  "agendadoEm": "2026-10-20T14:00:00",
+  "agendadoEm": "2027-03-20T14:00:00",
   "recorrente": false,
   "status": 1
 }
 ```
 
-✅ **Esperado:** `200 OK` — lembrete com `"status": 1` (Enviado).
+✅ **Esperado:** `200 OK`, com a descrição atualizada e `"status": 0` (Pendente), **não** `1`.
+
+> Quem marca um lembrete como `Enviado` é o serviço que dispara a notificação, não o cliente: editar um
+> lembrete não o dá por enviado. Mudar o `agendadoEm` volta o status para `Pendente`, para ele disparar
+> de novo; mantendo a data, o status fica como estava.
 
 ---
 
@@ -478,7 +498,7 @@ PUT /api/v1/lembretes/{id do T28}
 
 ❌ **Esperado:** `400 Bad Request`
 ```json
-{ "error": "A data de agendamento não pode ser no passado." }
+{ "error": "A data do lembrete não pode ser no passado." }
 ```
 
 ---
@@ -492,7 +512,7 @@ POST /api/v1/lembretes
   "animalId": "00000000-0000-0000-0000-000000000000",
   "titulo": "Teste Animal Inválido",
   "tipo": 0,
-  "agendadoEm": "2026-12-01T10:00:00",
+  "agendadoEm": "2027-03-20T10:00:00",
   "recorrente": false,
   "status": 0
 }
@@ -500,8 +520,11 @@ POST /api/v1/lembretes
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Animal não encontrado." }
+{ "error": "Animal 00000000-0000-0000-0000-000000000000 nao encontrado." }
 ```
+
+> É a mesma resposta de um animal que existe mas é de **outro tutor**: a API não conta a quem não é
+> dono se o animal existe.
 
 ---
 
@@ -513,7 +536,7 @@ POST /api/v1/lembretes
 {
   "titulo": "Sem Animal",
   "tipo": 0,
-  "agendadoEm": "2026-12-01T10:00:00",
+  "agendadoEm": "2027-03-20T10:00:00",
   "recorrente": false
 }
 ```
@@ -529,15 +552,15 @@ GET /api/v1/lembretes/id-que-nao-existe
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Lembrete não encontrado." }
+{ "error": "Lembrete com id id-que-nao-existe não encontrado." }
 ```
 
 ---
 
 ## 💡 BLOCO 4 — Sugestões de Produto
 
-> ⚠️ A partir do T39, os testes exigem `{ANIMAL_ID}` e `{PRODUTO_ID}` válidos.  
-> Pegue esses valores pelo SQL do pré-requisito, ou pelos GETs anteriores.
+> 🔑 **Conta do tutor**, como no Bloco 3.  
+> A partir do T37, os testes usam o `{ANIMAL_ID}` (animal desse tutor) e o `{PRODUTO_ID}` do SQL do início.
 
 ---
 
@@ -546,7 +569,7 @@ GET /api/v1/lembretes/id-que-nao-existe
 GET /api/v1/sugestoes-produto
 ```
 
-✅ **Esperado:** `200 OK` — array com as sugestões do seed.
+✅ **Esperado:** `200 OK`: array só com as sugestões dos animais do tutor logado (pode vir `[]`).
 
 ---
 
@@ -646,7 +669,7 @@ POST /api/v1/sugestoes-produto
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Produto não encontrado." }
+{ "error": "Produto com id 00000000-0000-0000-0000-000000000000 não encontrado." }
 ```
 
 ---
@@ -665,7 +688,7 @@ POST /api/v1/sugestoes-produto
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Animal não encontrado." }
+{ "error": "Animal 00000000-0000-0000-0000-000000000000 nao encontrado." }
 ```
 
 ---
@@ -692,14 +715,15 @@ GET /api/v1/sugestoes-produto/id-que-nao-existe
 
 ❌ **Esperado:** `404 Not Found`
 ```json
-{ "error": "Sugestão de produto não encontrada." }
+{ "error": "Sugestão com id id-que-nao-existe não encontrada." }
 ```
 
 ---
 
 ## 🗑️ BLOCO 5 — Delete e Confirmação
 
-> Siga a ordem abaixo para limpar os registros criados durante os testes.
+> Siga a ordem abaixo para limpar os registros criados durante os testes.  
+> 🔑 T47, T48, T52 e T54 com a **conta do tutor**; T49, T50, T51 e T53 com a **conta da equipe**.
 
 ---
 
@@ -775,5 +799,5 @@ GET /api/v1/sugestoes-produto/{id do T39}
 
 ---
 
-> **Resultado esperado ao final:** os 54 testes passam, cada um com o status code indicado.  
-> Essa suíte rodou contra o MySQL real e fechou em **54/54 PASS**.
+> **Resultado esperado ao final:** cada um dos 54 passos devolve o status e a mensagem indicados, e os
+> registros criados durante o guia foram apagados.
