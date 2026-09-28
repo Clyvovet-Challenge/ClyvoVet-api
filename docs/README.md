@@ -6,7 +6,7 @@ e testes. Aqui fica o que não tem lugar lá, incluindo o deploy na Azure da Spr
 | Documento | Conteúdo |
 |---|---|
 | [plano-de-entrega-sprint3.md](plano-de-entrega-sprint3.md) | **O plano da entrega de 12/09.** Por que esta API já atende ~90 dos 100 pontos da disciplina dela, o que ainda falta, e o papel dela no deploy |
-| [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md) | Auditoria de 06/09/2026. Por que o banco é compartilhado com a API Java, o que é de responsabilidade desta API, e a lista do que precisa ser corrigido — com arquivo e linha para cada achado |
+| [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md) | Auditoria de 06/09/2026 (registro histórico; o estado atual está no README). Por que o banco é compartilhado com a API Java, o que é de responsabilidade desta API, e a lista do que precisa ser corrigido — com arquivo e linha para cada achado |
 | [arquitetura-azure.svg](arquitetura-azure.svg) | Diagrama de implantação exigido pela disciplina de DevOps |
 | [deploy-azure.md](deploy-azure.md) | Passo a passo do deploy na Azure (App Service + MySQL gerenciado) e endereços de produção |
 | [guia-de-testes-manuais.md](guia-de-testes-manuais.md) | Os 54 testes manuais pelo Swagger |

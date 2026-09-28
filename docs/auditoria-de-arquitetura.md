@@ -1,5 +1,13 @@
 # Auditoria de arquitetura — o que esta API precisa corrigir
 
+> **Registro histórico de 06/09/2026.** O estado atual da API está no [`README.md`](../README.md).
+> Desde então, três pontos daqui mudaram, e cada um está anotado no lugar:
+> - **JWT:** a API usa `AddJwtBearer` com `[Authorize]` por rota (políticas `Autenticado` e `Equipe`),
+>   **sem** `FallbackPolicy`, então `/health`, `/metrics`, `/swagger` e os webhooks continuam anônimos.
+> - **Recorte por tutor:** **ligado por padrão** desde 27/09/2026; `Api__EscopoPorTutor=false` desliga.
+> - **Migrations:** a API tem migrations do EF para as 7 tabelas que grava, aplicadas **depois** do Flyway
+>   da Java, nunca no boot (README, seção 3.3).
+
 > Feito em **06/09/2026**, com base no código, `Program.cs`, configurações do EF,
 > Dockerfile e scripts `azure/` — não no README. O relatório completo dos dois
 > backends, com a comparação de arquiteturas e a matriz de riscos, está em:
@@ -67,8 +75,10 @@ virou defesa em profundidade em vez de ser a única barreira.
 | Camada | Onde | Padrão | Interruptor |
 |---|---|---|---|
 | claim `tutorId` no access token | API Java | ligada, aditiva | — |
-| validar o token e identificar | aqui | **inerte** | `Jwt__Secret` ausente |
-| recortar por dono | aqui | **desligada** | `Api__EscopoPorTutor=false` |
+| validar o token e identificar | aqui | ~~**inerte**~~ obrigatória (`[Authorize]`) | `Auth__ExigirToken=false` |
+| recortar por dono | aqui | ~~**desligada**~~ **ligada** | `Api__EscopoPorTutor=false` |
+
+*A coluna Padrão foi atualizada em 27/09/2026; em 06/09 as duas camadas daqui nasciam desligadas.*
 
 Cobre `lembretes`, `sugestoes-produto` e `widget-saude-preditiva`: listagem
 recortada pelo tutor, 404 em recurso de outro tutor, e escrita bloqueada em animal
@@ -85,6 +95,10 @@ porque nenhum deles daria erro de compilação:
    **já estava no grafo** (o Twilio o traz em 8.3.1) e só lê o token. Há três
    testes provando que as rotas de infraestrutura seguem respondendo 200 sem token
    com o recorte ligado.
+
+   *Revisto na Sprint 4 (ADR-003): hoje a API **usa** `AddJwtBearer` e `[Authorize]` por rota. O risco
+   apontado aqui era a `FallbackPolicy` global, e ela continua de fora; os testes das rotas de
+   infraestrutura sem token seguem valendo.*
 
 2. **A chave sai do base64 decodificado, não dos bytes da string.** A Java faz
    `Keys.hmacShaKeyFor(Decoders.BASE64.decode(segredo))`. O idioma de todo tutorial
@@ -111,7 +125,8 @@ precisava passar a mandar `Authorization` para esta API, e passou:
 não morrem 15 minutos depois do login.
 
 A condição foi cumprida e **a chave continuou desligada** — a flag ficou em
-`false` por mais tempo do que o motivo dela durou. Faltava também uma peça que
+`false` por mais tempo do que o motivo dela durou. *(Em 27/09/2026 o padrão passou a ser
+**ligado**.)* Faltava também uma peça que
 ninguém tinha notado: o container `.NET` não recebia **nenhum** `Jwt__Secret`,
 então mesmo ligando a flag o Bearer não seria validado e todo tutor cairia em
 403. As duas variáveis vão juntas, e o segredo é o mesmo do Java (o token é
@@ -257,7 +272,7 @@ chave deixa de ser o único mecanismo de proteção. Registrado apenas por compl
 
 ---
 
-### 2.10 🟠 `Microsoft.OpenApi` 2.4.1 tem vulnerabilidade conhecida
+### 2.10 ✅ `Microsoft.OpenApi` 2.4.1 tem vulnerabilidade conhecida — CORRIGIDO
 
 Achado novo, encontrado ao compilar — não estava na auditoria original porque ela
 leu o código, não o resultado do build.
@@ -364,7 +379,7 @@ explicar** o que travou, já que desconhece essa tabela.
 | 6 | Manter App Service em **instância única** (§2.3) | **decisão de configuração**, não código — resolve o achado inteiro |
 | 7 | Subir `Microsoft.OpenApi` (§2.10) | ✅ feito — 2.4.1 → 2.12.2, e `Microsoft.Bcl.Memory` fixado em 9.0.19. `dotnet list package --vulnerable --include-transitive` volta limpo nos três projetos |
 | 8 | Pipeline de CI (§2.8) | fora de escopo — o documento oficial coloca CI/CD na **Sprint 4** |
-| 9 | JWT compartilhado (§2.1) | ✅ feito nas três camadas de servidor, todas desligáveis por app setting. Falta só o app mandar o `Bearer` — ver §2.1 |
+| 9 | JWT compartilhado (§2.1) | ✅ feito nas três camadas de servidor, todas desligáveis por app setting. ~~Falta só o app mandar o `Bearer`~~ o app manda desde 10/09 — ver §2.1 |
 | 10 | Tempo constante na chave (§2.9) | ✅ feito — `CryptographicOperations.FixedTimeEquals`, mais falha fechada quando `Api__ApiKey` não está configurada. Coberto por `ApiKeyFilterAttributeTests` |
 
 **O que restou se divide em dois tipos.** O item 6 se resolve com o provisionamento
@@ -378,9 +393,12 @@ guardar o segredo compartilhado.
 
 Caminhos plausíveis que a auditoria rejeitou com base no código:
 
-- **Não** criar migrations EF nesta API. Isso reintroduziria uma terceira fonte
+- ~~**Não** criar migrations EF nesta API. Isso reintroduziria uma terceira fonte
   de verdade para o mesmo schema — exatamente o problema que a V8 acabou de
-  resolver.
+  resolver.~~
+  *Revisto em 27/09/2026: o rubric da Sprint 4 exige migrations do EF. Elas cobrem só as 7 tabelas
+  que esta API grava, deixam `animal`, `tutor`, `raca` e `base_doencas` de fora e rodam depois do
+  Flyway, que continua dono do resto. Um teste compara o resultado com o Flyway (README, seção 3.3).*
 - **Não** voltar a mapear `t_clyvo_animal` / `t_clyvo_tutor` como entidades
   próprias. Era isso que fazia o `animalId` devolvido pela Java deixar de existir
   para esta API.
