@@ -1,11 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY ClyvoVet.Api/ClyvoVet.Api.csproj ClyvoVet.Api/
-RUN dotnet restore ClyvoVet.Api/ClyvoVet.Api.csproj
+# Copia src/ inteiro, e não só o csproj da Api: ela referencia Application e
+# Infrastructure, e uma lista de csproj para manter à mão é o tipo de coisa que
+# ninguém lembra de atualizar quando entra o próximo projeto.
+COPY src/ src/
+RUN dotnet restore src/ClyvoVet.Api/ClyvoVet.Api.csproj
 
-COPY ClyvoVet.Api/ ClyvoVet.Api/
-WORKDIR /src/ClyvoVet.Api
+WORKDIR /src/src/ClyvoVet.Api
 RUN dotnet publish ClyvoVet.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final

@@ -1,8 +1,7 @@
 **/.env
 **/bin/
 **/obj/
-**/ClyvoVet.Api.Tests.Unit/
-**/ClyvoVet.Api.Tests.Integration/
+tests/
 .git/
 .vs/
 .vscode/

@@ -1,0 +1,85 @@
+using ClyvoVet.Application.Common;
+using ClyvoVet.Application.DTOs.Request;
+using ClyvoVet.Application.DTOs.Response;
+using ClyvoVet.Domain.Enums;
+using ClyvoVet.Domain.Exceptions;
+using ClyvoVet.Domain.Entities;
+using ClyvoVet.Application.Abstractions.Repositories;
+using ClyvoVet.Application.Services.Interfaces;
+
+namespace ClyvoVet.Application.Services;
+
+public class ProdutoService : IProdutoService
+{
+    private readonly IProdutoRepository _repository;
+
+    public ProdutoService(IProdutoRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<PaginaDeResultados<ProdutoResponse>> GetAllAsync(ConsultaPaginada consulta, CategoriaEnum? categoria, EspecieEnum? especieIndicada, bool? ativo = null, PorteEnum? porteIndicado = null)
+    {
+        var pagina = await _repository.GetAllAsync(consulta, categoria, especieIndicada, ativo, porteIndicado);
+        return pagina.Mapear(MapToResponse);
+    }
+
+    public async Task<ProdutoResponse> GetByIdAsync(string id)
+    {
+        var produto = await _repository.GetByIdAsync(id);
+        if (produto is null)
+            throw new NotFoundException($"Produto com id {id} não encontrado.");
+        return MapToResponse(produto);
+    }
+
+    public async Task<ProdutoResponse> CreateAsync(ProdutoRequest request)
+    {
+        var produto = MapToEntity(request);
+        var created = await _repository.CreateAsync(produto);
+        return MapToResponse(created);
+    }
+
+    public async Task<ProdutoResponse> UpdateAsync(string id, ProdutoRequest request)
+    {
+        var existing = await _repository.GetByIdAsync(id);
+        if (existing is null)
+            throw new NotFoundException($"Produto com id {id} não encontrado.");
+
+        var produto = MapToEntity(request);
+        // Outra requisição pode apagá-lo entre a leitura e a gravação.
+        var updated = await _repository.UpdateAsync(id, produto)
+            ?? throw new NotFoundException($"Produto com id {id} não encontrado.");
+        return MapToResponse(updated);
+    }
+
+    public async Task DeleteAsync(string id)
+    {
+        var deleted = await _repository.DeleteAsync(id);
+        if (!deleted)
+            throw new NotFoundException($"Produto com id {id} não encontrado.");
+    }
+
+    private static Produto MapToEntity(ProdutoRequest request) => new()
+    {
+        Nome = request.Nome,
+        Descricao = request.Descricao,
+        Categoria = request.Categoria,
+        Preco = request.Preco,
+        EspecieIndicada = request.EspecieIndicada,
+        PorteIndicado = request.PorteIndicado,
+        Ativo = request.Ativo
+    };
+
+    private static ProdutoResponse MapToResponse(Produto produto) => new()
+    {
+        Id = produto.Id,
+        Nome = produto.Nome,
+        Descricao = produto.Descricao,
+        Categoria = produto.Categoria,
+        Preco = produto.Preco,
+        EspecieIndicada = produto.EspecieIndicada,
+        PorteIndicado = produto.PorteIndicado,
+        Ativo = produto.Ativo,
+        CriadoEm = produto.CriadoEm
+    };
+}

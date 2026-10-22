@@ -7,7 +7,7 @@ source ./00-variaveis.sh
 
 az account set --subscription "$SUBSCRIPTION"
 
-PROJECT_DIR="../ClyvoVet.Api"
+PROJECT_DIR="../src/ClyvoVet.Api"
 PUBLISH_DIR="$PROJECT_DIR/publish"
 ZIP_PATH="$PROJECT_DIR/publish.zip"
 

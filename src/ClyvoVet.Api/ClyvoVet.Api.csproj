@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591;1573</NoWarn>
+    <UserSecretsId>27cb80f1-031d-4bc6-83f6-9b9d84a231a8</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.18.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.18.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+    <!-- 2.12.2, e nao 2.4.1: GHSA-v5pm-xwqc-g5wc (alta) atinge >= 2.0.0-preview.11
+         ate 2.7.4, e a correcao saiu na 2.7.5. Fica na ultima 2.x em vez de pular
+         para a 3.x porque quem traz este pacote e o Swashbuckle.AspNetCore.Swagger
+         10.1.7, que declara dependencia de Microsoft.OpenApi 2.4.1 — dentro da
+         mesma major o contrato binario se mantem; a 3.x seria uma aposta. A
+         referencia direta existe justamente para sobrepor a transitiva. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+
+    <!-- Fixa a cadeia do Microsoft.IdentityModel em 8.3.1. O JwtBearer 8.0.11 (usado em
+         AutenticacaoJwtExtensions) traz Protocols.OpenIdConnect 7.1.2; com esta referencia direta o
+         restante do grafo (Tokens, JsonWebTokens, Jwt) resolve em 8.3.1, e a convivencia foi provada
+         em execucao (ADR-003, F2). Os testes tambem montam tokens com o JwtSecurityTokenHandler daqui. -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+
+    <!-- 9.0.20, e nao a 9.0.0 que o Microsoft.IdentityModel.Tokens 8.3.1 pede: CVE-2026-26127
+         (GHSA-73j8-2gch-69rq, alta, negacao de servico) atinge 9.0.0 ate 9.0.13. Mesma major, entao
+         o contrato binario se mantem; a referencia direta so sobrepoe a transitiva. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClyvoVet.Domain\ClyvoVet.Domain.csproj" />
+    <ProjectReference Include="..\ClyvoVet.Application\ClyvoVet.Application.csproj" />
+    <ProjectReference Include="..\ClyvoVet.Infrastructure\ClyvoVet.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

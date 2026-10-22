@@ -9,213 +9,28 @@
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing_%26_Metrics-425CC7?style=flat&logo=opentelemetry&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-Testes_Automatizados-512BD4?style=flat)
 
-## ☁️ Sprint DevOps Tools & Cloud Computing — Deploy na Azure
+API REST de gestão veterinária do **Challenge FIAP 2026 — Clyvo Vet**, feita em ASP.NET Core 8 com Clean Architecture,
+EF Core (MySQL), MongoDB, JWT e HATEOAS. É a metade .NET do ClyvoVet; a metade Java é dona do schema e do login.
 
-> ### ⚠️ Registro da entrega anterior — o procedimento vigente é outro
->
-> O passo a passo desta seção foi o da **entrega anterior**, com a infraestrutura
-> daquele momento (região `chilecentral`, scripts `azure/01` a `azure/04` deste
-> repositório, schema aplicado por `schema/script_bd.sql`). Ele fica registrado
-> porque documenta o que o vídeo daquela entrega mostra.
->
-> **Para provisionar a infraestrutura da Sprint 3, siga o README do repositório
-> [`clyvovet-backend-java`](https://github.com/Clyvovet-Challenge/clyvovet-backend-java),
-> não este.** Lá os scripts `azure/00` a `azure/09` sobem, numa região só, o
-> Resource Group, o MySQL, o plano compartilhado e **as duas** APIs — esta
-> inclusive. Este repositório não provisiona mais nada sozinho.
->
-> **Um ponto não é preferência, é quebra:** na Sprint 3 o banco é criado **vazio**,
-> e quem cria o schema é o **Flyway da API Java**, no primeiro boot dela. Aplicar
-> `schema/script_bd.sql` antes disso deixa o banco com as tabelas mas sem a
-> `flyway_schema_history` — e o Flyway recusa migrar um schema não vazio que ele
-> não conhece, então a API Java simplesmente não sobe. Ver o passo 5 abaixo.
+## Sumário
 
-> Esta seção registra a entrega da disciplina **DevOps Tools & Cloud Computing**: a mesma API (ClyvoVet .NET) apresentada no restante deste README, aqui publicada num **Azure App Service** e ligada a um **Azure Database for MySQL Flexible Server compartilhado com a API Java** do time (Tutor, Animal, Clínica, etc.). O passo a passo a seguir reproduz exatamente o que foi feito no vídeo de entrega.
-
-> 📋 **Roteiro da gravação desta Sprint:** [`docs/roteiro-do-video.md`](docs/roteiro-do-video.md).
-
-**🎥 Vídeo de apresentação:** [assista aqui](https://www.youtube.com/watch?v=WBNx3ZSore0)
-
-**Integrantes:**
-
-| Nome | RM |
-|---|---|
-| Fabrício Henrique Pereira | RM563237 |
-| Henrique Sinkevicius Maran | RM562977 |
-| Leonardo José Pereira | RM563065 |
-| Miguel Henrique Oliveira Dias | RM565492 |
-| Pedro Henrique de Oliveira | RM562312 |
-
-### Descrição da Solução
-
-Construída em ASP.NET Core 8, a ClyvoVet API gerencia o catálogo de produtos/serviços veterinários e também as sugestões de produto feitas para cada animal, duas tabelas ligadas entre si (`t_clyvo_produto` ← `t_clyvo_sugestao_produto`), ambas com CRUD completo. Para esta entrega, ela roda num **Azure App Service** (Linux, sem container) e grava os dados num **Azure Database for MySQL Flexible Server** — o mesmo banco que a API Java do time usa (Tutor, Animal, Clínica, Veterinário, etc.) —, o que deixa o app Mobile do grupo consumir as duas APIs sobre os mesmos dados.
-
-### Benefícios para o Negócio
-
-- **Catálogo centralizado**: preço, categoria e espécie indicada de cada produto/serviço da clínica passam a viver num só lugar, no lugar de planilhas soltas ou anotações em papel.
-- **Sugestão de produto rastreável**: toda sugestão feita a um tutor guarda justificativa e data, o que dá à clínica um histórico de recomendações por animal (ex.: antipulgas sugerido, ração indicada).
-- **Integração real entre os sistemas do time**: .NET e Java apontam para o mesmo banco, então um animal já cadastrado na API Java pode receber lembretes e sugestões de produto pela API .NET sem precisar de um segundo cadastro.
-- **Escalabilidade sem gerenciar servidor**: por rodar em PaaS (App Service + banco gerenciado), a clínica dispensa infraestrutura própria — disponibilidade, backup e patch do banco ficam por conta da Azure.
-
-### Banco de Dados em Nuvem
-
-- **Motor:** MySQL 8.0, via **Azure Database for MySQL Flexible Server** (nada de H2, nada de container).
-- **DDL completo:** [`schema/script_bd.sql`](schema/script_bd.sql) traz o schema inteiro (tabelas da API Java somadas às nossas), com colunas, chaves primárias/estrangeiras, comentários e uma carga inicial de dados relevante. **Na Sprint 3 ele é documentação, não ferramenta de provisionamento** — serve para ler e conferir o modelo; quem cria as tabelas no banco de nuvem é o Flyway da API Java. As tabelas `tutor`/`animal`/etc. reproduzem as migrations Flyway reais do repositório da API Java (`clyvovet-backend-java`); mudando o schema de lá, essa cópia precisa acompanhar.
-- **Tabelas do CRUD (núcleo da solução, avaliado nesta entrega):** `t_clyvo_produto` e `t_clyvo_sugestao_produto`, ligadas por `produto_id`. Já `tutor` e `animal` são da API Java — entram aqui apenas via FK/JOIN, para leitura, e o .NET nunca escreve nelas.
-
-### Arquitetura escolhida: Opção 2 — App Service + Banco PaaS
-
-Nenhuma parte desta entrega roda em container — nem o app, nem o banco: tudo fica em serviços gerenciados da Azure, provisionados via **Azure CLI**:
-
-| Recurso | Serviço Azure | Criado por |
-|---|---|---|
-| Grupo de recursos | Resource Group | `azure/01-criar-recursos.sh` |
-| Banco de dados | Azure Database for MySQL Flexible Server | `azure/01-criar-recursos.sh` |
-| Plano de aplicativo | App Service Plan (Linux, B1) | `azure/02-criar-app-service.sh` |
-| Aplicativo web | App Service (.NET 8, runtime nativo, sem container) | `azure/02-criar-app-service.sh` |
-
-![Arquitetura da solução na Azure](docs/arquitetura-azure.svg)
-
-> Documentação técnica complementar em [`docs/`](docs/) — incluindo a
-> [auditoria de arquitetura](docs/auditoria-de-arquitetura.md) de 06/09/2026, que
-> registra por que o banco é compartilhado com a API Java e o que esta API ainda
-> precisa corrigir.
-
-### Pré-requisitos
-
-| Ferramenta | Para que serve |
-|---|---|
-| [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) | Criar todos os recursos (obrigatório pelo edital) |
-| Conta ativa na Azure (`az login`) | Ter uma subscription onde criar os recursos |
-| [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) | `dotnet publish` local antes do deploy |
-| Cliente `mysql` (MySQL Shell ou `mysql-client`) | Aplicar `schema/script_bd.sql` no banco recém-criado |
-| Git | Clonar o repositório |
-
-### Passo a passo — do zero até a API rodando na Azure
-
-**1. Clonar o repositório**
-
-```bash
-git clone https://github.com/Clyvovet-Challenge/ClyvoVet-api.git
-cd ClyvoVet-api
-git checkout devops-sprint3-azure
-```
-
-**2. Login na Azure**
-
-```bash
-az login
-```
-
-**3. Ajustar as variáveis (se necessário)**
-
-Abra `azure/00-variaveis.sh` e confira/ajuste `SUBSCRIPTION`, os nomes de recursos (precisam ser únicos em toda a Azure) e a região (`LOCATION`). Nesta entrega usamos `chilecentral` — certas assinaturas acadêmicas bloqueiam outras regiões via Azure Policy (erro `RequestDisallowedByAzure`), e mesmo dentro das regiões liberadas o MySQL Flexible Server às vezes devolve `InternalServerError` (instabilidade pontual do serviço, não da conta — já vimos isso acontecer em `brazilsouth`, `eastus2`, `southcentralus` e `canadacentral`); nesse caso, tente outra região liberada na sua assinatura.
-
-**4. Criar o Resource Group + banco MySQL**
-
-```bash
-export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'
-bash azure/01-criar-recursos.sh
-```
-
-O comando provisiona o Resource Group, o servidor MySQL Flexible Server e o banco `clyvovet`, além de liberar seu IP atual no firewall.
-
-**5. Aplicar o schema no banco**
-
-> ⚠️ **Este passo não vale para a Sprint 3.** Lá o banco nasce vazio e o schema é
-> criado pelo Flyway da API Java. Rodar o comando abaixo contra o banco da Sprint 3
-> impede a API Java de subir, pelo motivo explicado no início desta seção.
-
-```bash
-mysql -h <MYSQL_SERVER>.mysql.database.azure.com -u clyvovetadmin -p$MYSQL_PASSWORD --ssl-mode=REQUIRED clyvovet < schema/script_bd.sql
-```
-
-(o script `01` já imprime esse mesmo comando, com os valores corretos, ao final da execução)
-
-**6. Criar o App Service e configurar os segredos**
-
-```bash
-export API_KEY='GereUmaChaveAleatoria'
-export TELEGRAM_BOT_TOKEN='...' TELEGRAM_API_KEY='...' TELEGRAM_BOT_USERNAME='...'
-# OCI Generative AI (saude preditiva). Opcional: sem estas variaveis a API
-# responde pelo fallback deterministico.
-export OCI_TENANCY_OCID='...' OCI_USER_OCID='...' OCI_FINGERPRINT='...'
-export OCI_PRIVATE_KEY_PEM="$(cat ~/.oci/clyvovet_api_key.pem)"
-export OCI_REGION='us-chicago-1' OCI_COMPARTMENT_OCID='...'
-bash azure/02-criar-app-service.sh
-```
-
-Todos os segredos entram como **App Settings** do App Service; em nenhum momento ficam gravados no código-fonte.
-
-**7. Publicar o app**
-
-Todo script carrega `00-variaveis.sh`, e esse arquivo exige `MYSQL_PASSWORD` no ambiente mesmo quando o script não toca no banco — abrindo um terminal novo depois do passo 4, exporte a senha outra vez antes de rodar:
-
-```bash
-export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'
-bash azure/03-deploy.sh
-```
-
-O script executa `dotnet publish`, compacta o resultado em zip e publica com `az webapp deploy`, exibindo a URL da API ao terminar.
-
-**8. Validar**
-
-```bash
-curl https://<APP_NAME>.azurewebsites.net/health
-```
-
-A resposta esperada traz `"status": "Healthy"` em cada verificação.
-
-### Testando o CRUD
-
-Acesse `https://<APP_NAME>.azurewebsites.net/swagger`, clique em **Authorize** e informe a `Api__ApiKey` configurada no passo 6.
-
-| Operação | Endpoint | Tabela afetada |
-|---|---|---|
-| Consultar | `GET /api/v1/produtos` | `t_clyvo_produto` |
-| Inserir | `POST /api/v1/produtos` | `t_clyvo_produto` |
-| Atualizar | `PUT /api/v1/produtos/{id}` | `t_clyvo_produto` |
-| Excluir | `DELETE /api/v1/produtos/{id}` | `t_clyvo_produto` |
-| Consultar | `GET /api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
-| Inserir | `POST /api/v1/sugestoes-produto` | `t_clyvo_sugestao_produto` |
-| Atualizar | `PUT /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
-| Excluir | `DELETE /api/v1/sugestoes-produto/{id}` | `t_clyvo_sugestao_produto` |
-
-Para confirmar cada operação direto no banco (como pedido no vídeo), abra um shell interativo via `mysql` (o mesmo comando do passo 5, tirando o `< schema/script_bd.sql`) e execute:
-
-```sql
-SELECT * FROM t_clyvo_produto ORDER BY criado_em DESC;
-SELECT * FROM t_clyvo_sugestao_produto ORDER BY criado_em DESC;
-```
-
-### Removendo os recursos (depois da correção)
-
-```bash
-export MYSQL_PASSWORD='DefinaUmaSenhaForte123!'   # mesma observação do passo 7
-bash azure/04-destruir-recursos.sh
-```
-
-O script remove o Resource Group inteiro, com tudo o que há dentro dele. **Atenção:** caso o banco já esteja de fato compartilhado com a API Java em produção, alinhe com o time antes de executar — ele apaga o banco de todo mundo, não só o nosso.
-
----
-
-## 🌐 API em produção
-
-A hospedagem da Sprint 3 é **Azure App Service**, provisionada pelos scripts do
-repositório da API Java (`azure/05-webapp-dotnet.sh` e `azure/08-deploy-dotnet.sh`).
-Os endereços que o deploy publica:
-
-- **Base URL:** `https://app-clyvovet-dotnet-rm562312.azurewebsites.net`
-- **Swagger:** `.../swagger`
-- **Health Check:** `.../health`, `.../health/live`, `.../health/ready`
-
-> **Os links viram clicáveis quando o deploy da Sprint 3 rodar** — enquanto isso,
-> os endereços acima são o destino, não um serviço no ar.
->
-> A instância anterior ficava no plano Free do **Render**, em
-> `clyvovet-api.onrender.com`. Ela **não responde mais** (verificado: a conexão nem
-> se estabelece), e por isso saiu daqui em vez de continuar anunciada como "no ar
-> 24/7" — README que aponta para URL morta custa mais do que README sem URL.
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Arquitetura](#arquitetura)
+- [Tecnologias](#tecnologias)
+- [Estrutura de Pastas](#estrutura-de-pastas)
+- [Princípios aplicados](#princípios-aplicados)
+- [Como Executar](#como-executar)
+- [🔐 Autenticação](#-autenticação)
+- [Documentação das Rotas](#documentação-das-rotas)
+- [Regras de Negócio](#regras-de-negócio)
+- [Enums — Valores Aceitos](#enums--valores-aceitos)
+- [Monitoramento e Observabilidade](#monitoramento-e-observabilidade)
+- [Testes Automatizados](#testes-automatizados)
+- [Schema do Banco de Dados](#schema-do-banco-de-dados)
+- [NoSQL — MongoDB (cache do parecer de IA)](#nosql--mongodb-cache-do-parecer-de-ia)
+- [Documentação complementar](#documentação-complementar)
+- [Integrantes do Grupo](#integrantes-do-grupo)
+- [Licença](#licença)
 
 ---
 
@@ -229,18 +44,70 @@ A **ClyvoVet API** é uma API RESTful feita em **ASP.NET Core 8**, criada dentro
 - Eventos pet públicos (campanhas de vacinação, feiras, workshops)
 - **Saúde Preditiva com IA generativa** — parecer de riscos e recomendações por animal, redigido pela **OCI Generative AI** sobre uma base agregada de doenças por espécie/raça (datasets Dryad com DOI), com fallback determinístico e cache por animal
 - **Widget de Saúde Preditiva** (por regras) — o antecessor, mantido no ar: aponta condições relevantes para a espécie/raça/idade
-- **Envio de mensagens no Telegram** — bot próprio; é o canal único de mensagem (lembretes e saúde preditiva). O WhatsApp/Twilio saiu do escopo na Sprint 3
+- **Envio de mensagens no Telegram** — bot próprio; é o canal único de mensagem (lembretes e saúde preditiva)
 
-A **Sprint 3** somou à API uma camada completa de observabilidade e testes automatizados:
+A entrega junta todas essas funcionalidades numa base só, organizada em quatro frentes:
 
-- **Health Checks** (`/health`, `/health/live`, `/health/ready`) que checam se a conexão com o **MySQL** está realmente funcionando.
-- **Logging estruturado** via Serilog (console sempre; arquivo em desenvolvimento), correlacionando requisições através do header `X-Correlation-Id`.
-- **Distributed tracing e métricas** com OpenTelemetry (spans exportados no console e endpoint `/metrics` em formato Prometheus).
-- **124 testes automatizados** (55 unitários + 69 de integração), abrangendo a camada de Aplicação (Services), o filtro de API Key, o fluxo HTTP completo (Controllers → banco em memória) e a geração do documento OpenAPI.
+- **Arquitetura e código:** Clean Architecture em 4 projetos (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste; injeção de dependência; **tratamento global de exceções** com respostas `application/problem+json`.
+- **API REST:** **autenticação JWT** (o access token emitido pela API Java) com autorização por perfil; **paginação com total, ordenação e filtros**; **HATEOAS** nas consultas, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão); Swagger/OpenAPI documentado e exportado.
+- **Persistência:** EF Core sobre **MySQL** com o padrão Repository, e **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
+- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **582 testes** (357 unitários + 225 de integração) e **98,8% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
 
 ---
 
 ## Arquitetura
+
+### Camadas (Clean Architecture)
+
+```mermaid
+flowchart LR
+    app["📱 App móvel"]
+    java["☕ API Java<br/>login, JWT e schema (Flyway)"]
+
+    subgraph dotnet["ClyvoVet API .NET"]
+        direction TB
+        api["<b>ClyvoVet.Api</b><br/>controllers · JWT · HATEOAS<br/>exceções globais · Swagger"]
+        infra["<b>ClyvoVet.Infrastructure</b><br/>EF Core · repositórios · MongoDB<br/>clientes OCI e Telegram · health checks"]
+        appl["<b>ClyvoVet.Application</b><br/>serviços (casos de uso) · DTOs<br/>interfaces de repositório e de serviços externos"]
+        dom["<b>ClyvoVet.Domain</b><br/>entidades · enums · exceções de negócio"]
+        api --> appl
+        api -- "só registra (DI)" --> infra
+        infra -- "implementa as interfaces" --> appl
+        appl --> dom
+    end
+
+    mysql[("MySQL<br/>tabelas t_clyvo_*")]
+    mongo[("MongoDB<br/>cache do parecer de IA")]
+    oci["OCI Generative AI"]
+    tg["Telegram Bot API"]
+
+    app -- "HTTPS + Bearer" --> api
+    app -- "login" --> java
+    java -. "access token (mesmo segredo)" .-> api
+    java --> mysql
+    infra --> mysql
+    infra --> mongo
+    infra --> oci
+    infra --> tg
+```
+
+Cada seta entre as camadas quer dizer "depende de". A dependência sempre aponta para dentro: o **Domain** não conhece
+ninguém, a **Application** só conhece o Domain e declara as interfaces de que precisa, e a **Infrastructure** as
+implementa. A **Api** só referencia a Infrastructure para registrar as implementações na injeção de dependência.
+
+| Projeto | Contém | Não pode conhecer |
+|---|---|---|
+| `ClyvoVet.Domain` | entidades, enums, exceções de negócio | nada (zero pacotes) |
+| `ClyvoVet.Application` | serviços (casos de uso), DTOs, **interfaces** de repositório e de serviços externos | EF, MongoDB, ASP.NET, Telegram |
+| `ClyvoVet.Infrastructure` | EF Core, repositórios concretos, MongoDB, clientes OCI/Telegram, *background services*, health checks de dependência | ASP.NET MVC |
+| `ClyvoVet.Api` | controllers, middlewares, Swagger, JWT, HATEOAS, tratamento global de exceções, `Program.cs` | EF, MongoDB (só via Infrastructure) |
+
+Essas regras são **verificadas por teste**:
+[`ArquiteturaTests`](tests/ClyvoVet.Api.Tests.Unit/ArquiteturaTests.cs) falha se uma camada passar a referenciar o que
+não pode. O diagrama da infraestrutura na nuvem fica em [`docs/arquitetura-azure.svg`](docs/arquitetura-azure.svg).
+
+### Duas APIs, um banco
+
 
 Duas APIs independentes dividem **um único banco MySQL**, e nenhuma das duas roda
 em container: as duas são publicadas como aplicação nativa em **Azure App Service
@@ -251,10 +118,15 @@ desenvolvimento local; ele não produz o artefato publicado.)
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
-| **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude` |
+| **.NET (este projeto)** | Engajamento e catálogo | `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude`, `t_clyvo_tutor_telegram`, `t_clyvo_parecer_ia` |
 | **Java (parceira)** | Clínica e cadastro | `t_clyvo_tutor`, `t_clyvo_animal`, `t_clyvo_clinica`, `t_clyvo_veterinario`, `t_clyvo_evento_clinico`, `t_clyvo_pagamento` |
 
 > A API .NET **lê** as tabelas de animal e tutor da API Java para validar FKs e enriquecer as respostas — mas **nunca escreve** nelas.
+
+> **Por que MySQL, e não Oracle ou SQL Server.** O enunciado da disciplina pede EF Core com migrations
+> em Oracle ou SQL Server. Como este banco é compartilhado com a API Java, que é a dona do schema (Flyway),
+> consultamos o professor, que **autorizou manter o MySQL** em 20/09/2026. As migrations do EF cobrem as
+> tabelas que esta API grava: veja [3.3 — Migrations do EF Core](#33--migrations-do-ef-core).
 
 ---
 
@@ -263,8 +135,9 @@ desenvolvimento local; ele não produz o artefato publicado.)
 | Tecnologia | Versão | Uso |
 |------------|--------|-----|
 | .NET / ASP.NET Core | 8.0 | Framework da API |
-| Entity Framework Core | 8.0.11 | ORM (Database-First, sem migrations) |
+| Entity Framework Core | 8.0.11 | ORM, com migrations das 7 tabelas que a API grava |
 | Pomelo.EntityFrameworkCore.MySql | 8.0.2 | Provider MySQL para EF Core |
+| MongoDB.Driver / MongoDB | 3.12.0 / 7 | Cache NoSQL do parecer de IA (opcional: só com `Mongo:ConnectionString`) |
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
 | Microsoft.OpenApi | 2.12.2 | Modelos OpenAPI (namespace atualizado na v2) |
 | MySQL | 8.0 | Banco de dados (Azure Database for MySQL Flexible Server na nuvem) |
@@ -283,39 +156,78 @@ desenvolvimento local; ele não produz o artefato publicado.)
 
 ```
 ClyvoVet-api/
-├── ClyvoVet.Api/
-│   ├── Controllers/           → Recebem requisições HTTP e delegam ao Service
-│   ├── Services/               → Regras de negócio
-│   │   └── Interfaces/
-│   ├── Repositories/          → Acesso ao banco via EF Core
-│   │   └── Interfaces/
-│   ├── Models/                 → Entidades mapeadas nas tabelas MySQL
-│   ├── DTOs/
-│   │   ├── Request/           → Dados recebidos nas requisições (POST/PUT)
-│   │   └── Response/          → Dados retornados nas respostas
-│   ├── Enums/                 → Enumerações dos valores aceitos pelo banco
-│   ├── Data/
-│   │   ├── AppDbContext.cs    → DbContext principal
-│   │   └── Configurations/    → Fluent API (mapeamento tabela ↔ modelo)
-│   ├── Exceptions/            → NotFoundException, BadRequestException
-│   ├── HealthChecks/          → Formatação JSON do resultado do Health Check
-│   ├── Middleware/            → CorrelationIdMiddleware (rastreio de requisições nos logs)
-│   ├── Properties/
-│   │   └── launchSettings.json
-│   ├── appsettings.json       → Connection string MySQL (placeholder) + níveis de log
-│   ├── Program.cs             → DI, Swagger, Health Checks, Serilog, OpenTelemetry, middleware de erros
-│   ├── Logs/                   → Log em arquivo do Serilog, só em `Development` (não versionado)
-│   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Services, mocks via Moq)
+├── src/
+│   ├── ClyvoVet.Domain/               → Entidades, enums e exceções de negócio (não conhece nenhum outro projeto)
+│   │   ├── Entities/                  → Entidades mapeadas nas tabelas MySQL
+│   │   ├── Enums/                     → Enumerações dos valores aceitos pelo banco
+│   │   └── Exceptions/                → NotFoundException, BadRequestException, RegistroEmUsoException
+│   ├── ClyvoVet.Application/          → Casos de uso; só conhece o Domain
+│   │   ├── Services/                  → Regras de negócio (+ Interfaces/)
+│   │   ├── DTOs/
+│   │   │   ├── Request/               → Dados recebidos nas requisições (POST/PUT)
+│   │   │   └── Response/              → Dados retornados nas respostas
+│   │   ├── Abstractions/
+│   │   │   ├── Repositories/          → Interfaces dos repositórios
+│   │   │   └── External/              → Interfaces dos serviços externos (OCI, Telegram)
+│   │   └── Security/                  → Escopo do tutor e identidade do chamador
+│   ├── ClyvoVet.Infrastructure/       → EF Core, repositórios concretos e integrações externas
+│   │   ├── Data/
+│   │   │   ├── AppDbContext.cs        → DbContext principal
+│   │   │   ├── Configurations/        → Fluent API (mapeamento tabela ↔ modelo)
+│   │   │   └── Migrations/            → Migrations do EF Core (só as tabelas que esta API grava)
+│   │   ├── Repositories/              → Acesso ao banco via EF Core
+│   │   ├── Mongo/                     → Cache do parecer de IA no MongoDB (repositório, índice TTL)
+│   │   ├── External/                  → Clientes da OCI Generative AI e do Telegram
+│   │   ├── Background/                → Serviços em segundo plano (lembretes, vínculo do Telegram)
+│   │   └── HealthChecks/              → Checks do Telegram e do MongoDB
+│   └── ClyvoVet.Api/                  → Porta de entrada HTTP
+│       ├── Controllers/               → Recebem requisições HTTP e delegam ao Service
+│       ├── Extensions/                → Observabilidade (Serilog, OpenTelemetry) e documentação (Swagger)
+│       ├── Errors/                    → MapaDeErro (exceção → status HTTP)
+│       ├── HealthChecks/              → Formatação JSON do resultado do Health Check
+│       ├── Middleware/                → CorrelationIdMiddleware (rastreio de requisições nos logs)
+│       ├── Properties/
+│       │   └── launchSettings.json
+│       ├── appsettings.json           → Connection string MySQL (placeholder) + níveis de log
+│       ├── Program.cs                 → Só orquestra: composição dos serviços e pipeline HTTP
+│       └── Logs/                      → Log em arquivo do Serilog, só em `Development` (não versionado)
+├── tests/
+│   ├── ClyvoVet.Api.Tests.Unit/         → Testes unitários (Domain, Application, peças da Api) e regras de arquitetura
 │   └── ClyvoVet.Api.Tests.Integration/  → Testes de integração (WebApplicationFactory + EF Core InMemory)
+├── docs/                → Documentação complementar (deploy Azure, guia de testes manuais, auditoria, diagrama de infra)
+├── scripts/
+│   ├── cobertura.sh                 → Mede a cobertura de Domain + Application e falha abaixo de 90%
+│   ├── exportar-swagger.sh          → Gera docs/swagger/openapi-v1.json a partir da própria API
+│   └── gerar-script-migrations.sh   → Gera schema/ef/migrations-idempotente.sql a partir das migrations
+├── docker-compose.yml   → MongoDB de desenvolvimento
+├── Dockerfile           → Imagem da API para desenvolvimento local
 └── schema/
-    ├── 01_criar_tabelas_dotnet.sql             → DDL das 4 tabelas originais + triggers + fn_uuid()
-    ├── 02_seed_dotnet.sql                       → Dados de exemplo para os endpoints originais
-    ├── 03_drop_tabelas_dotnet.sql               → Remove as 6 tabelas .NET
-    ├── 04_criar_tabela_predisposicao_dotnet.sql → DDL da tabela do Widget de Saúde Preditiva
-    ├── 05_seed_predisposicao_dotnet.sql         → 42 predisposições reais por espécie/raça/idade
-    ├── 06_criar_tabela_tutor_telegram_dotnet.sql → DDL da tabela de vínculo Tutor ↔ Telegram
-    └── README.md                                → Guia do schema
+    ├── script_bd.sql                            → Schema MySQL completo para desenvolvimento local (as duas APIs + seed)
+    ├── ef/
+    │   ├── migrations-idempotente.sql           → Script gerado das migrations do EF (pode rodar mais de uma vez)
+    │   └── baseline-banco-compartilhado.sql     → Marca a migration Inicial como aplicada num banco do Flyway
+    ├── legado-oracle/                           → Scripts do tempo do Oracle (registro histórico; não rodam no MySQL)
+    └── README.md                                → Qual script usar em cada banco
 ```
+
+---
+
+## Princípios aplicados
+
+Cada princípio com um exemplo real do código (arquivo e linha):
+
+| Princípio | Onde | O que mostra |
+|---|---|---|
+| **S** — responsabilidade única | [`MapaDeErro.cs:21`](src/ClyvoVet.Api/Errors/MapaDeErro.cs#L21) | Uma classe só traduz exceção de negócio em status HTTP; o tratador global só a chama. Controllers delegam ao *service* e não têm regra de negócio. |
+| **O** — aberto/fechado | [`ProdutoRepository.cs:15`](src/ClyvoVet.Infrastructure/Repositories/ProdutoRepository.cs#L15) e [`Ordenacao.cs:25`](src/ClyvoVet.Infrastructure/Repositories/Ordenacao.cs#L25) | Tornar um campo ordenável é uma entrada na lista branca do repositório; a `Ordenacao` não muda. |
+| **L** — substituição de Liskov | [`InfrastructureServiceExtensions.cs:83`](src/ClyvoVet.Infrastructure/InfrastructureServiceExtensions.cs#L83) e [`MongoServiceExtensions.cs:39`](src/ClyvoVet.Infrastructure/Mongo/MongoServiceExtensions.cs#L39) | `ParecerIaRepository` (MySQL) e `ParecerIaMongoRepository` são trocados por configuração sem o `SaudePreditivaService` perceber. |
+| **I** — segregação de interfaces | [`IParecerIaRepository.cs:5`](src/ClyvoVet.Application/Abstractions/Repositories/IParecerIaRepository.cs#L5) | Uma interface por recurso, só com o que o caso de uso usa (aqui, dois métodos), em vez de um repositório genérico com tudo. |
+| **D** — inversão de dependência | [`SaudePreditivaService.cs:47`](src/ClyvoVet.Application/Services/SaudePreditivaService.cs#L47) e [`ArquiteturaTests.cs:51`](tests/ClyvoVet.Api.Tests.Unit/ArquiteturaTests.cs#L51) | A Application depende só de interfaces que ela mesma declara; a Infrastructure as implementa. Um teste falha se a Application passar a referenciar EF, MongoDB ou ASP.NET. |
+
+**Clean Code:** nomes do domínio em português, comentários que explicam o porquê (não o quê) e métodos curtos. Uma revisão de
+SOLID e Clean Code nas quatro camadas gerou cinco correções, cada uma num commit `refactor:` próprio — entre elas, a checagem de
+escopo do tutor centralizada num só lugar, a regra da série de lembretes movida para a entidade e o `SaudePreditivaService`
+dividido em prompt, leitura da resposta da IA, regras e perfil do animal (de 425 para 213 linhas).
 
 ---
 
@@ -343,7 +255,7 @@ cd ClyvoVet-api
 
 ```bash
 ls
-# Deve listar: ClyvoVet.Api/  schema/  README.md  ClyvoVet-api.slnx  ...
+# Deve listar: src/  tests/  schema/  README.md  ClyvoVet-api.slnx  ...
 ```
 
 > **Erro: `git: command not found`**  
@@ -362,10 +274,10 @@ ls
 > **`ConnectionStrings:DefaultConnection`**. Um secret antigo com o nome velho é
 > simplesmente ignorado, e a API sobe reclamando de connection string ausente.
 
-Por ficar versionado no repositório, `ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
+Por ficar versionado no repositório, `src/ClyvoVet.Api/appsettings.json` guarda apenas um **placeholder** — evite colocar sua senha real ali, sob risco de subir a credencial sem perceber. O caminho recomendado é o **User Secrets** do .NET: ele mantém a connection string **fora da pasta do projeto**, num arquivo local que o `git` nunca enxerga:
 
 ```bash
-cd ClyvoVet.Api
+cd src/ClyvoVet.Api
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=clyvovet;Uid=root;Pwd=SUA_SENHA_LOCAL;"
 ```
 
@@ -456,10 +368,69 @@ Se `t_clyvo_produto` e `t_clyvo_predisposicao_saude` aparecerem com linhas, o se
 entrou. Sem as predisposições, `GET /api/v1/widget-saude-preditiva/{animalId}`
 responde normalmente, mas sempre com a lista vazia.
 
-> **Os arquivos `schema/01_*.sql` a `schema/06_*.sql` são do tempo do Oracle** —
-> `VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`. Eles
-> não rodam no MySQL e ficam apenas como registro histórico. O único script vigente
-> é o `script_bd.sql`.
+> **Os scripts do tempo do Oracle ficam em [`schema/legado-oracle/`](schema/legado-oracle/)**
+> (`VARCHAR2`, `NUMBER`, triggers `BEFORE INSERT` e a função `fn_clyvo_uuid`). Eles
+> não rodam no MySQL e ficam apenas como registro histórico. Os scripts vigentes são o
+> `script_bd.sql` e os de `schema/ef/`, descritos a seguir.
+
+#### 3.3 — Migrations do EF Core
+
+As tabelas que **esta API grava** têm migrations do EF Core, em
+[`src/ClyvoVet.Infrastructure/Data/Migrations/`](src/ClyvoVet.Infrastructure/Data/Migrations/):
+
+| Na migration (a API grava) | Fora dela (a API só lê) |
+|---|---|
+| `t_clyvo_produto`, `t_clyvo_sugestao_produto`, `t_clyvo_lembrete`, `t_clyvo_evento_pet`, `t_clyvo_predisposicao_saude`, `t_clyvo_tutor_telegram`, `t_clyvo_parecer_ia` | `t_clyvo_animal`, `t_clyvo_tutor`, `t_clyvo_raca`, `t_clyvo_base_doencas` |
+
+A regra é verificável no código: entra na migration a tabela cujo repositório tem
+`Add`/`Update`. As outras quatro também começam com `t_clyvo_`, mas o schema e o seed
+delas são da API Java, e por isso ficam de fora com `ExcludeFromMigrations()` — o EF
+ainda as mapeia para as consultas e os JOINs, só não tenta criá-las.
+
+**A API não roda `Database.Migrate()` ao subir.** O banco é compartilhado, e quem sobe
+primeiro não pode decidir o schema do outro. As migrations viram um script SQL
+revisável, aplicado à mão:
+
+```bash
+scripts/gerar-script-migrations.sh    # regera schema/ef/migrations-idempotente.sql a partir das migrations
+```
+
+| Arquivo | O que faz | Quando usar |
+|---|---|---|
+| [`schema/ef/migrations-idempotente.sql`](schema/ef/migrations-idempotente.sql) | Cria as 7 tabelas e registra a migration em `__EFMigrationsHistory`. Cada migration só roda se ainda não estiver no histórico, então aplicar duas vezes não faz nada na segunda | Banco em que o Flyway da Java já rodou e as 7 tabelas ainda não existem |
+| [`schema/ef/baseline-banco-compartilhado.sql`](schema/ef/baseline-banco-compartilhado.sql) | Só registra a migration `Inicial` como aplicada, sem criar nada | Banco montado pelo Flyway da Java, onde as 7 tabelas já existem (produção) |
+
+**A ordem é sempre Flyway da Java → EF.** Num banco compartilhado:
+
+```bash
+# 1. a API Java sobe uma vez (o Flyway cria o schema inteiro, V1 em diante)
+mysql -u root -p clyvovet < schema/ef/baseline-banco-compartilhado.sql   # 2. marca a Inicial como aplicada
+mysql -u root -p clyvovet < schema/ef/migrations-idempotente.sql         # 3. aplica só o que vier depois dela
+```
+
+Rodar o script do EF **antes** do Flyway, num banco vazio, é a única forma de quebrar a
+API Java: a `t_clyvo_lembrete` tem FK para a `t_clyvo_animal`, que ainda não existe
+(`ERROR 1824`), e o que o script chegou a criar deixa o schema "não vazio" sem
+`flyway_schema_history` — o Flyway então recusa a V1.
+
+**Onde o EF e o Flyway diferem.** Comparando o `information_schema` dos dois lados
+(colunas, índices, FKs, CHECKs, collation e engine), sobram quatro diferenças, todas
+sem efeito no comportamento da API:
+
+| Diferença | Flyway (Java) | EF | Por que fica assim |
+|---|---|---|---|
+| `DEFAULT` nas colunas | tem | não tem | A API sempre manda todos os valores no `INSERT`. `HasDefaultValue(true)` num `bool` faria o EF omitir o `false` e o banco gravar `true` |
+| `produto.categoria` e `produto.especie_indicada` | aceitam `NULL` | `NOT NULL` | Na entidade C# são obrigatórias; a API nunca grava `NULL` nelas |
+| Colunas booleanas | `TINYINT` | `TINYINT(1)` | É como o Pomelo mapeia `bool`; guardam os mesmos valores |
+| FK `sugestao_produto → produto` | `NO ACTION` | `RESTRICT` | No InnoDB as duas regras são a mesma coisa |
+
+Depois de mudar uma entidade ou uma configuração do EF: criar a migration
+(`dotnet tool restore` e depois
+`dotnet ef migrations add <Nome> --project src/ClyvoVet.Infrastructure --startup-project src/ClyvoVet.Api`),
+rodar `scripts/gerar-script-migrations.sh` e commitar o SQL junto. Três classes de teste de
+unidade seguram isso: `MigrationsTests` falha se o modelo mudou sem migration nova;
+`EscopoDasMigrationsTests` falha se uma tabela nova não for classificada como "grava" ou "só
+lê"; `EspelhoDoFlywayTests` confere nomes de índice, CHECKs, regras de FK e tipos contra o Flyway.
 
 ---
 
@@ -468,7 +439,7 @@ responde normalmente, mas sempre com a lista vazia.
 Na raiz do projeto:
 
 ```bash
-cd ClyvoVet.Api
+cd src/ClyvoVet.Api
 dotnet restore
 ```
 
@@ -575,190 +546,62 @@ Todos os endpoints aparecem no Swagger, agrupados por controller.
 Com a API no ar, faça uma requisição de teste:
 
 ```bash
-curl http://localhost:5191/api/v1/produtos
+curl http://localhost:5191/api/v1/produtos \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI"
 ```
+
+Sem as duas credenciais a resposta é `401` (veja [🔐 Autenticação](#-autenticação)). Para só conferir que a API subiu, sem credencial: `curl http://localhost:5191/health/live`.
 
 **Resposta esperada:** um array JSON com os produtos do seed. Vindo `[]`, o banco está conectado mas o seed não rodou; vindo `{"error": "Erro interno no servidor."}`, há algo errado na connection string — confira os logs do terminal.
 
 ---
 
-## Monitoramento e Observabilidade
+## 🔐 Autenticação
 
-### Health Checks
+Os endpoints de negócio exigem **duas credenciais**: `Authorization: Bearer <access token>` (emitido pela API Java no login) **e** o header `X-Api-Key`. Sem o Bearer a resposta é `401 Unauthorized`; com um perfil sem permissão, `403 Forbidden`. A `X-Api-Key` ausente ou errada também devolve `401`.
 
-A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagnostics.HealthChecks`:
+| Endpoints | Quem acessa |
+|---|---|
+| `GET` de Produtos e de Eventos Pet | qualquer usuário autenticado |
+| `POST`/`PUT`/`DELETE` de Produtos e de Eventos Pet | a equipe: `ADMIN` ou `VETERINARIO` |
+| Lembretes, Sugestões de Produto, Saúde Preditiva, Widget | o `TUTOR` dono do animal. Com o recorte por tutor ligado (o padrão, ver `Api__EscopoPorTutor` abaixo), perfis sem tutor no token, como `ADMIN` e `VETERINARIO`, recebem `403` |
+| Telegram | chaves próprias (`Api:ApiKey` / `Telegram:ApiKey`), como antes |
+| `/health*`, `/metrics`, `/swagger` | anônimos |
 
-| Endpoint | O que verifica | Uso |
-|----------|----------------|-----|
-| `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
-| `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
-| `GET /health/ready` | Conectividade real com o MySQL (`Database.CanConnectAsync()`) | Readiness probe |
+Só o **access token** vale: o *refresh token* (7 dias) é recusado.
 
-Além do MySQL, `GET /health` também confere a Telegram Bot API (`telegram-bot`, via `GetMe`), fora da tag `ready` de propósito: uma instabilidade nela não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram. A OCI Generative AI **não** tem sonda: ela é opcional por design (fallback determinístico), e uma sonda a transformaria em dependência.
-
-Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
-
-```bash
-curl http://localhost:5191/health
-```
-
-```json
-{
-  "status": "Healthy",
-  "totalDurationMs": 1317.72,
-  "checks": [
-    { "name": "self", "status": "Healthy", "durationMs": 0.31, "tags": ["live"] },
-    { "name": "oracle-database", "status": "Healthy", "durationMs": 16.52, "tags": ["ready", "database", "external"] },
-    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] }
-  ]
-}
-```
-
-Ficando algum desses serviços inacessível (connection string errada, token inválido, sem internet etc.), o `status` daquele check passa a `"Unhealthy"` e o campo `error` traz a exceção correspondente.
-
-### Logging Estruturado (Serilog)
-
-- Configurado em [`Program.cs`](ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a Azure lê, no "Log stream" e no Application Insights.
-- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
-- Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
-- São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
-- Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
-
-### Tracing e Métricas (OpenTelemetry)
-
-- **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core vêm instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
-- **Métricas:** disponíveis em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
-
-```bash
-curl http://localhost:5191/metrics
-```
-
----
-
-## Testes Automatizados
-
-Dentro de `ClyvoVet.Api/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
-
-| Projeto | O que testa | Ferramentas |
-|---------|-------------|-------------|
-| `ClyvoVet.Api.Tests.Unit` | Camada de Aplicação (`Services/`) com os repositórios mockados, e o `ApiKeyFilterAttribute` | xUnit + Moq |
-| `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory |
-
-### Rodando os testes
-
-```bash
-cd ClyvoVet.Api
-dotnet test ClyvoVet.Api.Tests.Unit
-dotnet test ClyvoVet.Api.Tests.Integration
-```
-
-Ou os dois juntos, direto da raiz do repositório:
-
-```bash
-dotnet test ClyvoVet-api.slnx
-```
-
-**Resultado esperado:** `124` testes passando (`55` unitários e `69` de integração).
-
-### Detalhes dos testes de integração
-
-- A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o MySQL real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar de banco nenhum, nem local nem na nuvem.
-- `SwaggerEndpointsTests` cobre a geração do documento OpenAPI: que `/swagger/v1/swagger.json` responde, que ele é um documento válido com rotas, e que uma rota protegida por `X-Api-Key` continua declarando o requisito de segurança. Existe porque o Swagger é entregável avaliado e falha nele é 500 em tempo de execução, não erro de compilação — foi o que permitiu subir o `Microsoft.OpenApi` para corrigir a vulnerabilidade GHSA-v5pm-xwqc-g5wc sem apostar que nada quebrou.
-- A maior parte dos testes usa uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para a suíte inteira, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, separada, por dependerem de um Animal com raça e idade específicas.
-
----
-
-## Schema do Banco de Dados
-
-### Todas as tabelas (banco compartilhado)
-
-| Tabela | Responsável | Depende de |
-|--------|-------------|------------|
-| `T_CLYVO_TUTOR` | API Java | — |
-| `T_CLYVO_ANIMAL` | API Java | `T_CLYVO_TUTOR` |
-| `T_CLYVO_CLINICA` | API Java | — |
-| `T_CLYVO_VETERINARIO` | API Java | `T_CLYVO_CLINICA` |
-| `T_CLYVO_EVENTO_CLINICO` | API Java | `T_CLYVO_ANIMAL`, `T_CLYVO_VETERINARIO` |
-| `T_CLYVO_PAGAMENTO` | API Java | `T_CLYVO_EVENTO_CLINICO` |
-| **`T_CLYVO_PRODUTO`** | **API .NET** | — |
-| **`T_CLYVO_EVENTO_PET`** | **API .NET** | — |
-| **`T_CLYVO_LEMBRETE`** | **API .NET** | `T_CLYVO_ANIMAL` |
-| **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
-| **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
-| **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
-
-> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `Table 'clyvovet.t_clyvo_tutor' doesn't exist` em qualquer endpoint de lembrete ou sugestão.
-
----
-
-### Geração de IDs (UUID)
-
-Todo ID é um UUID gerado **em C#**, no repositório, antes do `INSERT`. O banco não
-participa: as colunas `id` são `VARCHAR(36)` simples, sem trigger, sem `DEFAULT`, e o
-mapeamento diz isso explicitamente com `ValueGeneratedNever()`.
-
-```csharp
-// Repositories/ProdutoRepository.cs
-produto.Id = Guid.NewGuid().ToString();
-```
-
-```csharp
-// Data/Configurations/ProdutoConfiguration.cs
-builder.Property(p => p.Id)
-    .HasColumnName("id")
-    .HasColumnType("VARCHAR(36)")
-    .ValueGeneratedNever();
-```
-
-> **Isto mudou com a migração para MySQL.** No Oracle, o ID vinha da função
-> `fn_uuid()` chamada num trigger `BEFORE INSERT`, e o EF Core o lia de volta com
-> `RETURNING`. Gerar do lado da aplicação tem uma vantagem prática aqui: o ID existe
-> antes de a linha ser gravada, então dá para montar respostas e relacionamentos sem
-> um segundo *round-trip* ao banco.
-
----
-
-### Scripts disponíveis
-
-> **Os `01_` a `06_` abaixo são do tempo do Oracle** e não rodam no MySQL
-> (`VARCHAR2`, `NUMBER`, triggers, `fn_clyvo_uuid`). Ficam como registro. O script
-> vigente, e único aplicável, é o **`schema/script_bd.sql`**.
-
-| Arquivo | Quando usar |
-|---------|-------------|
-| `schema/01_criar_tabelas_dotnet.sql` | Primeira vez ou para recriar tudo do zero |
-| `schema/02_seed_dotnet.sql` | Após o `01` — insere produtos, eventos, lembretes e sugestões de exemplo |
-| `schema/03_drop_tabelas_dotnet.sql` | Para limpar apenas as tabelas .NET (preserva as Java) |
-| `schema/04_criar_tabela_predisposicao_dotnet.sql` | Cria a tabela `T_CLYVO_PREDISPOSICAO_SAUDE` (widget de saúde preditiva) |
-| `schema/05_seed_predisposicao_dotnet.sql` | Após o `04` — insere as 42 predisposições de saúde por espécie/raça/idade |
-| `schema/06_criar_tabela_tutor_telegram_dotnet.sql` | Cria a tabela `T_CLYVO_TUTOR_TELEGRAM` (vínculo tutor ↔ bot do Telegram) |
-
----
-
-## Documentação das Rotas
-
-> **Base path:** `/api/v1/`  
-> Toda resposta de endpoint vem em `application/json`.
-
-### 🔐 Autenticação
-
-Os endpoints principais (`/produtos`, `/lembretes`, `/eventos-pet`, `/sugestoes-produto`) exigem o header `X-Api-Key` — sem ele, ou com valor incorreto, a API responde `401 Unauthorized`.
+| Variável de ambiente | Para quê |
+|---|---|
+| `Jwt__Secret` | o **mesmo** valor de `JWT_SECRET` da API Java (base64; a chave é o valor *decodificado*) |
+| `Jwt__Emissor`, `Jwt__Publico` | opcionais; padrões `clyvovet-api-java` e `clyvovet` |
+| `Auth__ExigirToken` | `false` desliga a exigência do Bearer (alavanca de emergência); padrão `true` |
+| `Api__EscopoPorTutor` | recorte por tutor, **ligado por padrão**: um TUTOR só vê os próprios animais, lembretes e sugestões, e o recurso de outro tutor responde `404`; o convite do Telegram de outro tutor responde `403`. ADMIN e VETERINARIO não têm tutor no token e recebem `403` nessas rotas. `false` desliga (alavanca de emergência) |
 
 ```bash
 dotnet user-secrets set "Api:ApiKey" "SUA_CHAVE_AQUI"
+dotnet user-secrets set "Jwt:Secret" "O_MESMO_JWT_SECRET_DA_API_JAVA"
 ```
 
 ```bash
-curl http://localhost:5191/api/v1/produtos -H "X-Api-Key: SUA_CHAVE_AQUI"
+curl http://localhost:5191/api/v1/lembretes \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI"
 ```
 
-No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a chave uma única vez — a partir daí ela é aplicada automaticamente em toda chamada feita por ali.
+No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e informe a `X-Api-Key` e o token do esquema `Bearer` (só o token: o Swagger acrescenta o prefixo) uma única vez — a partir daí ambos são aplicados automaticamente em toda chamada feita por ali.
 
 > O **envio** do Telegram segue o mesmo mecanismo, só que com chave própria (`Telegram:ApiKey`), porque manda mensagem para qualquer `chatId`. As ações de **vínculo** do tutor (`link`, `vinculo`) usam esta `Api:ApiKey` — detalhes na seção correspondente, mais abaixo.
 
-#### Esta API não tem usuário nem perfil
+### Checklist de deploy
 
-Procurando as **credenciais de teste do tutor, do veterinário ou do admin**? Elas não existem aqui. Esta API se autentica por **chave de serviço**, não por pessoa: quem chama é o app, e a chave é a mesma para todo mundo. Não há login, não há JWT, não há papel — e por isso também não há o que separar por perfil nas respostas.
+1. Defina `Jwt__Secret` no serviço **antes** do deploy, com o mesmo valor do `JWT_SECRET` da API Java. Sem ele a aplicação sobe, registra um `Warning` e **todas as rotas protegidas respondem 401**.
+2. Confirme nos logs da subida que **não** há a mensagem "Jwt:Secret não configurado".
+3. Teste `GET /health/live` (200) e uma rota protegida sem token (401) e com token (200).
+4. Rollback rápido, sem redeploy: `Auth__ExigirToken=false`.
+5. Se o recorte por tutor atrapalhar algum fluxo em produção: `Api__EscopoPorTutor=false`, também sem redeploy.
+
+### Quem faz o login: a API Java
+
+Procurando as **credenciais de teste do tutor, do veterinário ou do admin**? Elas não existem aqui. Esta API **não emite** token nem tem tela de login: ela **valida** o access token que a API Java emite (o mesmo `Jwt__Secret` nos dois lados) e lê dele o perfil e o tutor. Para chamar as rotas protegidas, faça login na API Java e use o access token da resposta.
 
 Os quatro perfis (`TUTOR`, `VETERINARIO`, `ADMIN_CLINICA`, `ADMIN`) vivem na **API Java**, que é a dona do cadastro, das sessões e das autorizações. As contas de desenvolvimento estão documentadas lá:
 
@@ -771,6 +614,67 @@ Os quatro perfis (`TUTOR`, `VETERINARIO`, `ADMIN_CLINICA`, `ADMIN`) vivem na **A
 | `admin@clyvovet.com` | `admin12345` | `ADMIN` |
 
 Semeadas pelo `DevDataSeeder` nos perfis Spring `dev`, `h2`, `oracle` e `local` — nunca em produção. No stack do Docker isso exige `SPRING_PROFILES_ACTIVE=mysql,local` no serviço `java-api`; com `mysql` sozinho o banco sobe sem usuário e todo login devolve 401.
+
+---
+
+## Documentação das Rotas
+
+> **Base path:** `/api/v1/`  
+> Toda resposta de endpoint vem em `application/json`; as respostas de **erro** vêm em `application/problem+json`, com o campo `error` (e, em falha de servidor, `referencia`).
+
+**Swagger exportado:** o documento OpenAPI completo (26 operações em 7 recursos) está em
+[`docs/swagger/openapi-v1.json`](docs/swagger/openapi-v1.json). Ele pode ser aberto no
+[Swagger Editor](https://editor.swagger.io) ou importado no Postman/Insomnia. É gerado pela própria API; depois de
+mudar uma rota, rode de novo:
+
+```bash
+scripts/exportar-swagger.sh      # sobe a API em Production numa porta local, salva o JSON e encerra
+```
+
+### 📄 Paginação, ordenação e navegação (HATEOAS)
+
+As listagens (`/lembretes`, `/eventos-pet`, `/produtos`, `/sugestoes-produto`) aceitam:
+
+| Parâmetro | Para quê |
+|---|---|
+| `page`, `pageSize` | página (a partir de 1) e tamanho (1 a 100; padrão 10) |
+| `ordenarPor` | campo de ordenação em camelCase (a lista de cada recurso está no Swagger). Campo fora da lista → `400`. Sem ele, vale a ordem de sempre |
+| `direcao` | `asc` (padrão) ou `desc`; ignorada sem `ordenarPor` |
+
+**Resposta padrão.** O corpo continua sendo um **array JSON** (é o que o app móvel lê). O total e a navegação vão nos
+cabeçalhos `X-Total-Count` e `Link` (RFC 8288), e cada item traz `_links`:
+
+```bash
+curl -i "http://localhost:5191/api/v1/produtos?pageSize=2&ordenarPor=preco&direcao=desc" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI"
+```
+
+```text
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Total-Count: 42
+Link: </api/v1/produtos?ordenarPor=preco&direcao=desc&page=1&pageSize=2>; rel="first", </api/v1/produtos?ordenarPor=preco&direcao=desc&page=2&pageSize=2>; rel="next", </api/v1/produtos?ordenarPor=preco&direcao=desc&page=21&pageSize=2>; rel="last"
+
+[{ "id": "…", "nome": "…", "_links": { "self": { "href": "/api/v1/produtos/…", "method": "GET" },
+   "atualizar": { "href": "/api/v1/produtos/…", "method": "PUT" }, "excluir": { "href": "/api/v1/produtos/…", "method": "DELETE" },
+   "colecao": { "href": "/api/v1/produtos", "method": "GET" } } }, …]
+```
+
+**Envelope opcional.** Com `Accept: application/vnd.clyvovet.hateoas+json` a listagem devolve o envelope completo:
+
+```bash
+curl "http://localhost:5191/api/v1/produtos?pageSize=2" \
+  -H "Authorization: Bearer SEU_ACCESS_TOKEN" -H "X-Api-Key: SUA_CHAVE_AQUI" \
+  -H "Accept: application/vnd.clyvovet.hateoas+json"
+```
+
+```json
+{ "itens": [ … ], "page": 1, "pageSize": 2, "total": 42,
+  "_links": { "self": {…}, "first": {…}, "next": {…}, "last": {…} } }
+```
+
+`prev` e `next` só aparecem quando existem, e os links preservam os filtros, `ordenarPor` e `direcao`. Quem não pedir o envelope
+recebe o array de sempre.
 
 ---
 
@@ -838,14 +742,15 @@ Trata do catálogo de produtos e serviços veterinários (`T_CLYVO_PRODUTO`).
 ### 🐾 Eventos Pet — `/api/v1/eventos-pet`
 
 Trata dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`), sem depender de FK com as tabelas Java.
+Qualquer usuário autenticado lê; **criar, editar e apagar é só para a equipe** (ADMIN ou VETERINARIO), como em Produto: o evento é da clínica e aparece para todos os tutores.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
 | GET | `/api/v1/eventos-pet` | Lista eventos com filtros e paginação | 200, 400 |
 | GET | `/api/v1/eventos-pet/{id}` | Busca evento por ID | 200, 404 |
-| POST | `/api/v1/eventos-pet` | Cadastra novo evento | 201, 400 |
-| PUT | `/api/v1/eventos-pet/{id}` | Atualiza evento existente | 200, 400, 404 |
-| DELETE | `/api/v1/eventos-pet/{id}` | Remove evento | 204, 404 |
+| POST | `/api/v1/eventos-pet` | Cadastra novo evento | 201, 400, 403 |
+| PUT | `/api/v1/eventos-pet/{id}` | Atualiza evento existente | 200, 400, 403, 404 |
+| DELETE | `/api/v1/eventos-pet/{id}` | Remove evento | 204, 403, 404 |
 
 **Query params — GET `/api/v1/eventos-pet`**
 
@@ -870,8 +775,8 @@ Trata dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`), sem depender de FK
   "cidade": "São Paulo",
   "estado": "SP",
   "cep": "01310-200",
-  "dataInicio": "2026-08-10",
-  "dataFim": "2026-08-11",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-11",
   "especieAlvo": 5,
   "organizador": "ONG Amigo Fiel",
   "gratuito": true,
@@ -894,8 +799,8 @@ Trata dos eventos públicos para pets (`T_CLYVO_EVENTO_PET`), sem depender de FK
   "cidade": "São Paulo",
   "estado": "SP",
   "cep": "01310-200",
-  "dataInicio": "2026-08-10",
-  "dataFim": "2026-08-11",
+  "dataInicio": "2027-03-10",
+  "dataFim": "2027-03-11",
   "especieAlvo": 5,
   "organizador": "ONG Amigo Fiel",
   "gratuito": true,
@@ -938,15 +843,15 @@ Trata dos lembretes de cuidados vinculados a um animal (`T_CLYVO_LEMBRETE`).
   "titulo": "Antibiótico — 10 dias",
   "descricao": "Uma dose por dia, sempre no mesmo horário.",
   "tipo": 1,
-  "agendadoEm": "2026-09-15T10:00:00",
+  "agendadoEm": "2027-03-15T10:00:00",
   "intervaloDias": 1,
-  "repetirAte": "2026-09-25T23:59:00",
+  "repetirAte": "2027-03-25T23:59:00",
   "status": 0
 }
 ```
 
 > **Atenção:** na criação, o `status` é **sempre forçado para `Pendente` (0)**, seja qual for o valor enviado.  
-> `agendadoEm` precisa ser uma data/hora **futura**.
+> `agendadoEm` precisa ser uma data/hora **futura**, em **horário de Brasília e sem fuso** (`2027-03-15T10:00:00`), que é como o app envia. A API compara com a hora atual de Brasília e dispara a notificação do Telegram uma hora antes nesse mesmo relógio. Carimbos internos (`criadoEm`) ficam em UTC.
 
 **A repetição (V18)**
 
@@ -987,10 +892,10 @@ ciclo faria o tutor receber trinta mensagens iguais para se atualizar.
   "titulo": "Vacina Antirrábica — Reforço Anual",
   "descricao": "Aplicar a vacina antirrábica no pet shop da rua central.",
   "tipo": 0,
-  "agendadoEm": "2026-09-15T10:00:00",
+  "agendadoEm": "2027-03-15T10:00:00",
   "recorrente": true,
   "intervaloDias": 1,
-  "repetirAte": "2026-09-25T23:59:00",
+  "repetirAte": "2027-03-25T23:59:00",
   "status": 0,
   "criadoEm": "2026-05-24T10:30:00"
 }
@@ -1053,8 +958,6 @@ Trata das sugestões de produto vinculadas a um animal (`T_CLYVO_SUGESTAO_PRODUT
 
 ### 🩺 Widget de Saúde Preditiva — `/api/v1/widget-saude-preditiva`
 
-> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
-
 Esse card compara os dados do animal (espécie, raça e idade) com um catálogo de predisposições de saúde (`T_CLYVO_PREDISPOSICAO_SAUDE`) e, encontrando alguma condição relevante, sugere marcar uma consulta.
 
 | Método | Rota | Descrição | Status |
@@ -1094,7 +997,7 @@ Esse card compara os dados do animal (espécie, raça e idade) com um catálogo 
 
 ### 🤖 Saúde Preditiva com IA — `/api/v1/saude-preditiva`
 
-O parecer de riscos e recomendações que a home do app mostra por animal. O desenho, em uma frase: os **fatos** vêm da base agregada de doenças (`t_clyvo_base_doencas`, contagens de casos por espécie/raça extraídas de datasets [Dryad](https://datadryad.org) com DOI); a **OCI Generative AI** apenas redige e prioriza em cima deles; o resultado fica em **cache por animal** (`t_clyvo_parecer_ia`, 7 dias); e quando a OCI está indisponível ou sem credencial, as mesmas linhas geram um **parecer determinístico**. A home nunca depende da nuvem para abrir.
+O parecer de riscos e recomendações que a home do app mostra por animal. O desenho, em uma frase: os **fatos** vêm da base agregada de doenças (`t_clyvo_base_doencas`, contagens de casos por espécie/raça extraídas de datasets [Dryad](https://datadryad.org) com DOI); a **OCI Generative AI** apenas redige e prioriza em cima deles; o resultado fica em **cache por animal** (`t_clyvo_parecer_ia`, 7 dias); e quando a OCI está indisponível ou sem credencial, as mesmas linhas geram um **parecer determinístico**. Se a OCI está configurada e só falhou naquela hora, esse parecer vale 1 hora, e não 7 dias, para a IA ter nova chance logo. A home nunca depende da nuvem para abrir.
 
 | Método | Rota | Descrição | Status |
 |--------|------|-----------|--------|
@@ -1121,7 +1024,7 @@ O parecer de riscos e recomendações que a home do app mostra por animal. O des
 - `origem` diz quem redigiu: `IA` (OCI) ou `REGRAS` (fallback determinístico). O app mostra a diferença ao tutor.
 - `baseLimitada` avisa quando a base cobre pouco a espécie (aves/répteis dos datasets são fauna selvagem; roedores não têm dados).
 - Se o tutor tem o Telegram vinculado, um parecer **novo** também dispara o resumo por mensagem.
-- Exige o `X-Api-Key` principal e respeita o escopo por tutor (animal alheio responde 404).
+- Exige o `X-Api-Key` principal e respeita o recorte por tutor (ligado por padrão): animal alheio responde 404.
 
 **Configuração da OCI** (tudo por variável de ambiente ou `user-secrets` — nunca no código):
 
@@ -1136,16 +1039,14 @@ dotnet user-secrets set "Oci:GenAi:CompartmentOcid" "ocid1.compartment.oc1..."
 
 O modelo default é `meta.llama-3.3-70b-instruct` (`Oci:GenAi:ModelId` muda; `Oci:GenAi:ApiFormat` aceita `GENERIC`/`COHERE`). A chave de API se cria na console da OCI em **Identity → My profile → API keys**; a região precisa oferecer o serviço Generative AI. **Sem nada disso configurado a rota continua funcionando** — o parecer sai com `origem: "REGRAS"`.
 
-> O WhatsApp (Twilio) saiu do escopo nesta sprint: o Telegram é o canal único de mensagens, e a marcação de consultas acontece apenas no app — o bot só dispara lembretes e os resumos de saúde preditiva.
+> O Telegram é o canal único de mensagens (o WhatsApp/Twilio saiu do escopo), e a marcação de consultas acontece apenas no app — o bot só dispara lembretes e os resumos de saúde preditiva.
 
 
 ---
 
 ### ✈️ Telegram — `/api/v1/telegram`
 
-> ⚠️ Feature extra, fora do escopo avaliado da Sprint 3.
-
-O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. Desde esta sprint é o ÚNICO canal: o WhatsApp/Twilio saiu do escopo, e a marcação de consultas acontece apenas no app.
+O canal de mensagens da plataforma, com bot próprio no [Telegram](https://core.telegram.org/bots/api) — ponto único de disparo (lembretes e resumos de saúde preditiva), testável de ponta a ponta de graça. É o ÚNICO canal (o WhatsApp/Twilio saiu do escopo), e a marcação de consultas acontece apenas no app.
 
 | Método | Rota | Descrição | Chave | Status |
 |--------|------|-----------|-------|--------|
@@ -1226,785 +1127,6 @@ O `LembreteNotificationService` (também um `BackgroundService`, desativado em `
 
 ---
 
-## Guia de Testes Manuais
-
-> **54 testes** manuais, rodados contra o banco MySQL real, todos passando.  
-> Acesse **`http://localhost:5191/swagger`**, siga a ordem indicada e reaproveite os JSONs já prontos.  
-> Legenda dos ícones: ✅ sucesso &nbsp;|&nbsp; ❌ erro esperado (validação)  
-> ⚠️ Desde a Sprint 3, os endpoints principais exigem `X-Api-Key` — clique em **"Authorize"** no Swagger antes de começar (veja a seção [🔐 Autenticação](#-autenticação)).
-
----
-
-### Antes de começar — obtenha os IDs necessários
-
-Rode no cliente `mysql` (ou no MySQL Workbench) depois de aplicar o schema:
-
-```sql
--- animal_id (necessário nos testes de Lembrete e Sugestão)
-SELECT id, nome FROM t_clyvo_animal LIMIT 1;
-
--- produto_id do seed (necessário nos testes de Sugestão)
-SELECT id, nome FROM t_clyvo_produto LIMIT 1;
-```
-
-> Guarde os dois UUIDs — eles entram no lugar de `{ANIMAL_ID}` e `{PRODUTO_ID}` nos testes a seguir.  
-> O `animalId` também pode ser pego direto na resposta do **T23** (GET /lembretes).
-
----
-
-## 🛒 BLOCO 1 — Produtos
-
----
-
-### T01 — Listar todos os produtos
-**Confirma a conexão com o MySQL — deve devolver os produtos do seed.**
-
-```
-GET /api/v1/produtos
-```
-
-✅ **Esperado:** `200 OK` — array com os produtos cadastrados no seed.
-
----
-
-### T02 — Filtrar produtos por categoria
-```
-GET /api/v1/produtos?categoria=Racao
-```
-
-✅ **Esperado:** `200 OK` — só os produtos com `categoria = 0` (Racao).
-
----
-
-### T03 — Filtrar produtos por espécie
-```
-GET /api/v1/produtos?especieIndicada=Gato
-```
-
-✅ **Esperado:** `200 OK` — só produtos indicados para gatos.
-
----
-
-### T04 — Paginação inválida: page = 0
-```
-GET /api/v1/produtos?page=0
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "O parâmetro 'page' deve ser maior que zero." }
-```
-
----
-
-### T05 — Paginação inválida: pageSize acima do limite
-```
-GET /api/v1/produtos?pageSize=200
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "O parâmetro 'pageSize' deve estar entre 1 e 100." }
-```
-
----
-
-### T06 — Criar produto ✨
-```
-POST /api/v1/produtos
-```
-```json
-{
-  "nome": "Shampoo Pet Neutro 500ml",
-  "descricao": "Shampoo hipoalergênico para cães e gatos.",
-  "categoria": 2,
-  "preco": 28.90,
-  "especieIndicada": 5,
-  "ativo": true
-}
-```
-
-✅ **Esperado:** `201 Created` — produto criado com `id` gerado pela API.
-
-> 📋 **Guarde o `id` retornado** — será usado nos testes T07, T08 e T50.
-
----
-
-### T07 — Buscar produto por ID
-```
-GET /api/v1/produtos/{id do T06}
-```
-
-✅ **Esperado:** `200 OK` — dados completos do produto criado em T06.
-
----
-
-### T08 — Atualizar produto
-```
-PUT /api/v1/produtos/{id do T06}
-```
-```json
-{
-  "nome": "Shampoo Pet Neutro 1L",
-  "descricao": "Versão maior com 1 litro.",
-  "categoria": 2,
-  "preco": 49.90,
-  "especieIndicada": 5,
-  "ativo": true
-}
-```
-
-✅ **Esperado:** `200 OK` — produto com nome e preço já atualizados.
-
----
-
-### T09 — Buscar produto com ID inexistente
-```
-GET /api/v1/produtos/id-que-nao-existe
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Produto não encontrado." }
-```
-
----
-
-### T10 — Criar produto com preço negativo
-```
-POST /api/v1/produtos
-```
-```json
-{
-  "nome": "Produto Inválido",
-  "categoria": 0,
-  "preco": -50.00,
-  "especieIndicada": 0,
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `400 Bad Request` — erro de validação sobre preço negativo.
-
----
-
-### T11 — Criar produto sem campo obrigatório (nome)
-```
-POST /api/v1/produtos
-```
-```json
-{
-  "categoria": 0,
-  "preco": 10.00,
-  "especieIndicada": 0,
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `400 Bad Request` — erro de campo obrigatório.
-
----
-
-## 🐾 BLOCO 2 — Eventos Pet
-
----
-
-### T12 — Listar todos os eventos pet
-```
-GET /api/v1/eventos-pet
-```
-
-✅ **Esperado:** `200 OK` — array com os eventos do seed (Feira de Adoção, Vacinação etc.).
-
----
-
-### T13 — Filtrar eventos por cidade
-```
-GET /api/v1/eventos-pet?cidade=Sao Paulo
-```
-
-✅ **Esperado:** `200 OK` — só os eventos de São Paulo.
-
----
-
-### T14 — Filtrar eventos por tipo
-```
-GET /api/v1/eventos-pet?tipo=Vacinacao
-```
-
-✅ **Esperado:** `200 OK` — só os eventos do tipo `Vacinacao (0)`.
-
----
-
-### T15 — Filtrar eventos por espécie alvo
-```
-GET /api/v1/eventos-pet?especieAlvo=Todos
-```
-
-✅ **Esperado:** `200 OK` — só os eventos abertos a todos os animais.
-
----
-
-### T16 — Paginação inválida: page = 0
-```
-GET /api/v1/eventos-pet?page=0
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "O parâmetro 'page' deve ser maior que zero." }
-```
-
----
-
-### T17 — Criar evento pet ✨
-```
-POST /api/v1/eventos-pet
-```
-```json
-{
-  "titulo": "Workshop Nutrição Pet",
-  "descricao": "Palestra sobre alimentação natural para cães.",
-  "tipo": 3,
-  "rua": "Rua das Acácias",
-  "numero": "500",
-  "bairro": "Jardins",
-  "cidade": "São Paulo",
-  "estado": "SP",
-  "cep": "01425-000",
-  "dataInicio": "2026-10-05",
-  "dataFim": "2026-10-05",
-  "especieAlvo": 0,
-  "organizador": "Dr. Pet Nutrição",
-  "gratuito": false,
-  "linkInscricao": "https://drpet.com.br/workshop",
-  "ativo": true
-}
-```
-
-✅ **Esperado:** `201 Created` — evento criado com `id` gerado pela API.
-
-> 📋 **Guarde o `id` retornado** — será usado nos testes T18, T19 e T49.
-
----
-
-### T18 — Buscar evento por ID
-```
-GET /api/v1/eventos-pet/{id do T17}
-```
-
-✅ **Esperado:** `200 OK` — dados completos do evento criado em T17.
-
----
-
-### T19 — Atualizar evento pet
-```
-PUT /api/v1/eventos-pet/{id do T17}
-```
-```json
-{
-  "titulo": "Workshop Nutrição Pet — Edição Atualizada",
-  "tipo": 3,
-  "cidade": "São Paulo",
-  "estado": "SP",
-  "dataInicio": "2026-10-05",
-  "dataFim": "2026-10-06",
-  "especieAlvo": 0,
-  "gratuito": true,
-  "ativo": true
-}
-```
-
-✅ **Esperado:** `200 OK` — evento com título e `gratuito` já atualizados.
-
----
-
-### T20 — Criar evento com data de início no passado
-```
-POST /api/v1/eventos-pet
-```
-```json
-{
-  "titulo": "Evento Passado",
-  "tipo": 0,
-  "dataInicio": "2020-01-01",
-  "especieAlvo": 5,
-  "gratuito": true,
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "A data de início não pode ser no passado." }
-```
-
----
-
-### T21 — Criar evento sem título (campo obrigatório)
-```
-POST /api/v1/eventos-pet
-```
-```json
-{
-  "tipo": 0,
-  "dataInicio": "2026-12-01",
-  "especieAlvo": 5,
-  "gratuito": true,
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `400 Bad Request` — erro de campo obrigatório.
-
----
-
-### T22 — Buscar evento com ID inexistente
-```
-GET /api/v1/eventos-pet/id-que-nao-existe
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Evento não encontrado." }
-```
-
----
-
-## 🔔 BLOCO 3 — Lembretes
-
-> ⚠️ A partir do T28, os testes exigem `animalId` válido.  
-> Pegue esse valor no T23 (campo `animalId` de qualquer lembrete do seed), ou pelo SQL do pré-requisito.
-
----
-
-### T23 — Listar todos os lembretes
-```
-GET /api/v1/lembretes
-```
-
-✅ **Esperado:** `200 OK` — array com os lembretes do seed (Vacina V10, Vermifugação, Retorno).
-
-> 📋 **Guarde o valor de `animalId`** de qualquer item retornado — será usado nos testes T26 e T28 em diante.
-
----
-
-### T24 — Filtrar lembretes por status
-```
-GET /api/v1/lembretes?status=Pendente
-```
-
-✅ **Esperado:** `200 OK` — só os lembretes com `status = 0` (Pendente).
-
----
-
-### T25 — Filtrar lembretes por tipo
-```
-GET /api/v1/lembretes?tipo=Vacina
-```
-
-✅ **Esperado:** `200 OK` — só os lembretes do tipo `Vacina (0)`.
-
----
-
-### T26 — Filtrar lembretes por animal
-```
-GET /api/v1/lembretes?animalId={ANIMAL_ID}
-```
-
-✅ **Esperado:** `200 OK` — só os lembretes do animal informado.
-
----
-
-### T27 — Paginação inválida: page negativo
-```
-GET /api/v1/lembretes?page=-1
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "O parâmetro 'page' deve ser maior que zero." }
-```
-
----
-
-### T28 — Criar lembrete ✨
-```
-POST /api/v1/lembretes
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "titulo": "Consulta de Rotina",
-  "descricao": "Checkup anual completo com hemograma.",
-  "tipo": 2,
-  "agendadoEm": "2026-10-20T14:00:00",
-  "recorrente": false,
-  "status": 0
-}
-```
-
-✅ **Esperado:** `201 Created` — lembrete criado. O campo `status` **sempre** vem `0` (Pendente), mesmo que outro valor tenha sido enviado.
-
-> 📋 **Guarde o `id` retornado** — será usado nos testes T29 a T32 e T48.
-
----
-
-### T29 — Buscar lembrete por ID
-```
-GET /api/v1/lembretes/{id do T28}
-```
-
-✅ **Esperado:** `200 OK` — dados completos, incluindo `nomeAnimal` preenchido pelo JOIN.
-
----
-
-### T30 — Verificar que status foi forçado para Pendente
-No response do T29, confirme que `"status": 0`, independente do valor enviado em T28.
-
-✅ **Esperado:** `"status": 0` no response.
-
----
-
-### T31 — Atualizar lembrete — mudar status para Enviado
-```
-PUT /api/v1/lembretes/{id do T28}
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "titulo": "Consulta de Rotina",
-  "descricao": "Checkup anual completo com hemograma.",
-  "tipo": 2,
-  "agendadoEm": "2026-10-20T14:00:00",
-  "recorrente": false,
-  "status": 1
-}
-```
-
-✅ **Esperado:** `200 OK` — lembrete com `"status": 1` (Enviado).
-
----
-
-### T32 — Atualizar lembrete com data no passado
-```
-PUT /api/v1/lembretes/{id do T28}
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "titulo": "Teste Data Passada",
-  "tipo": 0,
-  "agendadoEm": "2020-01-01T10:00:00",
-  "recorrente": false,
-  "status": 0
-}
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "A data de agendamento não pode ser no passado." }
-```
-
----
-
-### T33 — Criar lembrete com animalId inexistente
-```
-POST /api/v1/lembretes
-```
-```json
-{
-  "animalId": "00000000-0000-0000-0000-000000000000",
-  "titulo": "Teste Animal Inválido",
-  "tipo": 0,
-  "agendadoEm": "2026-12-01T10:00:00",
-  "recorrente": false,
-  "status": 0
-}
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Animal não encontrado." }
-```
-
----
-
-### T34 — Criar lembrete sem campo obrigatório (animalId)
-```
-POST /api/v1/lembretes
-```
-```json
-{
-  "titulo": "Sem Animal",
-  "tipo": 0,
-  "agendadoEm": "2026-12-01T10:00:00",
-  "recorrente": false
-}
-```
-
-❌ **Esperado:** `400 Bad Request` — erro de campo obrigatório.
-
----
-
-### T35 — Buscar lembrete com ID inexistente
-```
-GET /api/v1/lembretes/id-que-nao-existe
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Lembrete não encontrado." }
-```
-
----
-
-## 💡 BLOCO 4 — Sugestões de Produto
-
-> ⚠️ A partir do T39, os testes exigem `{ANIMAL_ID}` e `{PRODUTO_ID}` válidos.  
-> Pegue esses valores pelo SQL do pré-requisito, ou pelos GETs anteriores.
-
----
-
-### T36 — Listar todas as sugestões
-```
-GET /api/v1/sugestoes-produto
-```
-
-✅ **Esperado:** `200 OK` — array com as sugestões do seed.
-
----
-
-### T37 — Filtrar sugestões por animal
-```
-GET /api/v1/sugestoes-produto?animalId={ANIMAL_ID}
-```
-
-✅ **Esperado:** `200 OK` — só as sugestões do animal informado, da mais recente para a mais antiga.
-
----
-
-### T38 — Paginação inválida: pageSize acima do limite
-```
-GET /api/v1/sugestoes-produto?pageSize=999
-```
-
-❌ **Esperado:** `400 Bad Request`
-```json
-{ "error": "O parâmetro 'pageSize' deve estar entre 1 e 100." }
-```
-
----
-
-### T39 — Criar sugestão de produto ✨
-```
-POST /api/v1/sugestoes-produto
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "produtoId": "{PRODUTO_ID}",
-  "justificativa": "Animal com baixa imunidade — veterinário recomendou suplemento vitamínico após hemograma.",
-  "dataSugestao": "2026-05-24",
-  "ativo": true
-}
-```
-
-✅ **Esperado:** `201 Created` — sugestão criada com `id` gerado pela API.
-
-> 📋 **Guarde o `id` retornado** — será usado nos testes T40, T42 e T47.
-
----
-
-### T40 — Buscar sugestão por ID
-```
-GET /api/v1/sugestoes-produto/{id do T39}
-```
-
-✅ **Esperado:** `200 OK` — dados completos, incluindo `nomeAnimal` e `nomeProduto` preenchidos automaticamente pelo JOIN.
-
----
-
-### T41 — Verificar enriquecimento do response
-No response do T40, confirme a presença dos campos vindos do JOIN:
-
-```json
-{
-  "nomeAnimal": "<nome do animal>",
-  "nomeProduto": "<nome do produto>"
-}
-```
-
-✅ **Esperado:** ambos os campos preenchidos com os nomes reais do banco.
-
----
-
-### T42 — Atualizar sugestão de produto
-```
-PUT /api/v1/sugestoes-produto/{id do T39}
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "produtoId": "{PRODUTO_ID}",
-  "justificativa": "Justificativa atualizada após reavaliação clínica.",
-  "dataSugestao": "2026-05-24",
-  "ativo": false
-}
-```
-
-✅ **Esperado:** `200 OK` — sugestão com `ativo: false` e justificativa já atualizada.
-
----
-
-### T43 — Criar sugestão com produtoId inexistente
-```
-POST /api/v1/sugestoes-produto
-```
-```json
-{
-  "animalId": "{ANIMAL_ID}",
-  "produtoId": "00000000-0000-0000-0000-000000000000",
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Produto não encontrado." }
-```
-
----
-
-### T44 — Criar sugestão com animalId inexistente
-```
-POST /api/v1/sugestoes-produto
-```
-```json
-{
-  "animalId": "00000000-0000-0000-0000-000000000000",
-  "produtoId": "{PRODUTO_ID}",
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Animal não encontrado." }
-```
-
----
-
-### T45 — Criar sugestão sem campos obrigatórios
-```
-POST /api/v1/sugestoes-produto
-```
-```json
-{
-  "justificativa": "Sem animal e produto",
-  "ativo": true
-}
-```
-
-❌ **Esperado:** `400 Bad Request` — erro de campo obrigatório.
-
----
-
-### T46 — Buscar sugestão com ID inexistente
-```
-GET /api/v1/sugestoes-produto/id-que-nao-existe
-```
-
-❌ **Esperado:** `404 Not Found`
-```json
-{ "error": "Sugestão de produto não encontrada." }
-```
-
----
-
-## 🗑️ BLOCO 5 — Delete e Confirmação
-
-> Siga a ordem abaixo para limpar os registros criados durante os testes.
-
----
-
-### T47 — Deletar sugestão criada em T39
-```
-DELETE /api/v1/sugestoes-produto/{id do T39}
-```
-
-✅ **Esperado:** `204 No Content` — sem body na resposta.
-
----
-
-### T48 — Deletar lembrete criado em T28
-```
-DELETE /api/v1/lembretes/{id do T28}
-```
-
-✅ **Esperado:** `204 No Content`.
-
----
-
-### T49 — Deletar evento criado em T17
-```
-DELETE /api/v1/eventos-pet/{id do T17}
-```
-
-✅ **Esperado:** `204 No Content`.
-
----
-
-### T50 — Deletar produto criado em T06
-```
-DELETE /api/v1/produtos/{id do T06}
-```
-
-✅ **Esperado:** `204 No Content`.
-
----
-
-### T51 — Confirmar deleção do produto
-```
-GET /api/v1/produtos/{id do T06}
-```
-
-❌ **Esperado:** `404 Not Found` — produto removido com sucesso.
-
----
-
-### T52 — Confirmar deleção do lembrete
-```
-GET /api/v1/lembretes/{id do T28}
-```
-
-❌ **Esperado:** `404 Not Found` — lembrete removido com sucesso.
-
----
-
-### T53 — Confirmar deleção do evento
-```
-GET /api/v1/eventos-pet/{id do T17}
-```
-
-❌ **Esperado:** `404 Not Found` — evento removido com sucesso.
-
----
-
-### T54 — Confirmar deleção da sugestão
-```
-GET /api/v1/sugestoes-produto/{id do T39}
-```
-
-❌ **Esperado:** `404 Not Found` — sugestão removida com sucesso.
-
----
-
-> **Resultado esperado ao final:** os 54 testes passam, cada um com o status code indicado.  
-> Essa suíte rodou contra o MySQL real e fechou em **54/54 PASS**.
-
----
-
 ## Regras de Negócio
 
 ### Produto
@@ -2022,15 +1144,17 @@ GET /api/v1/sugestoes-produto/{id do T39}
 | `dataInicio` só pode ser alterada para data futura (PUT) | 400 Bad Request |
 | Eventos já iniciados podem ser editados normalmente | Apenas mudança de `dataInicio` para passado é bloqueada |
 | `dataFim` deve ser ≥ `dataInicio` | 400 Bad Request |
+| POST, PUT e DELETE só para ADMIN ou VETERINARIO | 403 Forbidden |
 
 ### Lembrete
 
 | Regra | Comportamento |
 |-------|---------------|
 | `animalId` deve existir em `t_clyvo_animal` | 404 Not Found |
-| `agendadoEm` deve ser data/hora futura (POST e PUT) | 400 Bad Request |
+| `agendadoEm` deve ser data/hora futura em horário de Brasília (POST e PUT) | 400 Bad Request |
 | `status` é forçado a `Pendente` na criação | Qualquer valor enviado é ignorado |
-| No PUT, `status` pode ser alterado livremente | Permite marcar como `Enviado` ou `Cancelado` |
+| No PUT, o `status` enviado também é ignorado | Mudar `agendadoEm` volta o lembrete para `Pendente` (para disparar de novo); sem mudar a data, o status fica como estava |
+| Esta API nunca grava `Cancelado` | O valor existe porque o banco e o app já o conhecem; não há, hoje, rota que cancele um lembrete |
 
 ### Sugestão de Produto
 
@@ -2038,7 +1162,7 @@ GET /api/v1/sugestoes-produto/{id do T39}
 |-------|---------------|
 | `animalId` deve existir em `t_clyvo_animal` | 404 Not Found |
 | `produtoId` deve existir em `t_clyvo_produto` | 404 Not Found |
-| `dataSugestao` é opcional | Se omitido, assume a data de hoje |
+| `dataSugestao` é opcional | Se omitido, assume a data de hoje ao criar; ao atualizar, mantém a data que já estava gravada |
 
 ### Geral
 
@@ -2108,6 +1232,234 @@ GET /api/v1/sugestoes-produto/{id do T39}
 | `2` | Castracao | `CASTRACAO` |
 | `3` | Workshop | `WORKSHOP` |
 | `4` | Outro | `OUTRO` |
+
+---
+
+## Monitoramento e Observabilidade
+
+### Health Checks
+
+A API expõe três endpoints de Health Check, usando `Microsoft.Extensions.Diagnostics.HealthChecks`:
+
+| Endpoint | O que verifica | Uso |
+|----------|----------------|-----|
+| `GET /health` | Todos os checks (visão geral) | Diagnóstico manual, painel de monitoramento |
+| `GET /health/live` | Apenas se o processo da API está de pé (`self`) | Liveness probe (ex.: Kubernetes, Docker healthcheck) |
+| `GET /health/ready` | Conectividade real com o MySQL (`Database.CanConnectAsync()`) | Readiness probe |
+
+Além do MySQL, `GET /health` também confere a Telegram Bot API (`telegram-bot`, via `GetMe`), fora da tag `ready` de propósito: uma instabilidade nela não deve tirar a API inteira de rotação, já que Produto, Lembrete, EventoPet e Sugestão de Produto seguem funcionando sem Telegram. A OCI Generative AI **não** tem sonda: ela é opcional por design (fallback determinístico), e uma sonda a transformaria em dependência. Com `Mongo:ConnectionString` configurada, o `GET /health` confere também o MongoDB (`mongo`, via `ping`), igualmente fora da tag `ready`: é só um cache.
+
+Cada resposta traz um JSON com o status geral, a duração total e o detalhe de cada verificação:
+
+```bash
+curl http://localhost:5191/health
+```
+
+```json
+{
+  "status": "Healthy",
+  "totalDurationMs": 1317.72,
+  "checks": [
+    { "name": "self", "status": "Healthy", "durationMs": 0.31, "tags": ["live"] },
+    { "name": "mysql-database", "status": "Healthy", "durationMs": 16.52, "tags": ["ready", "database", "external"] },
+    { "name": "telegram-bot", "status": "Healthy", "durationMs": 1316.33, "description": "Bot @clyvovet_notificacoes_bot respondendo.", "tags": ["external"] }
+  ]
+}
+```
+
+Ficando algum desses serviços inacessível (connection string errada, token inválido, sem internet etc.), o `status` daquele check passa a `"Unhealthy"` e o campo `error` traz a exceção correspondente.
+
+### Logging Estruturado (Serilog)
+
+- Configurado em [`ObservabilidadeExtensions.cs`](src/ClyvoVet.Api/Extensions/ObservabilidadeExtensions.cs), chamado pelo [`Program.cs`](src/ClyvoVet.Api/Program.cs). O **console** é sempre ativo — é dele que a nuvem lê. **Fora de `Development` ele sai em JSON** (`CompactJsonFormatter`, uma linha por evento, com `CorrelationId`, `Application`, `MachineName` e as propriedades da mensagem como campos); em `Development`, no template legível.
+- Exemplo real (API em `Production`, `GET /health/live`; campos de rastreio omitidos):
+
+  ```json
+  {"@t":"2026-09-26T04:56:32.4232450Z","@mt":"HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms","RequestMethod":"GET","RequestPath":"/health/live","StatusCode":200,"Elapsed":41.008667,"SourceContext":"Serilog.AspNetCore.RequestLoggingMiddleware","CorrelationId":"demo-readme-01","Application":"ClyvoVet.Api"}
+  ```
+
+  O nível só aparece (`@l`) quando não é `Information`, e uma exceção vem em `@x`. Como cada propriedade é um campo, dá para filtrar por `StatusCode` ou `CorrelationId` sem expressão regular.
+- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
+- Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](src/ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
+- São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
+- Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](src/ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
+
+### Tracing e Métricas (OpenTelemetry)
+
+- **Tracing:** ASP.NET Core, `HttpClient` e Entity Framework Core vêm instrumentados automaticamente — cada requisição gera uma árvore de spans exportada para o **console**.
+- **Métricas:** disponíveis em formato Prometheus via `GET /metrics`, cobrindo tempo de resposta, contagem de requisições e taxa de erros por rota/status code.
+- **Por que `/metrics` é público:** um coletor Prometheus raspa sem credencial, e o conteúdo é só agregado (rota-modelo e status, sem id nem dado de tutor). Em produção de verdade, o endpoint ficaria fechado na rede, visível só para o coletor.
+
+```bash
+curl http://localhost:5191/metrics
+```
+
+---
+
+## Testes Automatizados
+
+Em `tests/`, os testes se dividem em dois projetos, seguindo o padrão **AAA (Arrange, Act, Assert)** e a convenção de nomes `MetodoTestado_Cenario_ResultadoEsperado`:
+
+| Projeto | O que testa | Ferramentas |
+|---------|-------------|-------------|
+| `ClyvoVet.Api.Tests.Unit` | Domain e Application (serviços com os repositórios mockados), peças da Api (tratamento de exceções, JWT, paginação, HATEOAS) e as regras de arquitetura | xUnit + Moq |
+| `ClyvoVet.Api.Tests.Integration` | Fluxo HTTP completo (Controller → Service → Repository → banco) | xUnit + `WebApplicationFactory` + EF Core InMemory (e MongoDB real, opcional — ver [NoSQL](#nosql--mongodb-cache-do-parecer-de-ia)) |
+
+### Rodando os testes
+
+```bash
+dotnet test tests/ClyvoVet.Api.Tests.Unit
+dotnet test tests/ClyvoVet.Api.Tests.Integration
+```
+
+Ou os dois juntos, direto da raiz do repositório:
+
+```bash
+dotnet test ClyvoVet-api.slnx
+```
+
+**Resultado esperado:** `582` testes passando (`357` unitários e `225` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
+
+### Cobertura
+
+```bash
+scripts/cobertura.sh                        # coverlet + ReportGenerator; relatório em TestResults/cobertura/relatorio/index.html
+```
+
+Mede a cobertura de **linhas** das camadas de **Domínio e Aplicação**, unindo os testes de unidade e os de integração, e **falha abaixo de
+90%**. Medição na entrega: **98,8%** (Domain 95,6%, Application 99,3%). O limite é uma catraca: a medição inicial já passava de 96%, e um
+limite baixo deixaria a cobertura cair sem ninguém perceber.
+
+### Detalhes dos testes de integração
+
+- A API inteira sobe em memória via `WebApplicationFactory<Program>`, o que **troca o MySQL real por um banco EF Core InMemory** — assim, `dotnet test` roda sem precisar de banco nenhum, nem local nem na nuvem.
+- `SwaggerEndpointsTests` cobre a geração do documento OpenAPI: que `/swagger/v1/swagger.json` responde, que ele é um documento válido com rotas, e que uma rota protegida por `X-Api-Key` continua declarando o requisito de segurança. Existe porque o Swagger é entregável avaliado e falha nele é 500 em tempo de execução, não erro de compilação — foi o que permitiu subir o `Microsoft.OpenApi` para corrigir a vulnerabilidade GHSA-v5pm-xwqc-g5wc sem apostar que nada quebrou.
+- A maior parte dos testes usa uma **Collection Fixture** (`IntegrationTestFixture` + `[CollectionDefinition]`) que sobe a API **uma única vez** para a suíte inteira, semeando um Tutor, um Animal e um Produto de teste. Já os testes do Widget de Saúde Preditiva sobem uma instância própria, separada, por dependerem de um Animal com raça e idade específicas.
+
+---
+
+## Schema do Banco de Dados
+
+### Todas as tabelas (banco compartilhado)
+
+| Tabela | Responsável | Depende de |
+|--------|-------------|------------|
+| `T_CLYVO_TUTOR` | API Java | — |
+| `T_CLYVO_ANIMAL` | API Java | `T_CLYVO_TUTOR` |
+| `T_CLYVO_CLINICA` | API Java | — |
+| `T_CLYVO_VETERINARIO` | API Java | `T_CLYVO_CLINICA` |
+| `T_CLYVO_EVENTO_CLINICO` | API Java | `T_CLYVO_ANIMAL`, `T_CLYVO_VETERINARIO` |
+| `T_CLYVO_PAGAMENTO` | API Java | `T_CLYVO_EVENTO_CLINICO` |
+| **`T_CLYVO_PRODUTO`** | **API .NET** | — |
+| **`T_CLYVO_EVENTO_PET`** | **API .NET** | — |
+| **`T_CLYVO_LEMBRETE`** | **API .NET** | `T_CLYVO_ANIMAL` |
+| **`T_CLYVO_SUGESTAO_PRODUTO`** | **API .NET** | `T_CLYVO_ANIMAL`, `T_CLYVO_PRODUTO` |
+| **`T_CLYVO_PREDISPOSICAO_SAUDE`** | **API .NET** | — (catálogo de referência, sem FK) |
+| **`T_CLYVO_TUTOR_TELEGRAM`** | **API .NET** | — (`tutor_id` validado via API, sem FK) |
+
+> Ainda que pertença à API Java, a `T_CLYVO_TUTOR` é indispensável: o `AnimalRepository` faz `.Include(a => a.Tutor)`, e sem essa tabela a API dispara `Table 'clyvovet.t_clyvo_tutor' doesn't exist` em qualquer endpoint de lembrete ou sugestão.
+
+---
+
+### Geração de IDs (UUID)
+
+Todo ID é um UUID gerado **em C#**, no repositório, antes do `INSERT`. O banco não
+participa: as colunas `id` são `VARCHAR(36)` simples, sem trigger, sem `DEFAULT`, e o
+mapeamento diz isso explicitamente com `ValueGeneratedNever()`.
+
+```csharp
+// Repositories/ProdutoRepository.cs
+produto.Id = Guid.NewGuid().ToString();
+```
+
+```csharp
+// Data/Configurations/ProdutoConfiguration.cs
+builder.Property(p => p.Id)
+    .HasColumnName("id")
+    .HasColumnType("VARCHAR(36)")
+    .ValueGeneratedNever();
+```
+
+> **Isto mudou com a migração para MySQL.** No Oracle, o ID vinha da função
+> `fn_uuid()` chamada num trigger `BEFORE INSERT`, e o EF Core o lia de volta com
+> `RETURNING`. Gerar do lado da aplicação tem uma vantagem prática aqui: o ID existe
+> antes de a linha ser gravada, então dá para montar respostas e relacionamentos sem
+> um segundo *round-trip* ao banco.
+
+---
+
+### Scripts disponíveis
+
+| Arquivo | Quando usar |
+|---------|-------------|
+| [`schema/script_bd.sql`](schema/script_bd.sql) | Desenvolvimento local: cria o schema das duas APIs, com seed, num MySQL vazio ([3.1](#31--criar-o-banco-e-aplicar-o-schema)) |
+| [`schema/ef/baseline-banco-compartilhado.sql`](schema/ef/baseline-banco-compartilhado.sql) | Banco compartilhado já montado pelo Flyway da Java: marca a migration `Inicial` como aplicada ([3.3](#33--migrations-do-ef-core)) |
+| [`schema/ef/migrations-idempotente.sql`](schema/ef/migrations-idempotente.sql) | Banco compartilhado: aplica as migrations do EF que faltarem, depois do baseline ([3.3](#33--migrations-do-ef-core)) |
+| [`schema/legado-oracle/`](schema/legado-oracle/) | Só consulta: os scripts do tempo do Oracle, que não rodam no MySQL |
+
+---
+
+## NoSQL — MongoDB (cache do parecer de IA)
+
+O parecer de saúde preditiva (`GET /api/v1/saude-preditiva/{animalId}`) é gerado por um LLM ou por regras e fica em
+cache por 7 dias, um por animal. Ele é naturalmente um **documento aninhado** (riscos, recomendações, resumo) com
+**validade**, então o MongoDB o guarda como subdocumento, com um **índice TTL** em `validoAte` para o documento
+expirar sozinho. O repositório é escolhido por configuração — a interface (`IParecerIaRepository`), a entidade e o
+serviço não mudam.
+
+| Chave | Para quê |
+|---|---|
+| `Mongo:ConnectionString` | Connection string do MongoDB. **Vazia ou ausente = Mongo desligado** e o cache continua na tabela `t_clyvo_parecer_ia` do MySQL (é o caso de produção hoje) |
+| `Mongo:Database` | Nome do banco (padrão `clyvovet`) |
+
+**Rodando local:**
+
+```bash
+docker compose up -d mongo                                    # mongo:7 em 127.0.0.1:27017
+cd src/ClyvoVet.Api
+dotnet user-secrets set "Mongo:ConnectionString" "mongodb://localhost:27017"
+```
+
+Em produção a connection string vai em variável de ambiente (`Mongo__ConnectionString`), nunca em arquivo versionado.
+
+**O cache nunca derruba a feature.** Mongo fora do ar na leitura = *cache miss* (o parecer é gerado normalmente);
+na escrita = `Warning` no log. O driver espera no máximo 3 s pelo servidor (o padrão dele é 30 s). O ambiente `Testing`
+nunca usa Mongo, mesmo com a chave definida.
+
+**Documento** (coleção `pareceres_ia`, `_id` = id do animal):
+
+```json
+{ "_id": "animal-1", "origem": "IA", "modelo": "meta.llama-3.3-70b-instruct",
+  "conteudo": { "riscos": [ … ], "recomendacoes": [ … ], "resumo": "…", "baseLimitada": false },
+  "geradoEm": "2026-09-25T12:00:00Z", "validoAte": "2026-10-02T12:00:00Z" }
+```
+
+**Testes.** O mapeamento, a resiliência a falhas e o registro por configuração rodam **sem servidor**. Os testes contra um
+MongoDB real são marcados e **ficam como *Skipped*** (com a razão no relatório) enquanto `MONGO_TEST_URI` não estiver definida:
+
+```bash
+docker run -d --rm -p 27017:27017 --name clyvovet-mongo-teste mongo:7
+MONGO_TEST_URI=mongodb://localhost:27017 dotnet test tests/ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj
+docker stop clyvovet-mongo-teste
+```
+
+Cada teste cria e apaga o próprio banco (`clyvovet_teste_<guid>`): nada de dados de desenvolvimento é tocado.
+
+---
+
+## Documentação complementar
+
+Tudo o que não é uso direto da API fica em [`docs/`](docs/README.md):
+
+### ☁️ Deploy na Azure
+
+O passo a passo do deploy na Azure (App Service + Azure Database for MySQL) e os endereços de
+produção estão em [`docs/deploy-azure.md`](docs/deploy-azure.md).
+
+### Guia de Testes Manuais
+
+O roteiro dos 54 testes manuais pelo Swagger (produtos, eventos pet, lembretes e sugestões)
+está em [`docs/guia-de-testes-manuais.md`](docs/guia-de-testes-manuais.md).
 
 ---
 

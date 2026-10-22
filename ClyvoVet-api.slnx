@@ -1,5 +1,8 @@
 <Solution>
-<Project Path="ClyvoVet.Api/ClyvoVet.Api.csproj" />
-<Project Path="ClyvoVet.Api/ClyvoVet.Api.Tests.Unit/ClyvoVet.Api.Tests.Unit.csproj" />
-<Project Path="ClyvoVet.Api/ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj" />
+<Project Path="src/ClyvoVet.Api/ClyvoVet.Api.csproj" />
+<Project Path="src/ClyvoVet.Domain/ClyvoVet.Domain.csproj" />
+<Project Path="src/ClyvoVet.Application/ClyvoVet.Application.csproj" />
+<Project Path="src/ClyvoVet.Infrastructure/ClyvoVet.Infrastructure.csproj" />
+<Project Path="tests/ClyvoVet.Api.Tests.Unit/ClyvoVet.Api.Tests.Unit.csproj" />
+<Project Path="tests/ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj" />
 </Solution>

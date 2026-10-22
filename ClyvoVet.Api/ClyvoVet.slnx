@@ -1,5 +1,0 @@
-<Solution>
-<Project Path="ClyvoVet.Api.csproj" />
-<Project Path="ClyvoVet.Api.Tests.Unit/ClyvoVet.Api.Tests.Unit.csproj" />
-<Project Path="ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj" />
-</Solution>
