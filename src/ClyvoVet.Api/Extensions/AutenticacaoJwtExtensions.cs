@@ -66,8 +66,17 @@ public static class AutenticacaoJwtExtensions
             // de 15. Os dois lados rodam com relógio de nuvem.
             ClockSkew = TimeSpan.FromSeconds(30),
 
-            // Só HS256. Sem isto, a lista de algoritmos aceitos é a padrão.
-            ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+            // HMAC-SHA2, nas três larguras. A API Java não fixa o algoritmo: signWith(chave) escolhe
+            // HS256, HS384 ou HS512 pelo tamanho da chave (32–47, 48–63 e 64+ bytes). Um segredo gerado
+            // com `openssl rand -base64 48`, como o deploy da Java manda, produz HS384, e aceitar só
+            // HS256 recusava todo token dela com 401. A chave continua simétrica e secreta, então
+            // "none" e os algoritmos assimétricos seguem de fora.
+            ValidAlgorithms =
+            [
+                SecurityAlgorithms.HmacSha256,
+                SecurityAlgorithms.HmacSha384,
+                SecurityAlgorithms.HmacSha512,
+            ],
 
             NameClaimType = ClaimsDoToken.UsuarioId,
             RoleClaimType = ClaimsDoToken.Perfil,
