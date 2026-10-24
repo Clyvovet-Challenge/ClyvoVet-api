@@ -104,17 +104,15 @@ implementa. A **Api** só referencia a Infrastructure para registrar as implemen
 
 Essas regras são **verificadas por teste**:
 [`ArquiteturaTests`](tests/ClyvoVet.Api.Tests.Unit/ArquiteturaTests.cs) falha se uma camada passar a referenciar o que
-não pode. O diagrama da infraestrutura na nuvem fica em [`docs/arquitetura-azure.svg`](docs/arquitetura-azure.svg).
+não pode. O ambiente publicado está descrito em [Ambiente publicado](#ambiente-publicado); o diagrama de implantação
+da Azure, usado nas demonstrações de DevOps, fica em [`docs/arquitetura-azure.svg`](docs/arquitetura-azure.svg).
 
 ### Duas APIs, um banco
 
 
-Duas APIs independentes dividem **um único banco MySQL**, e nenhuma das duas roda
-em container: as duas são publicadas como aplicação nativa em **Azure App Service
-Linux**, sobre um **Azure Database for MySQL Flexible Server** gerenciado. É a
-Opção 2 exigida pela disciplina de DevOps, onde app em container e banco em
-container são penalizados. (O `Dockerfile` na raiz continua servindo ao
-desenvolvimento local; ele não produz o artefato publicado.)
+Duas APIs independentes dividem **um único banco MySQL**. As duas rodam na **Render**, como containers
+Docker (o `Dockerfile` na raiz é o artefato publicado), e o banco é gerenciado pelo **Aiven**. O que está no ar,
+com endereços, variáveis e limites, está em [Ambiente publicado](#ambiente-publicado), logo abaixo.
 
 | API | Responsabilidade | Tabelas gerenciadas |
 |-----|-----------------|---------------------|
@@ -128,6 +126,56 @@ desenvolvimento local; ele não produz o artefato publicado.)
 > consultamos o professor, que **autorizou manter o MySQL** em 20/09/2026. As migrations do EF cobrem as
 > tabelas que esta API grava: veja [3.3 — Migrations do EF Core](#33--migrations-do-ef-core).
 
+### Ambiente publicado
+
+| Peça | Onde | Endereço |
+|---|---|---|
+| API .NET (este projeto) | Render, container Docker (plano gratuito) | https://clyvovet-api.onrender.com · [Swagger](https://clyvovet-api.onrender.com/swagger) · [saúde](https://clyvovet-api.onrender.com/health) |
+| API Java | Render, container Docker (plano gratuito) | https://clyvovet-backend-java.onrender.com |
+| Banco MySQL compartilhado | Aiven | aceita conexão só com TLS (`SslMode=Required`) |
+
+```mermaid
+flowchart LR
+    app["📱 App móvel"]
+    java["☕ API Java<br/>Render"]
+    net["ClyvoVet API .NET<br/>Render"]
+    mysql[("MySQL<br/>Aiven")]
+    tg["Telegram Bot API"]
+
+    app -- "login" --> java
+    app -- "Bearer + X-Api-Key" --> net
+    java -. "access token (mesmo segredo)" .-> net
+    java --> mysql
+    net --> mysql
+    net --> tg
+```
+
+**Variáveis de ambiente do serviço .NET** (só os nomes: os valores ficam no painel da Render, nunca no repositório):
+
+| Variável | Obrigatória | Para quê |
+|---|---|---|
+| `ConnectionStrings__DefaultConnection` | sim | connection string do MySQL, com `SslMode=Required` |
+| `Jwt__Secret` | sim | o **mesmo** valor de `JWT_SECRET` da API Java |
+| `Api__ApiKey` | sim | chave do header `X-Api-Key` |
+| `Telegram__BotToken`, `Telegram__BotUsername` | para o Telegram | token e nome do bot |
+| `Telegram__ApiKey` | para o Telegram | chave do envio de mensagens (`/api/v1/telegram/enviar`) |
+| `Mongo__ConnectionString` | não | sem ela, o cache do parecer de IA fica no MySQL |
+| `Cors__Origens` | não | origens liberadas para navegador; o app nativo não usa CORS |
+
+**Banco.** O schema é criado pelo Flyway da API Java, e esta API **não roda migration ao subir**. Num banco novo a
+ordem é: a Java sobe uma vez, depois o `schema/ef/baseline-banco-compartilhado.sql` registra as migrations do EF
+(passo a passo em [3.3](#33--migrations-do-ef-core)).
+
+**Limites do plano gratuito.**
+- **Subida a frio:** a Render desliga o serviço depois de cerca de 15 minutos sem requisições. A primeira chamada
+  depois disso espera a instância subir: algumas dezenas de segundos na .NET e alguns minutos na Java (Spring).
+- **Telegram e lembretes:** o bot lê as mensagens por *polling* e a varredura de lembretes roda dentro do próprio
+  processo. Com o serviço dormindo, nenhum dos dois funciona; qualquer chamada (por exemplo `GET /health/live`) o acorda.
+- **Banco:** o período de teste do Aiven é de 30 dias a partir de 18/10/2026. Depois dele o banco é desligado, e as
+  duas APIs ficam sem dados.
+- **Azure:** os scripts em [`azure/`](azure/) e o [`docs/deploy-azure.md`](docs/deploy-azure.md) servem às demonstrações
+  de DevOps. A infraestrutura é criada para a demonstração e removida em seguida, para não consumir crédito.
+
 ---
 
 ## Tecnologias
@@ -140,7 +188,8 @@ desenvolvimento local; ele não produz o artefato publicado.)
 | MongoDB.Driver / MongoDB | 3.12.0 / 7 | Cache NoSQL do parecer de IA (opcional: só com `Mongo:ConnectionString`) |
 | Swashbuckle.AspNetCore | 10.1.7 | Geração do Swagger / OpenAPI |
 | Microsoft.OpenApi | 2.12.2 | Modelos OpenAPI (namespace atualizado na v2) |
-| MySQL | 8.0 | Banco de dados (Azure Database for MySQL Flexible Server na nuvem) |
+| MySQL | 8.0 | Banco de dados (Aiven na nuvem, compartilhado com a API Java) |
+| Render | — | Hospedagem das duas APIs (container Docker, plano gratuito) |
 | Microsoft.Extensions.Diagnostics.HealthChecks | 8.0.11 | Health Checks (`/health`, `/health/live`, `/health/ready`) |
 | Serilog.AspNetCore | 10.0.0 | Logging estruturado (console sempre; arquivo em `Development`) |
 | OpenTelemetry (.NET SDK) | 1.18.0 | Distributed tracing + métricas de desempenho |
@@ -307,12 +356,12 @@ dotnet user-secrets list
 | `Port` | `3306` | Porta (o padrão do MySQL) |
 | `Database` | `clyvovet` | Nome do banco |
 | `Uid` / `Pwd` | `root` / sua senha | Credenciais |
-| `SslMode` | `Required` | **Obrigatório na Azure**; dispensável em `localhost` |
+| `SslMode` | `Required` | **Obrigatório em banco gerenciado** (Aiven, Azure); dispensável em `localhost` |
 
-**Contra o banco da Azure** (o mesmo que a API Java usa), acrescente o TLS — o MySQL Flexible Server recusa a conexão sem ele:
+**Contra o banco na nuvem** (o do Aiven, o mesmo que a API Java usa), acrescente o TLS — o servidor recusa a conexão sem ele:
 
 ```
-Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvovetadmin;Pwd=<SENHA>;SslMode=Required;
+Server=<SERVIDOR>.aivencloud.com;Port=<PORTA>;Database=<BANCO>;Uid=<USUARIO>;Pwd=<SENHA>;SslMode=Required;
 ```
 
 > **Erro: `Unable to connect to any of the specified MySQL hosts`**
@@ -324,14 +373,14 @@ Server=<SERVIDOR>.mysql.database.azure.com;Port=3306;Database=clyvovet;Uid=clyvo
 > **Erro: `Unknown database 'clyvovet'`**
 > O banco ainda não existe. É o Passo 3.
 
-> **Erro na Azure: `The SSL connection could not be established`**
+> **Erro em banco gerenciado: `The SSL connection could not be established`**
 > Faltou `SslMode=Required;` na connection string.
 
 ---
 
 ### Passo 3 — Preparar o banco de dados
 
-> ⚠️ **Só para desenvolvimento local.** No banco da Azure **não execute nada disto**:
+> ⚠️ **Só para desenvolvimento local.** No banco da nuvem (Aiven) **não execute nada disto**:
 > lá o banco nasce vazio e quem cria o schema é o **Flyway da API Java**, no primeiro
 > boot dela. Aplicar DDL antes deixa as tabelas sem a `flyway_schema_history`, e o
 > Flyway então recusa migrar um schema não vazio que ele não conhece — a API Java
@@ -598,6 +647,7 @@ No Swagger (`/swagger`), clique em **"Authorize"** (canto superior direito) e in
 3. Teste `GET /health/live` (200) e uma rota protegida sem token (401) e com token (200).
 4. Rollback rápido, sem redeploy: `Auth__ExigirToken=false`.
 5. Se o recorte por tutor atrapalhar algum fluxo em produção: `Api__EscopoPorTutor=false`, também sem redeploy.
+6. O `Jwt__Secret` pode ter qualquer tamanho a partir de 32 bytes: a API Java assina em HS256, HS384 ou HS512 conforme o tamanho da chave (`openssl rand -base64 48`, por exemplo, produz HS384), e esta API aceita os três.
 
 ### Quem faz o login: a API Java
 
@@ -1279,7 +1329,7 @@ Ficando algum desses serviços inacessível (connection string errada, token inv
   ```
 
   O nível só aparece (`@l`) quando não é `Information`, e uma exceção vem em `@x`. Como cada propriedade é um campo, dá para filtrar por `StatusCode` ou `CorrelationId` sem expressão regular.
-- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: no App Service esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
+- O **arquivo** (`Logs/clyvovet-api-*.log`, rotação diária, retenção de 7 dias) entra **somente em `Development`**. O motivo é operacional: num PaaS como a Render esse caminho é efêmero e por instância, cada réplica escreveria o seu próprio arquivo, ninguém os agrega e o conteúdo some no restart — seria a única dependência de armazenamento local da API. Localmente ele serve, e é onde dá para demonstrá-lo. O ambiente da suíte é `Testing`, então os testes também não deixam rastro em disco.
 - Toda linha de log carrega um **Correlation ID** por requisição, gerado pelo [`CorrelationIdMiddleware`](src/ClyvoVet.Api/Middleware/CorrelationIdMiddleware.cs) — ou herdado do header `X-Correlation-Id` quando o cliente manda um valor que passa na validação de tamanho/formato — e devolvido também na resposta.
 - São usados três níveis: `Information` para requisições HTTP concluídas, `Warning` para erros de negócio esperados (404/400) e `Error` para exceções não tratadas (500).
 - Os níveis mínimos por categoria são ajustáveis em [`appsettings.json`](src/ClyvoVet.Api/appsettings.json), na seção `"Serilog"`.
@@ -1453,8 +1503,9 @@ Tudo o que não é uso direto da API fica em [`docs/`](docs/README.md):
 
 ### ☁️ Deploy na Azure
 
-O passo a passo do deploy na Azure (App Service + Azure Database for MySQL) e os endereços de
-produção estão em [`docs/deploy-azure.md`](docs/deploy-azure.md).
+O passo a passo do deploy na Azure (App Service + Azure Database for MySQL), usado nas demonstrações de
+DevOps, está em [`docs/deploy-azure.md`](docs/deploy-azure.md). A hospedagem permanente é a Render
+([Ambiente publicado](#ambiente-publicado)).
 
 ### Guia de Testes Manuais
 
