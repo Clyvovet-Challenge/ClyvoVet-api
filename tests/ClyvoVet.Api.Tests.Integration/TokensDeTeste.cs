@@ -4,7 +4,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ClyvoVet.Api.Tests.Integration;
 
-/// <summary>Monta access tokens como a API Java monta: chave = base64 DECODIFICADO.</summary>
+/// <summary>
+/// Monta access tokens como a API Java monta: chave = base64 DECODIFICADO. O algoritmo, na Java, não é
+/// fixo: <c>signWith(chave)</c> escolhe HS256, HS384 ou HS512 pelo tamanho da chave (32–47, 48–63 e 64+
+/// bytes), por isso o <paramref name="algoritmo"/> é parâmetro.
+/// </summary>
 public static class TokensDeTeste
 {
     /// <summary>O mesmo segredo de <c>src/test/resources/application.properties</c> da API Java.</summary>
@@ -20,7 +24,9 @@ public static class TokensDeTeste
         string publico = Publico,
         int minutosDeVida = 15,
         byte[]? chaveCrua = null,
-        bool comSub = true)
+        bool comSub = true,
+        string algoritmo = SecurityAlgorithms.HmacSha256,
+        bool semAssinatura = false)
     {
         var chave = new SymmetricSecurityKey(chaveCrua ?? Convert.FromBase64String(Segredo));
 
@@ -43,7 +49,8 @@ public static class TokensDeTeste
             // seria exercida.
             notBefore: agora.AddMinutes(Math.Min(-1, minutosDeVida - 1)),
             expires: agora.AddMinutes(minutosDeVida),
-            signingCredentials: new SigningCredentials(chave, SecurityAlgorithms.HmacSha256));
+            // Sem credenciais o token sai com alg "none": a API tem de recusar.
+            signingCredentials: semAssinatura ? null : new SigningCredentials(chave, algoritmo));
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

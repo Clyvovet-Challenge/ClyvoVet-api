@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ClyvoVet.Api.Tests.Integration;
 
@@ -38,6 +39,14 @@ public class AutenticacaoJwtTests : IClassFixture<AutenticacaoJwtFixture>
     // ================================================================
     // O que precisa ser recusado — 401
     // ================================================================
+
+    [Fact]
+    public async Task Autenticado_TokenSemAssinatura_RetornaUnauthorized()
+    {
+        // alg "none": ampliar a lista de algoritmos aceitos não pode abrir esta porta.
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            await GetComTokenAsync(RotaAutenticada, TokensDeTeste.Access(semAssinatura: true)));
+    }
 
     [Fact]
     public async Task Autenticado_SemToken_RetornaUnauthorized()
@@ -178,5 +187,51 @@ public class AutenticacaoJwtAlavancaTests : IClassFixture<ExigirTokenDesligadoFi
         var resposta = await _fixture.CreateClient().GetAsync(rota);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+    }
+}
+
+/// <summary>
+/// A API Java não fixa o algoritmo: <c>signWith(chave)</c> escolhe HS256, HS384 ou HS512 pelo tamanho da
+/// chave (32–47, 48–63 e 64+ bytes), e a biblioteca de tokens recusa até assinar com uma chave menor que o
+/// algoritmo pede. Por isso cada largura é testada com a chave que a Java usaria. O de 48 bytes é o caso de
+/// produção (<c>openssl rand -base64 48</c>): foi o 401 que o deploy mostrou e que a suíte, toda com chave
+/// de 44 bytes e HS256, não via.
+/// </summary>
+public class AutenticacaoJwtComSegredosLongosTests :
+    IClassFixture<Segredo48BytesFixture>, IClassFixture<Segredo64BytesFixture>
+{
+    private const string Rota = "/teste-autenticacao/autenticado";
+
+    private readonly Segredo48BytesFixture _com48Bytes;
+    private readonly Segredo64BytesFixture _com64Bytes;
+
+    public AutenticacaoJwtComSegredosLongosTests(Segredo48BytesFixture com48Bytes, Segredo64BytesFixture com64Bytes)
+    {
+        _com48Bytes = com48Bytes;
+        _com64Bytes = com64Bytes;
+    }
+
+    private static async Task<HttpStatusCode> GetAsync(HttpClient cliente, string token)
+    {
+        cliente.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "Bearer " + token);
+        return (await cliente.GetAsync(Rota)).StatusCode;
+    }
+
+    [Fact]
+    public async Task Autenticado_TokenHs384DaJavaComChaveDe48Bytes_RetornaOk()
+    {
+        var token = TokensDeTeste.Access(
+            chaveCrua: Segredo48BytesFixture.Chave, algoritmo: SecurityAlgorithms.HmacSha384);
+
+        Assert.Equal(HttpStatusCode.OK, await GetAsync(_com48Bytes.CreateClient(), token));
+    }
+
+    [Fact]
+    public async Task Autenticado_TokenHs512DaJavaComChaveDe64Bytes_RetornaOk()
+    {
+        var token = TokensDeTeste.Access(
+            chaveCrua: Segredo64BytesFixture.Chave, algoritmo: SecurityAlgorithms.HmacSha512);
+
+        Assert.Equal(HttpStatusCode.OK, await GetAsync(_com64Bytes.CreateClient(), token));
     }
 }

@@ -40,6 +40,25 @@ public class AutenticacaoJwtFixture : WebApplicationFactory<Program>
     }
 }
 
+/// <summary>
+/// O segredo que o deploy da Java manda gerar (<c>openssl rand -base64 48</c>): 48 bytes, com os quais a
+/// Java assina em HS384.
+/// </summary>
+public class Segredo48BytesFixture : AutenticacaoJwtFixture
+{
+    public static readonly byte[] Chave = Enumerable.Range(1, 48).Select(i => (byte)i).ToArray();
+
+    protected override string? Segredo => Convert.ToBase64String(Chave);
+}
+
+/// <summary>Um segredo de 64 bytes, com o qual a Java assina em HS512.</summary>
+public class Segredo64BytesFixture : AutenticacaoJwtFixture
+{
+    public static readonly byte[] Chave = Enumerable.Range(1, 64).Select(i => (byte)i).ToArray();
+
+    protected override string? Segredo => Convert.ToBase64String(Chave);
+}
+
 /// <summary>Sem <c>Jwt:Secret</c>: a API tem de subir e responder 401, não cair.</summary>
 public class SemSegredoFixture : AutenticacaoJwtFixture
 {
