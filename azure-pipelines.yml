@@ -1,0 +1,99 @@
+# Pipeline CI/CD da ClyvoVet API (Azure DevOps).
+# CI: build + testes + artefato. CD: deploy do artefato no Azure Web App.
+# Os valores sensíveis vêm do variable group "clyvovet-segredos" (marcados como secret
+# no Azure DevOps); nada de senha ou token neste arquivo.
+
+trigger:
+  branches:
+    include:
+      - main
+      - sprint-4
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: clyvovet-segredos          # ConnectionString, JwtSecret, ApiKey (secret)
+  - name: buildConfiguration
+    value: Release
+  - name: serviceConnection           # service connection ARM criada no projeto
+    value: sc-azure-clyvovet
+  - name: webAppName
+    value: app-clyvovet-devops-rm563065
+
+stages:
+  - stage: CI
+    displayName: CI - build, testes e artefato
+    jobs:
+      - job: Build
+        steps:
+          - task: UseDotNet@2
+            displayName: Instalar .NET 8
+            inputs:
+              packageType: sdk
+              version: 8.0.x
+
+          # O SDK 8 não lê .slnx, então compila pelo csproj da Api (que puxa os
+          # outros projetos) e testa cada projeto de teste.
+          - script: dotnet build src/ClyvoVet.Api/ClyvoVet.Api.csproj -c $(buildConfiguration)
+            displayName: Build
+
+          - script: >
+              dotnet test tests/ClyvoVet.Api.Tests.Unit/ClyvoVet.Api.Tests.Unit.csproj
+              -c $(buildConfiguration) --logger trx --results-directory $(Agent.TempDirectory)/testes
+            displayName: Testes unitários
+
+          - script: >
+              dotnet test tests/ClyvoVet.Api.Tests.Integration/ClyvoVet.Api.Tests.Integration.csproj
+              -c $(buildConfiguration) --logger trx --results-directory $(Agent.TempDirectory)/testes
+            displayName: Testes de integração
+
+          - task: PublishTestResults@2
+            displayName: Publicar resultado dos testes
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '$(Agent.TempDirectory)/testes/*.trx'
+
+          - script: >
+              dotnet publish src/ClyvoVet.Api/ClyvoVet.Api.csproj
+              -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/publish /p:UseAppHost=false
+            displayName: Publicar a aplicação
+
+          - task: ArchiveFiles@2
+            displayName: Gerar o zip do artefato
+            inputs:
+              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/publish
+              includeRootFolder: false
+              archiveFile: $(Build.ArtifactStagingDirectory)/clyvovet-api.zip
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publicar o artefato no Azure DevOps
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)/clyvovet-api.zip
+              artifactName: api
+
+  - stage: CD
+    displayName: CD - deploy no Azure Web App
+    dependsOn: CI
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        environment: producao
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: Deploy do artefato no Web App
+                  inputs:
+                    azureSubscription: $(serviceConnection)
+                    appType: webAppLinux
+                    appName: $(webAppName)
+                    package: $(Pipeline.Workspace)/api/clyvovet-api.zip
+                    appSettings: >-
+                      -ConnectionStrings__DefaultConnection "$(ConnectionString)"
+                      -Jwt__Secret "$(JwtSecret)"
+                      -Api__ApiKey "$(ApiKey)"
