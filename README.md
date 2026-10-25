@@ -15,6 +15,7 @@ EF Core (MySQL), MongoDB, JWT e HATEOAS. É a metade .NET do ClyvoVet; a metade 
 ## Sumário
 
 - [Sobre o Projeto](#sobre-o-projeto)
+- [Como avaliar](#como-avaliar)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
 - [Estrutura de Pastas](#estrutura-de-pastas)
@@ -51,7 +52,24 @@ A entrega junta todas essas funcionalidades numa base só, organizada em quatro 
 - **Arquitetura e código:** Clean Architecture em 4 projetos (Domain, Application, Infrastructure, Api), com as regras de dependência verificadas por teste; injeção de dependência; **tratamento global de exceções** com respostas `application/problem+json`.
 - **API REST:** **autenticação JWT** (o access token emitido pela API Java) com autorização por perfil; **paginação com total, ordenação e filtros**; **HATEOAS** nas consultas, sem quebrar o contrato do app móvel (o array JSON continua sendo o padrão); Swagger/OpenAPI documentado e exportado.
 - **Persistência:** EF Core sobre **MySQL** com o padrão Repository, e **MongoDB** como cache do parecer de IA, com expiração automática por índice TTL.
-- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **582 testes** (357 unitários + 225 de integração) e **98,8% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
+- **Observabilidade e testes:** **health checks** (`/health`, `/health/live`, `/health/ready`) do MySQL, do MongoDB e do Telegram; **logs estruturados** (JSON fora de `Development`) correlacionados por `X-Correlation-Id`; tracing e métricas com OpenTelemetry (`/metrics`); **585 testes** (357 unitários + 228 de integração) e **98,8% de cobertura** de linhas em Domain + Application. Um [ensaio geral](docs/ensaio-geral.md) rodou a API inteira contra MySQL e MongoDB reais.
+
+---
+
+## Como avaliar
+
+O passo a passo para testar, as credenciais de demonstração e um mapa "item do rubric → onde olhar" estão no
+**`AVALIACAO.md`**, na raiz do zip da entrega. O modelo desse guia, sem as credenciais, está em
+[`docs/avaliacao-modelo.md`](docs/avaliacao-modelo.md).
+
+| O que fazer | Comando ou endereço | Precisa de credencial? |
+|---|---|---|
+| Compilar e rodar os **585 testes** | `dotnet build src/ClyvoVet.Api/ClyvoVet.Api.csproj` e `dotnet test tests/ClyvoVet.Api.Tests.Unit` e `tests/ClyvoVet.Api.Tests.Integration` | não |
+| Ver a cobertura (98,8%) | `dotnet tool restore` e `bash scripts/cobertura.sh` | não |
+| Abrir a API no ar | https://clyvovet-api.onrender.com/swagger · [saúde](https://clyvovet-api.onrender.com/health) | só para as rotas protegidas |
+
+As rotas de negócio exigem o token da API Java **e** a `X-Api-Key` (veja [🔐 Autenticação](#-autenticação)). Os testes
+automatizados não dependem de banco, de MongoDB nem da API Java: sobem a API em memória.
 
 ---
 
@@ -1368,7 +1386,7 @@ Ou os dois juntos, direto da raiz do repositório:
 dotnet test ClyvoVet-api.slnx
 ```
 
-**Resultado esperado:** `582` testes passando (`357` unitários e `225` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
+**Resultado esperado:** `585` testes passando (`357` unitários e `228` de integração), mais `8` testes contra um MongoDB real, pulados quando `MONGO_TEST_URI` não está definida.
 
 ### Cobertura
 
