@@ -8,6 +8,7 @@ e testes. Aqui fica o que não tem lugar lá, incluindo o deploy na Azure da Spr
 | [auditoria-de-arquitetura.md](auditoria-de-arquitetura.md) | Auditoria de 06/09/2026 (registro histórico; o estado atual está no README). Por que o banco é compartilhado com a API Java, o que é de responsabilidade desta API, e a lista do que precisa ser corrigido — com arquivo e linha para cada achado |
 | [arquitetura-azure.svg](arquitetura-azure.svg) | Diagrama de implantação exigido pela disciplina de DevOps |
 | [deploy-azure.md](deploy-azure.md) | Passo a passo do deploy na Azure (App Service + MySQL gerenciado) e endereços de produção |
+| [avaliacao-modelo.md](avaliacao-modelo.md) | Guia para quem avalia: como testar (build e testes, API no ar), prova em um comando e o mapa "item do rubric → onde olhar". As credenciais só aparecem na versão que vai no zip da entrega (`AVALIACAO.md`) |
 | [guia-de-testes-manuais.md](guia-de-testes-manuais.md) | Os 54 testes manuais pelo Swagger |
 | [ensaio-geral.md](ensaio-geral.md) | Ensaio geral da Sprint 4: a API contra MySQL + MongoDB reais, 79 checagens ponta a ponta, o que ficou de fora e o que o ensaio encontrou |
 | [swagger/openapi-v1.json](swagger/openapi-v1.json) | Documento OpenAPI exportado da API (`scripts/exportar-swagger.sh`) |

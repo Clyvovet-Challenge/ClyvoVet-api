@@ -183,6 +183,9 @@ DocProject/Help/html
 publish/
 publish.zip
 
+# Zip da entrega: leva credenciais (scripts/gerar-zip-entrega.sh), nunca vai para o Git
+ClyvoVet-api-entrega*.zip
+
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
