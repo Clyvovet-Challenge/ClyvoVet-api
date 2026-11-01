@@ -16,7 +16,7 @@ public static class DocumentacaoApiExtensions
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
-                Title   = "🐾 Clyvo Vet API",
+                Title   = "🐾 Clyvo Vet API — CI/CD Sprint 4",
                 Version = "v1",
                 Description = """
                     API REST de gerenciamento veterinário — domínio **.NET** (ASP.NET Core 8 + MySQL).
