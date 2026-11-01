@@ -17,6 +17,7 @@ EF Core (MySQL), MongoDB, JWT e HATEOAS. É a metade .NET do ClyvoVet; a metade 
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Como avaliar](#como-avaliar)
 - [Arquitetura](#arquitetura)
+- [CI/CD no Azure DevOps](#cicd-no-azure-devops)
 - [Tecnologias](#tecnologias)
 - [Estrutura de Pastas](#estrutura-de-pastas)
 - [Princípios aplicados](#princípios-aplicados)
@@ -123,7 +124,7 @@ implementa. A **Api** só referencia a Infrastructure para registrar as implemen
 Essas regras são **verificadas por teste**:
 [`ArquiteturaTests`](tests/ClyvoVet.Api.Tests.Unit/ArquiteturaTests.cs) falha se uma camada passar a referenciar o que
 não pode. O ambiente publicado está descrito em [Ambiente publicado](#ambiente-publicado); o diagrama de implantação
-da Azure, usado nas demonstrações de DevOps, fica em [`docs/arquitetura-azure.svg`](docs/arquitetura-azure.svg).
+da Azure e o fluxo de CI/CD estão em [CI/CD no Azure DevOps](#cicd-no-azure-devops).
 
 ### Duas APIs, um banco
 
@@ -191,8 +192,83 @@ ordem é: a Java sobe uma vez, depois o `schema/ef/baseline-banco-compartilhado.
   processo. Com o serviço dormindo, nenhum dos dois funciona; qualquer chamada (por exemplo `GET /health/live`) o acorda.
 - **Banco:** o período de teste do Aiven é de 30 dias a partir de 18/10/2026. Depois dele o banco é desligado, e as
   duas APIs ficam sem dados.
-- **Azure:** os scripts em [`azure/`](azure/) e o [`docs/deploy-azure.md`](docs/deploy-azure.md) servem às demonstrações
-  de DevOps. A infraestrutura é criada para a demonstração e removida em seguida, para não consumir crédito.
+- **Azure:** a pipeline e o Web App da demonstração de DevOps estão descritos em
+  [CI/CD no Azure DevOps](#cicd-no-azure-devops). A infraestrutura é criada para a demonstração e removida em seguida,
+  para não consumir crédito. O registro da entrega anterior (Sprint 3) está em [`docs/deploy-azure.md`](docs/deploy-azure.md).
+
+---
+
+## CI/CD no Azure DevOps
+
+Esta seção é a entrega de **DevOps Tools & Cloud Computing**. O mesmo código que roda na Render é compilado, testado e
+empacotado por uma pipeline no **Azure DevOps** e implantado automaticamente num **Azure Web App**, falando com o
+**MySQL do Aiven** (banco em nuvem, PaaS).
+
+![Arquitetura da solução e fluxo CI/CD, com as etapas numeradas de 1 a 9](docs/arquitetura-cicd.svg)
+
+| Peça | Onde | Detalhe |
+|---|---|---|
+| Código | GitHub, `Clyvovet-Challenge/ClyvoVet-api` | a pipeline está em [`azure-pipelines.yml`](azure-pipelines.yml), na raiz |
+| Projeto no Azure DevOps | [`Sprint 4 – Azure DevOps`](https://dev.azure.com/clyvovet-rm563065/Sprint%204%20%E2%80%93%20Azure%20DevOps) | privado, Git, processo Agile; o professor foi convidado com acesso Basic |
+| Hospedagem | Azure Web App Linux, .NET 8, sem container, plano B1 | `app-clyvovet-devops-rm563065`, no grupo de recursos `rg-clyvovet-devops` |
+| Banco | Aiven, MySQL 8.4 | gerenciado (PaaS); só aceita conexão com TLS (`SslMode=Required`) |
+
+### Como a pipeline funciona
+
+A pipeline dispara **sozinha a cada commit** nas branches `main` e `sprint-4`. A `main` é a branch principal do
+repositório (o que o enunciado chama de `master`); Pull Requests não disparam a pipeline (`pr: none`). Ela tem dois
+*stages*:
+
+**CI** (integração contínua), num agente `ubuntu-24.04`:
+
+1. **Instala o .NET 8** (`UseDotNet@2`).
+2. **Build:** `dotnet build` em Release. O SDK 8 não lê o `.slnx`, então compila pelo `.csproj` da Api, que puxa os outros projetos.
+3. **Testes:** roda os projetos de teste unitário e de integração (xUnit) e **publica os resultados** na aba *Tests* do Azure DevOps. São 357 unitários e 228 de integração; os 8 testes que precisam de um MongoDB real ficam *pulados* no agente, que não tem MongoDB (localmente rodam com `MONGO_TEST_URI`).
+4. **Publish:** `dotnet publish` e empacotamento num `clyvovet-api.zip`.
+5. **Artefato:** o zip é publicado no Azure DevOps como o artefato `api`.
+
+**CD** (entrega contínua): só começa se o CI passar, e roda quando há um **artefato novo**. É um *deployment job* no
+ambiente `producao`, que usa a *service connection* `sc-azure-clyvovet` para implantar o zip no Web App
+(`AzureWebApp@1`) e gravar as configurações do aplicativo.
+
+### Dados sensíveis
+
+Nada sensível está no repositório nem no YAML. Os valores ficam num **variable group** do Azure DevOps chamado
+`clyvovet-segredos`, com as três variáveis marcadas como *secret*:
+
+| Variável no variable group | Vira, no Web App | Para quê |
+|---|---|---|
+| `ConnectionString` | `ConnectionStrings__DefaultConnection` | connection string do MySQL do Aiven, com `SslMode=Required` |
+| `JwtSecret` | `Jwt__Secret` | o mesmo segredo de assinatura do JWT que a API Java usa |
+| `ApiKey` | `Api__ApiKey` | chave do header `X-Api-Key` |
+
+A *service connection* tem papel **Contributor** só no grupo de recursos `rg-clyvovet-devops`, não na assinatura inteira.
+
+### Como reproduzir
+
+A infraestrutura da Azure existe só durante a demonstração. Para recriá-la (o nome do Web App é único no mundo: troque
+o sufixo `rm563065` pelo seu RM; a região `chilecentral` é uma das que a assinatura acadêmica libera):
+
+```bash
+az group create -n rg-clyvovet-devops -l brazilsouth
+az appservice plan create -g rg-clyvovet-devops -n plan-clyvovet-devops -l chilecentral --is-linux --sku B1
+az webapp create -g rg-clyvovet-devops -p plan-clyvovet-devops -n app-clyvovet-devops-rm563065 --runtime "DOTNETCORE:8.0"
+az webapp update -g rg-clyvovet-devops -n app-clyvovet-devops-rm563065 --https-only true
+```
+
+Depois, no Azure DevOps, uma vez só: criar a pipeline a partir do `azure-pipelines.yml` (*Pipelines → New pipeline →
+GitHub → Existing Azure Pipelines YAML file*), a service connection `sc-azure-clyvovet` (*Azure Resource Manager*,
+escopo no grupo de recursos), o variable group `clyvovet-segredos` e o ambiente `producao`, e autorizar a pipeline a
+usá-los. Se mudar o nome do Web App, ajuste a variável `webAppName` do YAML.
+
+Para conferir o deploy: `https://<web-app>.azurewebsites.net/health/ready` responde `200` quando a API sobe e o MySQL
+responde. O `/health` completo inclui o Telegram e responde `503` se o bot não tiver token configurado.
+
+Para apagar tudo e parar a cobrança:
+
+```bash
+az group delete -n rg-clyvovet-devops --yes --no-wait
+```
 
 ---
 
@@ -208,6 +284,8 @@ ordem é: a Java sobe uma vez, depois o `schema/ef/baseline-banco-compartilhado.
 | Microsoft.OpenApi | 2.12.2 | Modelos OpenAPI (namespace atualizado na v2) |
 | MySQL | 8.0 | Banco de dados (Aiven na nuvem, compartilhado com a API Java) |
 | Render | — | Hospedagem das duas APIs (container Docker, plano gratuito) |
+| Azure DevOps (Pipelines) | — | CI/CD: build, testes, artefato e deploy automático (`azure-pipelines.yml`) |
+| Azure Web App | Linux, .NET 8 | Hospedagem da API na demonstração de DevOps (plano B1, sem container) |
 | Microsoft.Extensions.Diagnostics.HealthChecks | 8.0.11 | Health Checks (`/health`, `/health/live`, `/health/ready`) |
 | Serilog.AspNetCore | 10.0.0 | Logging estruturado (console sempre; arquivo em `Development`) |
 | OpenTelemetry (.NET SDK) | 1.18.0 | Distributed tracing + métricas de desempenho |
