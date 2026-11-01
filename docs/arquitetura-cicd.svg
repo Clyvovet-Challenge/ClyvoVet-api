@@ -1,0 +1,177 @@
+<svg viewBox="0 0 1240 900" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">ClyvoVet API — arquitetura e fluxo CI/CD</title>
+  <desc id="d">O desenvolvedor envia o código ao GitHub (1); o commit dispara a pipeline de CI no Azure DevOps (2), que compila (3), roda os testes (4), publica a aplicação (5) e guarda o artefato (6); o artefato novo dispara o CD (7), que faz o deploy no Azure Web App (8); o Web App usa o banco MySQL do Aiven (9). O usuário final faz login na API Java (A), recebe o JWT (B) e chama a API .NET no Web App (C).</desc>
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="seta-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/>
+    </marker>
+    <marker id="seta-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f766e"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="900" fill="#ffffff"/>
+
+  <text x="620" y="38" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">ClyvoVet API — Arquitetura e fluxo CI/CD</text>
+  <text x="620" y="62" text-anchor="middle" font-size="14" fill="#475569">GitHub → Azure DevOps (CI + CD) → Azure Web App · banco MySQL gerenciado no Aiven</text>
+
+  <!-- ===== Persona: desenvolvedor ===== -->
+  <rect x="30" y="130" width="170" height="130" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+  <circle cx="115" cy="165" r="13" fill="#334155"/>
+  <path d="M90,205 q0,-24 25,-24 q25,0 25,24 z" fill="#334155"/>
+  <text x="115" y="226" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Desenvolvedor</text>
+  <text x="115" y="244" text-anchor="middle" font-size="12" fill="#475569">IDE + Git</text>
+
+  <!-- ===== GitHub ===== -->
+  <rect x="270" y="130" width="190" height="130" rx="10" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+  <text x="365" y="172" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">GitHub</text>
+  <text x="365" y="194" text-anchor="middle" font-size="12.5" fill="#334155">Clyvovet-Challenge/</text>
+  <text x="365" y="210" text-anchor="middle" font-size="12.5" fill="#334155">ClyvoVet-api</text>
+  <text x="365" y="232" text-anchor="middle" font-size="11.5" fill="#475569">branches main / sprint-4</text>
+  <text x="365" y="248" text-anchor="middle" font-size="11.5" fill="#475569">repositório de código</text>
+
+  <!-- ===== Azure DevOps ===== -->
+  <rect x="500" y="90" width="470" height="410" rx="14" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="520" y="114" font-size="14" font-weight="700" fill="#2563eb">Azure DevOps — projeto "Sprint 4 – Azure DevOps"</text>
+
+  <!-- CI -->
+  <rect x="520" y="130" width="430" height="140" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="535" y="152" font-size="13.5" font-weight="700" fill="#1e3a8a">Azure Pipelines — stage CI (agente ubuntu-24.04, .NET 8)</text>
+  <rect x="533" y="168" width="128" height="86" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="597" y="192" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">Build</text>
+  <text x="597" y="210" text-anchor="middle" font-size="11.5" fill="#334155">dotnet build</text>
+  <text x="597" y="226" text-anchor="middle" font-size="11.5" fill="#334155">Release</text>
+  <rect x="676" y="168" width="128" height="86" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="740" y="192" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">Testes</text>
+  <text x="740" y="210" text-anchor="middle" font-size="11.5" fill="#334155">xUnit: unitários +</text>
+  <text x="740" y="226" text-anchor="middle" font-size="11.5" fill="#334155">integração</text>
+  <rect x="819" y="168" width="118" height="86" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+  <text x="878" y="192" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a8a">Publish</text>
+  <text x="878" y="210" text-anchor="middle" font-size="11.5" fill="#334155">dotnet publish</text>
+  <text x="878" y="226" text-anchor="middle" font-size="11.5" fill="#334155">+ zip</text>
+  <line x1="661" y1="211" x2="676" y2="211" stroke="#334155" stroke-width="1.5" marker-end="url(#seta)"/>
+  <line x1="804" y1="211" x2="819" y2="211" stroke="#334155" stroke-width="1.5" marker-end="url(#seta)"/>
+
+  <!-- Artefato -->
+  <rect x="520" y="310" width="180" height="90" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="610" y="338" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">Artifacts</text>
+  <text x="610" y="358" text-anchor="middle" font-size="12" fill="#334155">artefato "api"</text>
+  <text x="610" y="374" text-anchor="middle" font-size="12" fill="#334155">(clyvovet-api.zip)</text>
+
+  <!-- CD -->
+  <rect x="770" y="310" width="180" height="90" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="860" y="336" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">Azure Pipelines</text>
+  <text x="860" y="354" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">stage CD</text>
+  <text x="860" y="376" text-anchor="middle" font-size="11.5" fill="#334155">ambiente "producao"</text>
+
+  <!-- Segredos -->
+  <rect x="520" y="430" width="180" height="56" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+  <text x="610" y="454" text-anchor="middle" font-size="12.5" font-weight="700" fill="#78350f">Variable group (secret)</text>
+  <text x="610" y="472" text-anchor="middle" font-size="11" fill="#78350f">clyvovet-segredos</text>
+  <rect x="770" y="430" width="180" height="56" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+  <text x="860" y="454" text-anchor="middle" font-size="12.5" font-weight="700" fill="#78350f">Service connection</text>
+  <text x="860" y="472" text-anchor="middle" font-size="11" fill="#78350f">sc-azure-clyvovet (ARM)</text>
+
+  <!-- ===== Azure (recursos) ===== -->
+  <rect x="1000" y="200" width="220" height="230" rx="14" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="1015" y="224" font-size="13" font-weight="700" fill="#2563eb">Azure — rg-clyvovet-devops</text>
+  <rect x="1015" y="240" width="190" height="175" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="1110" y="268" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">Azure Web App</text>
+  <text x="1110" y="288" text-anchor="middle" font-size="12" fill="#1e3a8a">Linux · .NET 8 (sem container)</text>
+  <text x="1110" y="308" text-anchor="middle" font-size="12" fill="#334155">ASP.NET Core + EF Core</text>
+  <text x="1110" y="326" text-anchor="middle" font-size="11" fill="#334155">app-clyvovet-devops-</text>
+  <text x="1110" y="341" text-anchor="middle" font-size="11" fill="#334155">rm563065</text>
+  <text x="1110" y="362" text-anchor="middle" font-size="11" fill="#334155">plano B1 · só HTTPS</text>
+  <text x="1110" y="380" text-anchor="middle" font-size="10.5" fill="#64748b" font-style="italic">segredos entram como</text>
+  <text x="1110" y="394" text-anchor="middle" font-size="10.5" fill="#64748b" font-style="italic">app settings (não no código)</text>
+
+  <!-- ===== Aiven ===== -->
+  <rect x="1000" y="530" width="220" height="120" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="1.5"/>
+  <ellipse cx="1110" cy="560" rx="22" ry="8" fill="#ffffff" stroke="#15803d"/>
+  <path d="M1088,560 v22 a22,8 0 0,0 44,0 v-22" fill="#ffffff" stroke="#15803d"/>
+  <text x="1110" y="610" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">Aiven — MySQL 8.4</text>
+  <text x="1110" y="628" text-anchor="middle" font-size="11.5" fill="#334155">banco gerenciado (PaaS)</text>
+  <text x="1110" y="643" text-anchor="middle" font-size="11.5" fill="#334155">t_clyvo_* · TLS obrigatório</text>
+
+  <!-- ===== Usuário final + API Java ===== -->
+  <rect x="760" y="560" width="190" height="120" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+  <circle cx="855" cy="592" r="13" fill="#334155"/>
+  <path d="M830,632 q0,-24 25,-24 q25,0 25,24 z" fill="#334155"/>
+  <text x="855" y="654" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Usuário final</text>
+  <text x="855" y="671" text-anchor="middle" font-size="11.5" fill="#475569">app móvel / Swagger</text>
+
+  <rect x="500" y="560" width="210" height="120" rx="10" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="605" y="594" text-anchor="middle" font-size="14" font-weight="700" fill="#4c1d95">API Java (Render)</text>
+  <text x="605" y="616" text-anchor="middle" font-size="12" fill="#4c1d95">Spring Boot</text>
+  <text x="605" y="636" text-anchor="middle" font-size="11.5" fill="#334155">login e emissão do JWT</text>
+  <text x="605" y="652" text-anchor="middle" font-size="11.5" fill="#334155">(mesmo segredo da API .NET)</text>
+
+  <!-- Integrações opcionais -->
+  <rect x="30" y="560" width="420" height="120" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="45" y="584" font-size="12.5" font-weight="700" fill="#475569">Integrações opcionais da API .NET</text>
+  <text x="45" y="606" font-size="11.5" fill="#475569">MongoDB (cache do parecer de IA) · OCI Generative AI ·</text>
+  <text x="45" y="622" font-size="11.5" fill="#475569">Telegram Bot API</text>
+  <text x="45" y="646" font-size="11" fill="#64748b" font-style="italic">Ligadas por variável de ambiente; não estão</text>
+  <text x="45" y="661" font-size="11" fill="#64748b" font-style="italic">configuradas no Azure da demonstração.</text>
+
+  <!-- ===== Setas do fluxo CI/CD (laranja, números) ===== -->
+  <line x1="200" y1="195" x2="270" y2="195" stroke="#c2410c" stroke-width="2.5" marker-end="url(#seta-o)"/>
+  <line x1="460" y1="195" x2="520" y2="195" stroke="#c2410c" stroke-width="2.5" marker-end="url(#seta-o)"/>
+  <!-- 6: CI -> artefato -->
+  <line x1="610" y1="270" x2="610" y2="310" stroke="#c2410c" stroke-width="2.5" marker-end="url(#seta-o)"/>
+  <!-- 7: artefato -> CD -->
+  <line x1="700" y1="355" x2="770" y2="355" stroke="#c2410c" stroke-width="2.5" marker-end="url(#seta-o)"/>
+  <!-- 8: CD -> Web App -->
+  <path d="M950,355 L1015,355" stroke="#c2410c" stroke-width="2.5" fill="none" marker-end="url(#seta-o)"/>
+  <!-- 9: Web App -> Aiven -->
+  <line x1="1110" y1="415" x2="1110" y2="530" stroke="#c2410c" stroke-width="2.5" marker-end="url(#seta-o)"/>
+  <!-- segredos / service connection (cinza) -->
+  <line x1="860" y1="430" x2="860" y2="400" stroke="#b45309" stroke-width="1.5" marker-end="url(#seta)"/>
+  <path d="M700,458 L735,458 L735,385 L770,385" stroke="#b45309" stroke-width="1.5" fill="none" marker-end="url(#seta)"/>
+
+  <!-- Badges numerados -->
+  <g font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">
+    <circle cx="235" cy="180" r="12" fill="#c2410c"/><text x="235" y="185">1</text>
+    <circle cx="490" cy="180" r="12" fill="#c2410c"/><text x="490" y="185">2</text>
+    <circle cx="610" cy="290" r="12" fill="#c2410c"/><text x="610" y="295">6</text>
+    <circle cx="735" cy="340" r="12" fill="#c2410c"/><text x="735" y="345">7</text>
+    <circle cx="982" cy="340" r="12" fill="#c2410c"/><text x="982" y="345">8</text>
+    <circle cx="1128" cy="472" r="12" fill="#c2410c"/><text x="1128" y="477">9</text>
+  </g>
+  <!-- 3, 4, 5 dentro do CI -->
+  <g font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">
+    <circle cx="547" cy="182" r="10" fill="#c2410c"/><text x="547" y="186.5">3</text>
+    <circle cx="690" cy="182" r="10" fill="#c2410c"/><text x="690" y="186.5">4</text>
+    <circle cx="833" cy="182" r="10" fill="#c2410c"/><text x="833" y="186.5">5</text>
+  </g>
+
+  <!-- ===== Setas de uso da aplicação (verde-azulado, letras) ===== -->
+  <line x1="760" y1="615" x2="710" y2="615" stroke="#0f766e" stroke-width="2.2" marker-end="url(#seta-t)"/>
+  <line x1="710" y1="650" x2="760" y2="650" stroke="#0f766e" stroke-width="2.2" stroke-dasharray="5 4" marker-end="url(#seta-t)"/>
+  <line x1="950" y1="600" x2="1075" y2="415" stroke="#0f766e" stroke-width="2.2" marker-end="url(#seta-t)"/>
+  <g font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">
+    <circle cx="735" cy="601" r="11" fill="#0f766e"/><text x="735" y="606">A</text>
+    <circle cx="735" cy="636" r="11" fill="#0f766e"/><text x="735" y="641">B</text>
+    <circle cx="1015" cy="508" r="11" fill="#0f766e"/><text x="1015" y="513">C</text>
+  </g>
+
+  <!-- ===== Legenda ===== -->
+  <rect x="30" y="705" width="1190" height="175" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="45" y="730" font-size="14" font-weight="700" fill="#c2410c">Fluxo CI/CD (a ordem das setas laranjas)</text>
+  <g font-size="12.5" fill="#0f172a">
+    <text x="45" y="752"><tspan font-weight="700">1</tspan> · O desenvolvedor faz commit e push no GitHub (branch main).</text>
+    <text x="45" y="772"><tspan font-weight="700">2</tspan> · O push dispara sozinho a pipeline no Azure DevOps (CI).</text>
+    <text x="45" y="792"><tspan font-weight="700">3</tspan> · Build: compila a solução em Release.</text>
+    <text x="45" y="812"><tspan font-weight="700">4</tspan> · Testes automáticos (xUnit): unitários e de integração.</text>
+    <text x="45" y="832"><tspan font-weight="700">5</tspan> · Publish: gera a aplicação e empacota em um zip.</text>
+    <text x="640" y="752"><tspan font-weight="700">6</tspan> · O zip é publicado como artefato no Azure DevOps (Artifacts).</text>
+    <text x="640" y="772"><tspan font-weight="700">7</tspan> · O artefato novo dispara o CD (ambiente "producao").</text>
+    <text x="640" y="792"><tspan font-weight="700">8</tspan> · Deploy automático no Azure Web App; segredos vêm do variable group.</text>
+    <text x="640" y="812"><tspan font-weight="700">9</tspan> · O Web App usa o MySQL do Aiven, por TLS, com a connection string protegida.</text>
+  </g>
+  <text x="45" y="858" font-size="12.5" font-weight="700" fill="#0f766e">Uso da aplicação (setas verdes):</text>
+  <text x="270" y="858" font-size="12.5" fill="#0f172a"><tspan font-weight="700">A</tspan> login na API Java · <tspan font-weight="700">B</tspan> a Java devolve o JWT · <tspan font-weight="700">C</tspan> o usuário chama a API .NET no Web App com o JWT e a X-Api-Key.</text>
+</svg>
