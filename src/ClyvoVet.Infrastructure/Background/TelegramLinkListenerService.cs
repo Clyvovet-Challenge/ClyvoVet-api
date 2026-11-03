@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services.Interfaces;
 using Telegram.Bot;
 
 namespace ClyvoVet.Infrastructure.Background;
@@ -204,29 +205,8 @@ public class TelegramLinkListenerService : BackgroundService
     private async Task ResponderMeusAnimaisAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        var animalRepository = scope.ServiceProvider.GetRequiredService<IAnimalRepository>();
-
-        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(
-                chatId,
-                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        var animais = (await animalRepository.GetByTutorIdAsync(tutorId)).ToList();
-        if (animais.Count == 0)
-        {
-            await _botClient.SendMessage(chatId, "Você ainda não tem nenhum pet cadastrado.", cancellationToken: cancellationToken);
-            return;
-        }
-
-        var linhas = animais.Select(a => $"• {a.Nome} — {a.Especie}{(string.IsNullOrWhiteSpace(a.Raca) ? "" : $" ({a.Raca})")}");
-        var mensagem = "🐾 Seus pets:\n\n" + string.Join("\n", linhas);
-        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.MeusAnimaisAsync(chatId), cancellationToken: cancellationToken);
     }
 
     private async Task ResponderMeusLembretesAsync(long chatId, CancellationToken cancellationToken)

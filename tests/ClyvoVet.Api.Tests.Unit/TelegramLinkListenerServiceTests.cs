@@ -1,5 +1,7 @@
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services;
+using ClyvoVet.Application.Services.Interfaces;
 using ClyvoVet.Infrastructure.Background;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -43,6 +45,7 @@ public class TelegramLinkListenerServiceTests
         servicos.AddScoped(_ => _vinculos.Object);
         servicos.AddScoped(_ => _animais.Object);
         servicos.AddScoped(_ => _lembretes.Object);
+        servicos.AddScoped<IComandosDoBotService, ComandosDoBotService>();
 
         return new TelegramLinkListenerService(
             _bot.Object,
