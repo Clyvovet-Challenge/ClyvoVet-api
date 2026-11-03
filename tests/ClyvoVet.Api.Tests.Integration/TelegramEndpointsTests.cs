@@ -54,7 +54,10 @@ public class TelegramTestFixture : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
 
         builder.ConfigureAppConfiguration((_, configuracao) =>
-            configuracao.AddInMemoryCollection(Configuracao));
+            configuracao.AddInMemoryCollection(new Dictionary<string, string?>(Configuracao)
+            {
+                ["Jwt:Secret"] = TokensDeTeste.Segredo,
+            }));
 
         builder.ConfigureServices(services =>
         {
@@ -106,16 +109,36 @@ public class TelegramEndpointsTests
 {
     /// <summary>
     /// O ataque que o convite de uso único existe para impedir: a X-Api-Key viaja dentro do app,
-    /// e com o recorte desligado quem a extraísse pedia o convite do tutor alheio e passava a
-    /// receber as notificações dele. Com a configuração de fábrica, isso é 403.
+    /// e quem a extraísse pedia o convite do tutor alheio e passava a receber as notificações
+    /// dele. Só a chave não autentica ninguém: 401, antes mesmo do recorte -- e assim continua
+    /// mesmo que alguém desligue o recorte na Render.
     /// </summary>
     [Fact]
-    public async Task GerarLink_ConfiguracaoPadraoSoComAChaveDoApp_Responde403()
+    public async Task GerarLink_SoComAChaveDoApp_Responde401()
     {
         // Arrange
         using var factory = new TelegramRecortePadraoFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+
+        // Act
+        var response = await client.GetAsync("/api/v1/telegram/link/tutor-de-outra-pessoa");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Com token, o recorte de fábrica decide: o tutor só pede o convite dele mesmo.
+    /// </summary>
+    [Fact]
+    public async Task GerarLink_ConfiguracaoPadraoComTokenDeOutroTutor_Responde403()
+    {
+        // Arrange
+        using var factory = new TelegramRecortePadraoFixture();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         // Act
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-de-outra-pessoa");
@@ -218,6 +241,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         // Act
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
@@ -243,6 +267,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         // Act
         var response = await client.GetAsync("/api/v1/telegram/link/tutor-abc-123");
@@ -262,6 +287,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         // Act
         var primeiro = await (await client.GetAsync("/api/v1/telegram/link/tutor-abc-123"))
@@ -303,6 +329,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         var response = await client.GetAsync("/api/v1/telegram/vinculo/tutor-abc-123");
 
@@ -341,6 +368,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         var response = await client.GetAsync("/api/v1/telegram/vinculo/tutor-sem-vinculo");
         var corpo = await response.Content.ReadFromJsonAsync<TelegramVinculoResponse>();
@@ -361,6 +389,7 @@ public class TelegramEndpointsTests
         using var factory = new TelegramTestFixture();
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "SUA_API_KEY");
+        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + TokensDeTeste.Access());
 
         var response = await client.DeleteAsync("/api/v1/telegram/vinculo/tutor-sem-vinculo");
 

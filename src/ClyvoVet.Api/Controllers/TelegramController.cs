@@ -2,8 +2,10 @@ using ClyvoVet.Application.Abstractions.External;
 using ClyvoVet.Application.DTOs.Request;
 using ClyvoVet.Api.Filters;
 using ClyvoVet.Api.Hateoas;
+using ClyvoVet.Api.Security;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClyvoVet.Api.Controllers;
@@ -85,6 +87,7 @@ public class TelegramController : ControllerBase
     /// </para>
     /// </remarks>
     [HttpGet("link/{tutorId}")]
+    [Authorize(Policy = PoliticasDeAcesso.Autenticado)]
     [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -116,6 +119,7 @@ public class TelegramController : ControllerBase
     /// </para>
     /// </remarks>
     [HttpGet("vinculo/{tutorId}")]
+    [Authorize(Policy = PoliticasDeAcesso.Autenticado)]
     [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -144,6 +148,7 @@ public class TelegramController : ControllerBase
     /// </para>
     /// </remarks>
     [HttpDelete("vinculo/{tutorId}")]
+    [Authorize(Policy = PoliticasDeAcesso.Autenticado)]
     [TypeFilter(typeof(ApiKeyFilterAttribute), Arguments = new object[] { "Api:ApiKey" })]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
