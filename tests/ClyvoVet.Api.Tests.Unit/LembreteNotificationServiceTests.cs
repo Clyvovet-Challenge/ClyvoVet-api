@@ -95,6 +95,25 @@ public class LembreteNotificationServiceTests
         _lembretes.Verify(r => r.ContarPendentesSemTelegramAsync(new DateTime(2026, 10, 1, 9, 30, 0)), Times.Once);
     }
 
+    /// <summary>
+    /// Caracterização: o texto exato que chega ao tutor hoje. Escrito antes de a
+    /// montagem da mensagem sair do worker.
+    /// </summary>
+    [Fact]
+    public async Task Notificacao_TrazTituloHorarioEPet()
+    {
+        var lembrete = Lembrete("l1", "tutor-1", null);
+        lembrete.Titulo = "Vermífugo";
+        lembrete.AgendadoEm = new DateTime(2026, 11, 10, 9, 30, 0);
+        _lembretes.Setup(r => r.GetPendentesVencendoAsync(It.IsAny<DateTime>())).ReturnsAsync([lembrete]);
+        _telegramRepo.Setup(r => r.GetChatIdByTutorIdAsync("tutor-1")).ReturnsAsync(2424L);
+
+        await Servico().VerificarLembretesAsync(CancellationToken.None);
+
+        _telegram.Verify(t => t.EnviarMensagemAsync(2424L,
+            "Lembrete: Vermífugo agendado para 10/11/2026 09:30 (Pet l1)."), Times.Once);
+    }
+
     /// <summary>O defeito: o primeiro lembrete explodia e o segundo nunca era visto.</summary>
     [Fact]
     public async Task UmLembreteQueExplode_NaoImpedeOsSeguintes()

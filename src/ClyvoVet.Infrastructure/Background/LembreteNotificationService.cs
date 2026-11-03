@@ -116,7 +116,7 @@ public class LembreteNotificationService : BackgroundService
         ITelegramService telegramService)
     {
         var tutor = lembrete.Animal.Tutor;
-        var mensagem = $"Lembrete: {lembrete.Titulo} agendado para {lembrete.AgendadoEm:dd/MM/yyyy HH:mm} ({lembrete.Animal.Nome}).";
+        var mensagem = TextoDoLembrete.Notificacao(lembrete);
         var notificado = false;
 
         var chatId = await tutorTelegramRepository.GetChatIdByTutorIdAsync(tutor.Id);

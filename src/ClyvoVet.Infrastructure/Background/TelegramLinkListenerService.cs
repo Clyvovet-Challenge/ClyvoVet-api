@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Security;
+using ClyvoVet.Application.Services.Interfaces;
 using Telegram.Bot;
 
 namespace ClyvoVet.Infrastructure.Background;
@@ -115,10 +115,7 @@ public class TelegramLinkListenerService : BackgroundService
             }
 
             using var scope = _scopeFactory.CreateScope();
-            var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-            await repository.VincularAsync(tutorId, chatId);
-
-            _logger.LogInformation("Tutor {TutorId} vinculado ao chatId {ChatId} no Telegram.", tutorId, chatId);
+            await scope.ServiceProvider.GetRequiredService<IComandosDoBotService>().VincularAsync(tutorId, chatId);
 
             await _botClient.SendMessage(
                 chatId,
@@ -183,77 +180,21 @@ public class TelegramLinkListenerService : BackgroundService
     private async Task ResponderDesvincularAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-
-        var tutorId = await repository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(chatId, "Você não está vinculado a nenhum tutor no momento.", cancellationToken: cancellationToken);
-            return;
-        }
-
-        await repository.DesvincularAsync(tutorId);
-        _logger.LogInformation("Tutor {TutorId} desvinculado do chatId {ChatId} no Telegram.", tutorId, chatId);
-
-        await _botClient.SendMessage(
-            chatId,
-            "✅ Vínculo removido. Você não vai mais receber notificações da ClyvoVet por aqui.",
-            cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.DesvincularAsync(chatId), cancellationToken: cancellationToken);
     }
 
     private async Task ResponderMeusAnimaisAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        var animalRepository = scope.ServiceProvider.GetRequiredService<IAnimalRepository>();
-
-        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(
-                chatId,
-                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        var animais = (await animalRepository.GetByTutorIdAsync(tutorId)).ToList();
-        if (animais.Count == 0)
-        {
-            await _botClient.SendMessage(chatId, "Você ainda não tem nenhum pet cadastrado.", cancellationToken: cancellationToken);
-            return;
-        }
-
-        var linhas = animais.Select(a => $"• {a.Nome} — {a.Especie}{(string.IsNullOrWhiteSpace(a.Raca) ? "" : $" ({a.Raca})")}");
-        var mensagem = "🐾 Seus pets:\n\n" + string.Join("\n", linhas);
-        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.MeusAnimaisAsync(chatId), cancellationToken: cancellationToken);
     }
 
     private async Task ResponderMeusLembretesAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        var lembreteRepository = scope.ServiceProvider.GetRequiredService<ILembreteRepository>();
-
-        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(
-                chatId,
-                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        var lembretes = (await lembreteRepository.GetPendentesByTutorIdAsync(tutorId)).ToList();
-        if (lembretes.Count == 0)
-        {
-            await _botClient.SendMessage(chatId, "Você não tem lembretes pendentes no momento. 🎉", cancellationToken: cancellationToken);
-            return;
-        }
-
-        var linhas = lembretes.Select(l => $"• {l.Titulo} ({l.Animal.Nome}) — {l.AgendadoEm:dd/MM/yyyy HH:mm}");
-        var mensagem = "📋 Seus lembretes pendentes:\n\n" + string.Join("\n", linhas);
-        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.MeusLembretesAsync(chatId), cancellationToken: cancellationToken);
     }
 }
