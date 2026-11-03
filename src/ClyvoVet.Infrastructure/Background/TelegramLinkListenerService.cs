@@ -212,28 +212,7 @@ public class TelegramLinkListenerService : BackgroundService
     private async Task ResponderMeusLembretesAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var tutorTelegramRepository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-        var lembreteRepository = scope.ServiceProvider.GetRequiredService<ILembreteRepository>();
-
-        var tutorId = await tutorTelegramRepository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(
-                chatId,
-                "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.",
-                cancellationToken: cancellationToken);
-            return;
-        }
-
-        var lembretes = (await lembreteRepository.GetPendentesByTutorIdAsync(tutorId)).ToList();
-        if (lembretes.Count == 0)
-        {
-            await _botClient.SendMessage(chatId, "Você não tem lembretes pendentes no momento. 🎉", cancellationToken: cancellationToken);
-            return;
-        }
-
-        var linhas = lembretes.Select(l => $"• {l.Titulo} ({l.Animal.Nome}) — {l.AgendadoEm:dd/MM/yyyy HH:mm}");
-        var mensagem = "📋 Seus lembretes pendentes:\n\n" + string.Join("\n", linhas);
-        await _botClient.SendMessage(chatId, mensagem, cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.MeusLembretesAsync(chatId), cancellationToken: cancellationToken);
     }
 }

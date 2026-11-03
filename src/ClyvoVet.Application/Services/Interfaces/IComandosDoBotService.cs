@@ -8,4 +8,7 @@ public interface IComandosDoBotService
 {
     /// <summary>Resposta ao <c>/meusanimais</c>.</summary>
     Task<string> MeusAnimaisAsync(long chatId);
+
+    /// <summary>Resposta ao <c>/meuslembretes</c>.</summary>
+    Task<string> MeusLembretesAsync(long chatId);
 }

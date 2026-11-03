@@ -14,7 +14,8 @@ namespace ClyvoVet.Application.Services;
 /// </summary>
 public class ComandosDoBotService(
     ITutorTelegramRepository vinculos,
-    IAnimalRepository animais) : IComandosDoBotService
+    IAnimalRepository animais,
+    ILembreteRepository lembretes) : IComandosDoBotService
 {
     private const string SemVinculo =
         "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.";
@@ -31,5 +32,19 @@ public class ComandosDoBotService(
 
         var linhas = lista.Select(a => $"• {a.Nome} — {a.Especie}{(string.IsNullOrWhiteSpace(a.Raca) ? "" : $" ({a.Raca})")}");
         return "🐾 Seus pets:\n\n" + string.Join("\n", linhas);
+    }
+
+    public async Task<string> MeusLembretesAsync(long chatId)
+    {
+        var tutorId = await vinculos.GetTutorIdByChatIdAsync(chatId);
+        if (tutorId is null)
+            return SemVinculo;
+
+        var pendentes = (await lembretes.GetPendentesByTutorIdAsync(tutorId)).ToList();
+        if (pendentes.Count == 0)
+            return "Você não tem lembretes pendentes no momento. 🎉";
+
+        var linhas = pendentes.Select(l => $"• {l.Titulo} ({l.Animal.Nome}) — {l.AgendadoEm:dd/MM/yyyy HH:mm}");
+        return "📋 Seus lembretes pendentes:\n\n" + string.Join("\n", linhas);
     }
 }
