@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Security;
 using ClyvoVet.Application.Services.Interfaces;
 using Telegram.Bot;
@@ -116,10 +115,7 @@ public class TelegramLinkListenerService : BackgroundService
             }
 
             using var scope = _scopeFactory.CreateScope();
-            var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-            await repository.VincularAsync(tutorId, chatId);
-
-            _logger.LogInformation("Tutor {TutorId} vinculado ao chatId {ChatId} no Telegram.", tutorId, chatId);
+            await scope.ServiceProvider.GetRequiredService<IComandosDoBotService>().VincularAsync(tutorId, chatId);
 
             await _botClient.SendMessage(
                 chatId,
@@ -184,22 +180,8 @@ public class TelegramLinkListenerService : BackgroundService
     private async Task ResponderDesvincularAsync(long chatId, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<ITutorTelegramRepository>();
-
-        var tutorId = await repository.GetTutorIdByChatIdAsync(chatId);
-        if (tutorId is null)
-        {
-            await _botClient.SendMessage(chatId, "Você não está vinculado a nenhum tutor no momento.", cancellationToken: cancellationToken);
-            return;
-        }
-
-        await repository.DesvincularAsync(tutorId);
-        _logger.LogInformation("Tutor {TutorId} desvinculado do chatId {ChatId} no Telegram.", tutorId, chatId);
-
-        await _botClient.SendMessage(
-            chatId,
-            "✅ Vínculo removido. Você não vai mais receber notificações da ClyvoVet por aqui.",
-            cancellationToken: cancellationToken);
+        var comandos = scope.ServiceProvider.GetRequiredService<IComandosDoBotService>();
+        await _botClient.SendMessage(chatId, await comandos.DesvincularAsync(chatId), cancellationToken: cancellationToken);
     }
 
     private async Task ResponderMeusAnimaisAsync(long chatId, CancellationToken cancellationToken)

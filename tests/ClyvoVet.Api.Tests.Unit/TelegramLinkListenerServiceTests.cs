@@ -45,6 +45,7 @@ public class TelegramLinkListenerServiceTests
         servicos.AddScoped(_ => _vinculos.Object);
         servicos.AddScoped(_ => _animais.Object);
         servicos.AddScoped(_ => _lembretes.Object);
+        servicos.AddLogging();
         servicos.AddScoped<IComandosDoBotService, ComandosDoBotService>();
 
         return new TelegramLinkListenerService(

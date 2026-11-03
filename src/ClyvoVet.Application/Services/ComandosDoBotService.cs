@@ -1,5 +1,6 @@
 using ClyvoVet.Application.Abstractions.Repositories;
 using ClyvoVet.Application.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace ClyvoVet.Application.Services;
 
@@ -15,7 +16,8 @@ namespace ClyvoVet.Application.Services;
 public class ComandosDoBotService(
     ITutorTelegramRepository vinculos,
     IAnimalRepository animais,
-    ILembreteRepository lembretes) : IComandosDoBotService
+    ILembreteRepository lembretes,
+    ILogger<ComandosDoBotService> logger) : IComandosDoBotService
 {
     private const string SemVinculo =
         "Você ainda não está vinculado a nenhum tutor. Peça o link de vínculo no app da ClyvoVet.";
@@ -46,5 +48,22 @@ public class ComandosDoBotService(
 
         var linhas = pendentes.Select(l => $"• {l.Titulo} ({l.Animal.Nome}) — {l.AgendadoEm:dd/MM/yyyy HH:mm}");
         return "📋 Seus lembretes pendentes:\n\n" + string.Join("\n", linhas);
+    }
+
+    public async Task VincularAsync(string tutorId, long chatId)
+    {
+        await vinculos.VincularAsync(tutorId, chatId);
+        logger.LogInformation("Tutor {TutorId} vinculado ao chatId {ChatId} no Telegram.", tutorId, chatId);
+    }
+
+    public async Task<string> DesvincularAsync(long chatId)
+    {
+        var tutorId = await vinculos.GetTutorIdByChatIdAsync(chatId);
+        if (tutorId is null)
+            return "Você não está vinculado a nenhum tutor no momento.";
+
+        await vinculos.DesvincularAsync(tutorId);
+        logger.LogInformation("Tutor {TutorId} desvinculado do chatId {ChatId} no Telegram.", tutorId, chatId);
+        return "✅ Vínculo removido. Você não vai mais receber notificações da ClyvoVet por aqui.";
     }
 }

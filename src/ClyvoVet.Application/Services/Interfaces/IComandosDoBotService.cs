@@ -11,4 +11,10 @@ public interface IComandosDoBotService
 
     /// <summary>Resposta ao <c>/meuslembretes</c>.</summary>
     Task<string> MeusLembretesAsync(long chatId);
+
+    /// <summary>Grava o vínculo depois que o ouvinte trocou o convite pelo tutor.</summary>
+    Task VincularAsync(string tutorId, long chatId);
+
+    /// <summary>Resposta ao <c>/desvincular</c>.</summary>
+    Task<string> DesvincularAsync(long chatId);
 }
