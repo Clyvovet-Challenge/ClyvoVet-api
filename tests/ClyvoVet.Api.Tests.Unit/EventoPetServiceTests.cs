@@ -14,6 +14,10 @@ public class EventoPetServiceTests
     private readonly Mock<IEventoPetRepository> _repositoryMock = new();
     private readonly EventoPetService _service;
 
+    // O serviço decide "no passado" pelo relógio de Brasília. DateTime.Today seguiria o fuso da máquina:
+    // no agente do Azure (UTC), entre 21h e 24h de Brasília, "ontem" seria o dia de hoje no serviço.
+    private static DateOnly Hoje => HorarioDeBrasilia.Hoje();
+
     public EventoPetServiceTests()
     {
         _service = new EventoPetService(_repositoryMock.Object);
@@ -30,7 +34,7 @@ public class EventoPetServiceTests
                 Id = "1",
                 Titulo = "Feira de Adoção",
                 Tipo = TipoEventoPetEnum.Feira,
-                DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+                DataInicio = Hoje.AddDays(5),
                 EspecieAlvo = EspecieEnum.Todos
             }
         };
@@ -57,7 +61,7 @@ public class EventoPetServiceTests
             Id = "1",
             Titulo = "Feira de Adoção",
             Tipo = TipoEventoPetEnum.Feira,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            DataInicio = Hoje.AddDays(5),
             EspecieAlvo = EspecieEnum.Todos
         };
         _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(evento);
@@ -77,7 +81,7 @@ public class EventoPetServiceTests
         {
             Titulo = "Evento Passado",
             Tipo = TipoEventoPetEnum.Vacinacao,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)),
+            DataInicio = Hoje.AddDays(-1),
             EspecieAlvo = EspecieEnum.Todos
         };
 
@@ -94,8 +98,8 @@ public class EventoPetServiceTests
         {
             Titulo = "Evento Datas Invertidas",
             Tipo = TipoEventoPetEnum.Workshop,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(10)),
-            DataFim = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            DataInicio = Hoje.AddDays(10),
+            DataFim = Hoje.AddDays(5),
             EspecieAlvo = EspecieEnum.Todos
         };
 
@@ -111,7 +115,7 @@ public class EventoPetServiceTests
         {
             Titulo = "Feira de Adoção",
             Tipo = TipoEventoPetEnum.Feira,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            DataInicio = Hoje.AddDays(5),
             EspecieAlvo = EspecieEnum.Todos
         };
         _repositoryMock
@@ -138,7 +142,7 @@ public class EventoPetServiceTests
         {
             Id = "1",
             Titulo = "Evento Original",
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(10))
+            DataInicio = Hoje.AddDays(10)
         };
         _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(existing);
 
@@ -146,7 +150,7 @@ public class EventoPetServiceTests
         {
             Titulo = "Evento Original",
             Tipo = TipoEventoPetEnum.Outro,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(-2)),
+            DataInicio = Hoje.AddDays(-2),
             EspecieAlvo = EspecieEnum.Todos
         };
 
@@ -159,7 +163,7 @@ public class EventoPetServiceTests
     {
         // Arrange — evento já em andamento (dataInicio no passado) pode ser editado
         // desde que a dataInicio enviada seja a MESMA já cadastrada.
-        var dataOriginal = DateOnly.FromDateTime(DateTime.Today.AddDays(-5));
+        var dataOriginal = Hoje.AddDays(-5);
         var existing = new EventoPet { Id = "1", Titulo = "Evento em Andamento", DataInicio = dataOriginal };
         _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(existing);
         _repositoryMock.Setup(r => r.UpdateAsync("1", It.IsAny<EventoPet>())).ReturnsAsync((string _, EventoPet e) => e);
@@ -188,7 +192,7 @@ public class EventoPetServiceTests
         {
             Titulo = "X",
             Tipo = TipoEventoPetEnum.Outro,
-            DataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+            DataInicio = Hoje.AddDays(1),
             EspecieAlvo = EspecieEnum.Todos
         };
 
@@ -200,7 +204,7 @@ public class EventoPetServiceTests
     public async Task UpdateAsync_ApagadoNoMeio_LancaNotFound()
     {
         // Arrange — outra requisição apaga o evento entre a leitura e a gravação.
-        var dataInicio = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
+        var dataInicio = Hoje.AddDays(1);
         _repositoryMock.Setup(r => r.GetByIdAsync("1")).ReturnsAsync(new EventoPet { Id = "1", Titulo = "Feira", DataInicio = dataInicio });
         _repositoryMock.Setup(r => r.UpdateAsync("1", It.IsAny<EventoPet>())).ReturnsAsync((EventoPet?)null);
         var request = new EventoPetRequest
