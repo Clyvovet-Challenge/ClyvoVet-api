@@ -210,6 +210,7 @@ empacotado por uma pipeline no **Azure DevOps** e implantado automaticamente num
 |---|---|---|
 | Código | GitHub, `Clyvovet-Challenge/ClyvoVet-api` | a pipeline está em [`azure-pipelines.yml`](azure-pipelines.yml), na raiz |
 | Projeto no Azure DevOps | [`Sprint 4 – Azure DevOps`](https://dev.azure.com/clyvovet-rm563065/Sprint%204%20%E2%80%93%20Azure%20DevOps) | privado, Git, processo Agile; o professor foi convidado com acesso Basic |
+| Vídeo da demonstração | [YouTube (não listado)](https://www.youtube.com/watch?v=tXBDF4eF4KE) | pipeline disparada por commit, CI, CD, Portal da Azure e CRUD conferido no banco com `SELECT` |
 | Hospedagem | Azure Web App Linux, .NET 8, sem container, plano B1 | `app-clyvovet-devops-rm563065`, no grupo de recursos `rg-clyvovet-devops` |
 | Banco | Aiven, MySQL 8.4 | gerenciado (PaaS); só aceita conexão com TLS (`SslMode=Required`) |
 
